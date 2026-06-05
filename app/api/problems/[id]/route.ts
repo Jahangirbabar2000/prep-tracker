@@ -1,0 +1,62 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '@/lib/db';
+import { Attempt, Link, Note, Problem } from '@/lib/types';
+
+export const runtime = 'nodejs';
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const db = getDb();
+  const { id } = await params;
+
+  const problem = db.prepare('SELECT * FROM problems WHERE id = ?').get(id) as Problem | undefined;
+  if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const attempts = db.prepare(
+    'SELECT * FROM attempts WHERE problem_id = ? ORDER BY attempted_at DESC'
+  ).all(id) as Attempt[];
+
+  const notes = db.prepare(
+    'SELECT * FROM notes WHERE problem_id = ? ORDER BY created_at ASC'
+  ).all(id) as Note[];
+
+  const links = db.prepare(
+    'SELECT * FROM links WHERE problem_id = ? ORDER BY created_at ASC'
+  ).all(id) as Link[];
+
+  const avgTime = attempts.length
+    ? attempts.reduce((s, a) => s + a.time_taken_mins, 0) / attempts.length
+    : null;
+
+  return NextResponse.json({ ...problem, attempts, notes, links, avg_time: avgTime });
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const db = getDb();
+  const { id } = await params;
+  const body = await req.json();
+
+  const allowed = [
+    'name', 'platform', 'pattern_tag', 'question_list',
+    'sd_category', 'sd_source',
+    'fe_bucket', 'fe_question_set',
+    'py_category',
+    'resource_url', 'notes_text',
+  ];
+
+  const fields = Object.keys(body).filter(k => allowed.includes(k));
+  if (!fields.length) return NextResponse.json({ error: 'No valid fields' }, { status: 400 });
+
+  const setClause = fields.map(f => `${f} = ?`).join(', ');
+  const values = fields.map(f => body[f]);
+
+  db.prepare(`UPDATE problems SET ${setClause} WHERE id = ?`).run(...values, id);
+  const updated = db.prepare('SELECT * FROM problems WHERE id = ?').get(id) as Problem;
+  return NextResponse.json(updated);
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const db = getDb();
+  const { id } = await params;
+  db.prepare('DELETE FROM problems WHERE id = ?').run(id);
+  return NextResponse.json({ ok: true });
+}
