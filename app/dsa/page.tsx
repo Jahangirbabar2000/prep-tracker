@@ -11,7 +11,8 @@ const selectCls = 'bg-surface border border-border rounded-lg px-3 py-2 text-sm 
 const DSA_PATTERNS = [
   'Arrays & Hashing', 'Two Pointers', 'Sliding Window', 'Stack', 'Binary Search',
   'Linked List', 'Trees', 'Tries', 'Backtracking', 'Heap / Priority Queue',
-  'Graphs', 'Dynamic Programming', 'Greedy', 'Intervals', 'Math & Geometry',
+  'Graphs', 'Depth-First Search', 'Breadth-First Search', 'Dynamic Programming',
+  'Greedy', 'Intervals', 'Prefix Sum', 'Matrices', 'Math & Geometry',
 ];
 
 export default async function DSAPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {

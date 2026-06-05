@@ -6,7 +6,8 @@ import { Problem } from '@/lib/types';
 const DSA_PATTERNS = [
   'Arrays & Hashing', 'Two Pointers', 'Sliding Window', 'Stack', 'Binary Search',
   'Linked List', 'Trees', 'Tries', 'Backtracking', 'Heap / Priority Queue',
-  'Graphs', 'Dynamic Programming', 'Greedy', 'Intervals', 'Math & Geometry',
+  'Graphs', 'Depth-First Search', 'Breadth-First Search', 'Dynamic Programming',
+  'Greedy', 'Intervals', 'Prefix Sum', 'Matrices', 'Math & Geometry',
 ];
 const SD_CATEGORIES = [
   'Caching', 'Databases', 'Messaging Queues', 'Load Balancing', 'Sharding',
