@@ -1,71 +1,93 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
 
-/* Enable class-based dark mode (toggle .dark on <html>) */
+/* Class-based dark mode — toggle .dark on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ── Light theme ─────────────────────────────────────────────────────────── */
 :root {
-  --background: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #f1f5f9;
-  --foreground: #0f172a;
-  --muted: #64748b;
-  --border: #e5e9f0;
+  --bg:            #f6f7f9;
+  --surface:       #ffffff;
+  --surface-2:     #f1f5f9;
+  --fg:            #0f172a;
+  --muted:         #64748b;
+  --border:        #e2e8f0;
   --border-strong: #cbd5e1;
-  --accent: #16a34a;
-  --accent-hover: #15803d;
-  --accent-fg: #ffffff;
-  --danger: #dc2626;
+  --accent:        #16a34a;
+  --accent-h:      #15803d;
+  --accent-fg:     #ffffff;
+  --danger:        #dc2626;
 }
 
+/* ── Dark theme ──────────────────────────────────────────────────────────── */
 .dark {
-  --background: #0a0f1a;
-  --surface: #111827;
-  --surface-2: #1a2334;
-  --foreground: #f1f5f9;
-  --muted: #94a3b8;
-  --border: #232c3d;
+  --bg:            #0a0f1a;
+  --surface:       #111827;
+  --surface-2:     #1a2334;
+  --fg:            #f1f5f9;
+  --muted:         #94a3b8;
+  --border:        #1e2a3d;
   --border-strong: #334155;
-  --accent: #22c55e;
-  --accent-hover: #16a34a;
-  --accent-fg: #052e16;
-  --danger: #f87171;
+  --accent:        #22c55e;
+  --accent-h:      #16a34a;
+  --accent-fg:     #052e16;
+  --danger:        #f87171;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-fg: var(--foreground);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-fg: var(--accent-fg);
-  --color-danger: var(--danger);
-  --font-sans: 'Inter', system-ui, sans-serif;
-}
+/* ── Semantic utility classes ────────────────────────────────────────────── */
+/* These reference the CSS vars above, so they respond to .dark automatically */
 
-* {
-  box-sizing: border-box;
-}
+.bg-bg               { background-color: var(--bg); }
+.bg-surface          { background-color: var(--surface); }
+.bg-surface-2        { background-color: var(--surface-2); }
+.text-fg             { color: var(--fg); }
+.text-muted          { color: var(--muted); }
+.border-border       { border-color: var(--border); }
+.border-border-strong{ border-color: var(--border-strong); }
+.bg-accent           { background-color: var(--accent); }
+.text-accent         { color: var(--accent); }
+.text-accent-fg      { color: var(--accent-fg); }
+.bg-accent-fg        { background-color: var(--accent-fg); }
+.text-danger         { color: var(--danger); }
+.bg-danger           { background-color: var(--danger); }
 
-html {
-  -webkit-font-smoothing: antialiased;
-}
+/* hover variants */
+.hover\:bg-accent-hover:hover   { background-color: var(--accent-h); }
+.hover\:text-accent-hover:hover { color: var(--accent-h); }
+.hover\:bg-surface-2:hover      { background-color: var(--surface-2); }
+.hover\:bg-border:hover         { background-color: var(--border); }
+.hover\:border-border-strong:hover { border-color: var(--border-strong); }
+.hover\:text-fg:hover           { color: var(--fg); }
+.hover\:text-danger:hover       { color: var(--danger); }
+.hover\:text-accent-hover:hover { color: var(--accent-h); }
 
+/* focus variants */
+.focus\:border-accent:focus   { border-color: var(--accent); }
+
+/* opacity / mix variants */
+.bg-accent\/10   { background-color: color-mix(in srgb, var(--accent) 10%, transparent); }
+.bg-danger\/10   { background-color: color-mix(in srgb, var(--danger) 10%, transparent); }
+.border-accent\/40 { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.border-danger\/40 { border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+.bg-surface\/80  { background-color: color-mix(in srgb, var(--surface) 80%, transparent); }
+.bg-surface\/95  { background-color: color-mix(in srgb, var(--surface) 95%, transparent); }
+.bg-surface-2\/50{ background-color: color-mix(in srgb, var(--surface-2) 50%, transparent); }
+.text-fg\/80     { color: color-mix(in srgb, var(--fg) 80%, transparent); }
+.text-fg\/90     { color: color-mix(in srgb, var(--fg) 90%, transparent); }
+.text-muted\/60  { color: color-mix(in srgb, var(--muted) 60%, transparent); }
+.ring-accent\/40 { --tw-ring-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.focus\:ring-accent\/40:focus { --tw-ring-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; }
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg);
+  color: var(--fg);
   font-family: 'Inter', system-ui, sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
-
-/* Tabular numerals for data columns */
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
+.tabular { font-variant-numeric: tabular-nums; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
