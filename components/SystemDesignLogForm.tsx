@@ -14,7 +14,6 @@ export default function SystemDesignLogForm() {
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
   const [learned, setLearned] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
-  const [linkLabel, setLinkLabel] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -67,7 +66,7 @@ export default function SystemDesignLogForm() {
       await fetch(`/api/problems/${pid}/links`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: linkUrl.trim(), label: linkLabel.trim() || null }),
+        body: JSON.stringify({ url: linkUrl.trim(), label: name || null }),
       });
     }
 
@@ -126,22 +125,13 @@ export default function SystemDesignLogForm() {
         <label className="inline-flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide">
           <Link2 size={12} /> Link <span className="normal-case tracking-normal text-muted/60">(optional)</span>
         </label>
-        <div className="flex gap-2 flex-wrap">
-          <input
-            type="url"
-            value={linkUrl}
-            onChange={e => setLinkUrl(e.target.value)}
-            placeholder="https://youtube.com/watch?v=…"
-            className={`${inputCls} flex-1 min-w-[200px]`}
-          />
-          <input
-            type="text"
-            value={linkLabel}
-            onChange={e => setLinkLabel(e.target.value)}
-            placeholder="Label (e.g. Hello Interview video)"
-            className={`${inputCls} w-52`}
-          />
-        </div>
+        <input
+          type="url"
+          value={linkUrl}
+          onChange={e => setLinkUrl(e.target.value)}
+          placeholder="https://youtube.com/watch?v=…"
+          className={inputCls}
+        />
       </div>
 
       <button

@@ -87,7 +87,8 @@ export default function LinksManager({ problemId, links, onChange }: Props) {
             type="text"
             value={label}
             onChange={e => setLabel(e.target.value)}
-            placeholder="Label (optional, e.g. Solution video)"
+            placeholder="Label (optional)"
+            autoComplete="off"
             className={inputCls}
           />
           <div className="flex gap-2">

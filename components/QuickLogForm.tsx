@@ -44,7 +44,6 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
   const [pyCategory, setPyCategory] = useState('');
 
   const [linkUrl, setLinkUrl] = useState('');
-  const [linkLabel, setLinkLabel] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -112,10 +111,11 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
     }
 
     if (linkUrl.trim()) {
+      const problemName = selectedProblem?.name ?? query.trim();
       await fetch(`/api/problems/${pid}/links`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: linkUrl.trim(), label: linkLabel.trim() || null }),
+        body: JSON.stringify({ url: linkUrl.trim(), label: problemName || null }),
       });
     }
 
@@ -310,22 +310,13 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
         <label className="inline-flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide">
           <Link2 size={12} /> Link <span className="normal-case tracking-normal text-muted/60">(optional)</span>
         </label>
-        <div className="flex gap-2 flex-wrap">
-          <input
-            type="url"
-            value={linkUrl}
-            onChange={e => setLinkUrl(e.target.value)}
-            placeholder="https://leetcode.com/problems/…"
-            className={`${inputCls} flex-1 min-w-[200px]`}
-          />
-          <input
-            type="text"
-            value={linkLabel}
-            onChange={e => setLinkLabel(e.target.value)}
-            placeholder="Label (e.g. Solution video)"
-            className={`${inputCls} w-44`}
-          />
-        </div>
+        <input
+          type="url"
+          value={linkUrl}
+          onChange={e => setLinkUrl(e.target.value)}
+          placeholder="https://leetcode.com/problems/…"
+          className={inputCls}
+        />
       </div>
 
       <button
