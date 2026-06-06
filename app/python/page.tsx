@@ -25,7 +25,7 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
     <div>
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-semibold text-fg tracking-tight">Python</h1>
-        <Link href="/log?domain=python" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
+        <Link href="/python/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
           <Plus size={16} /> Log Attempt
         </Link>
       </div>

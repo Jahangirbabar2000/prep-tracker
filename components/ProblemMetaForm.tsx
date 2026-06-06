@@ -93,13 +93,13 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
         {field('Category', 'py_category', select('py_category', ['Language Quirks', 'stdlib', 'OOP', 'Concurrency', 'Other']))}
       </>}
 
-      {field('Reference Notes', 'notes_text',
+      {field(problem.domain === 'system_design' ? 'What I Learned' : 'Reference Notes', 'notes_text',
         <textarea
           value={data.notes_text ?? ''}
           onChange={e => setData(d => ({ ...d, notes_text: e.target.value }))}
           onBlur={e => save('notes_text', e.target.value)}
-          placeholder="Short context (links live below)…"
-          className={`${inputCls} resize-none h-20`}
+          placeholder={problem.domain === 'system_design' ? 'Key takeaways, decisions, patterns…' : 'Short context (links live below)…'}
+          className={`${inputCls} resize-none h-28`}
         />
       )}
     </div>
