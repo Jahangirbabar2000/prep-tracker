@@ -69,7 +69,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {problem.domain === 'dsa' && <>
-        {field('Platform', 'platform', select('platform', ['LeetCode', 'NeetCode', 'Other']))}
+        {field('Platform', 'platform', select('platform', ['LeetCode', 'NeetCode', 'Hello Interview', 'Other']))}
         {field('Question List', 'question_list', select('question_list', ['NeetCode 150', 'Blind 75', 'Other']))}
         {field('Pattern', 'pattern_tag', <>
           {freeInput('pattern_tag', 'e.g. Sliding Window', 'dsa-patterns')}
