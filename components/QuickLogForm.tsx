@@ -14,6 +14,13 @@ interface Props {
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
+const DSA_PATTERNS = [
+  'Arrays & Hashing', 'Two Pointers', 'Sliding Window', 'Stack', 'Binary Search',
+  'Linked List', 'Trees', 'Tries', 'Backtracking', 'Heap / Priority Queue',
+  'Graphs', 'Depth-First Search', 'Breadth-First Search', 'Dynamic Programming',
+  'Greedy', 'Intervals', 'Prefix Sum', 'Matrices', 'Math & Geometry',
+];
+
 export default function QuickLogForm({ defaultDomain, inline, problemId, onLogged }: Props) {
   const router = useRouter();
   const [domain, setDomain] = useState<Domain>(defaultDomain ?? 'dsa');
@@ -27,15 +34,21 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
     return d.toISOString().slice(0, 10);
   });
   const [struggled, setStruggled] = useState(false);
-  const [practiceType, setPracticeType] = useState<'solo' | 'mock'>('solo');
+
+  // Domain-specific optional metadata
+  const [platform, setPlatform] = useState('');
+  const [questionList, setQuestionList] = useState('');
+  const [patternTag, setPatternTag] = useState('');
+  const [feBucket, setFeBucket] = useState('');
+  const [feQuestionSet, setFeQuestionSet] = useState('');
+  const [pyCategory, setPyCategory] = useState('');
+
   const [linkUrl, setLinkUrl] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showPracticeType = problemId
-    ? defaultDomain === 'system_design'
-    : domain === 'system_design';
+  const effectiveDomain = defaultDomain ?? domain;
 
   useEffect(() => {
     if (inline && inputRef.current) inputRef.current.focus();
@@ -44,12 +57,12 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
   useEffect(() => {
     if (!query.trim() || selectedProblem) { setSuggestions([]); return; }
     const t = setTimeout(async () => {
-      const res = await fetch(`/api/problems?domain=${domain}`);
+      const res = await fetch(`/api/problems?domain=${effectiveDomain}`);
       const all: Problem[] = await res.json();
       setSuggestions(all.filter(p => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8));
     }, 150);
     return () => clearTimeout(t);
-  }, [query, domain, selectedProblem]);
+  }, [query, effectiveDomain, selectedProblem]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -62,7 +75,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
       const res = await fetch('/api/problems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: query.trim(), domain }),
+        body: JSON.stringify({ name: query.trim(), domain: effectiveDomain }),
       });
       const p: Problem = await res.json();
       pid = p.id;
@@ -75,9 +88,28 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
         time_taken_mins: +timeTaken,
         struggled,
         attempted_at: attemptedAt,
-        ...(showPracticeType ? { practice_type: practiceType } : {}),
       }),
     });
+
+    // Patch optional metadata if any was filled in
+    const meta: Record<string, string> = {};
+    if (effectiveDomain === 'dsa') {
+      if (platform)     meta.platform     = platform;
+      if (questionList) meta.question_list = questionList;
+      if (patternTag)   meta.pattern_tag  = patternTag;
+    } else if (effectiveDomain === 'frontend') {
+      if (feBucket)     meta.fe_bucket      = feBucket;
+      if (feQuestionSet) meta.fe_question_set = feQuestionSet;
+    } else if (effectiveDomain === 'python') {
+      if (pyCategory)   meta.py_category  = pyCategory;
+    }
+    if (Object.keys(meta).length > 0) {
+      await fetch(`/api/problems/${pid}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(meta),
+      });
+    }
 
     if (linkUrl.trim()) {
       await fetch(`/api/problems/${pid}/links`, {
@@ -145,6 +177,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
         </div>
       )}
 
+      {/* Time + date + struggled */}
       <div className="flex gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-muted uppercase tracking-wide">Date</label>
@@ -182,29 +215,94 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
             {struggled ? 'Yes' : 'No'}
           </button>
         </div>
+      </div>
 
-        {showPracticeType && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted uppercase tracking-wide">Practice Type</label>
-            <div className="flex gap-1 min-h-[42px] items-center">
-              {(['solo', 'mock'] as const).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setPracticeType(t)}
-                  className={`px-3 py-2 rounded-lg text-sm capitalize border transition-colors cursor-pointer ${
-                    practiceType === t
-                      ? 'bg-accent text-accent-fg border-accent'
-                      : 'bg-surface text-muted border-border hover:text-fg'
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
+      {/* ── DSA optional metadata ─────────────────────────────────────── */}
+      {effectiveDomain === 'dsa' && !problemId && (
+        <div className="flex flex-col gap-3 pt-1 border-t border-border">
+          <p className="text-xs text-muted uppercase tracking-wide font-medium mt-2">Details <span className="normal-case tracking-normal opacity-60">(optional)</span></p>
+          <div className="flex gap-3 flex-wrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Platform</label>
+              <select value={platform} onChange={e => setPlatform(e.target.value)} className={`${inputCls}`}>
+                <option value="">— none —</option>
+                <option>LeetCode</option>
+                <option>NeetCode</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Question List</label>
+              <select value={questionList} onChange={e => setQuestionList(e.target.value)} className={`${inputCls}`}>
+                <option value="">— none —</option>
+                <option>NeetCode 150</option>
+                <option>Blind 75</option>
+                <option>Other</option>
+              </select>
             </div>
           </div>
-        )}
-      </div>
+          <div className="flex flex-col gap-1 relative">
+            <label className="text-xs text-muted">Pattern</label>
+            <input
+              list="qf-dsa-patterns"
+              type="text"
+              value={patternTag}
+              onChange={e => setPatternTag(e.target.value)}
+              placeholder="e.g. Sliding Window"
+              className={inputCls}
+            />
+            <datalist id="qf-dsa-patterns">
+              {DSA_PATTERNS.map(p => <option key={p} value={p} />)}
+            </datalist>
+          </div>
+        </div>
+      )}
+
+      {/* ── Frontend optional metadata ────────────────────────────────── */}
+      {effectiveDomain === 'frontend' && !problemId && (
+        <div className="flex flex-col gap-3 pt-1 border-t border-border">
+          <p className="text-xs text-muted uppercase tracking-wide font-medium mt-2">Details <span className="normal-case tracking-normal opacity-60">(optional)</span></p>
+          <div className="flex gap-3 flex-wrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Bucket</label>
+              <select value={feBucket} onChange={e => setFeBucket(e.target.value)} className={inputCls}>
+                <option value="">— none —</option>
+                <option>JS Quirks</option>
+                <option>React Internals</option>
+                <option>Component Building</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Question Set</label>
+              <select value={feQuestionSet} onChange={e => setFeQuestionSet(e.target.value)} className={inputCls}>
+                <option value="">— none —</option>
+                <option>React 100</option>
+                <option>JS 500</option>
+                <option>Frontend 75</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Python optional metadata ──────────────────────────────────── */}
+      {effectiveDomain === 'python' && !problemId && (
+        <div className="flex flex-col gap-3 pt-1 border-t border-border">
+          <p className="text-xs text-muted uppercase tracking-wide font-medium mt-2">Details <span className="normal-case tracking-normal opacity-60">(optional)</span></p>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-muted">Category</label>
+            <select value={pyCategory} onChange={e => setPyCategory(e.target.value)} className={inputCls}>
+              <option value="">— none —</option>
+              <option>Language Quirks</option>
+              <option>stdlib</option>
+              <option>OOP</option>
+              <option>Concurrency</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Optional link */}
       <div className="flex flex-col gap-1">
