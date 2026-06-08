@@ -66,4 +66,10 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_problems_domain ON problems(domain);
     CREATE INDEX IF NOT EXISTS idx_problems_next_due ON problems(next_due_date);
   `);
+
+  // Migrations — safe to run on existing DBs
+  const cols = db.prepare('PRAGMA table_info(problems)').all() as { name: string }[];
+  if (!cols.some(c => c.name === 'difficulty')) {
+    db.exec('ALTER TABLE problems ADD COLUMN difficulty TEXT');
+  }
 }

@@ -11,6 +11,12 @@ interface Props {
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+const DIFFICULTY_STYLE: Record<string, string> = {
+  Easy:   'text-emerald-500 dark:text-emerald-400',
+  Medium: 'text-amber-500  dark:text-amber-400',
+  Hard:   'text-red-500    dark:text-red-400',
+};
+
 function fmtLogged(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
   const thisYear = new Date().getFullYear();
@@ -30,6 +36,11 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-fg truncate">{p.name}</span>
+          {p.difficulty && (
+            <span className={`text-xs font-medium tabular ${DIFFICULTY_STYLE[p.difficulty] ?? 'text-muted'}`}>
+              {p.difficulty}
+            </span>
+          )}
           {isDue && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-danger/10 text-danger">
               due

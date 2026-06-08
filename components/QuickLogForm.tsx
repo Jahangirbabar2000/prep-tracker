@@ -39,6 +39,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
   const [platform, setPlatform] = useState('');
   const [questionList, setQuestionList] = useState('');
   const [patternTag, setPatternTag] = useState('');
+  const [difficulty, setDifficulty] = useState('');
   const [feBucket, setFeBucket] = useState('');
   const [feQuestionSet, setFeQuestionSet] = useState('');
   const [pyCategory, setPyCategory] = useState('');
@@ -96,6 +97,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
       if (platform)     meta.platform     = platform;
       if (questionList) meta.question_list = questionList;
       if (patternTag)   meta.pattern_tag  = patternTag;
+      if (difficulty)   meta.difficulty   = difficulty;
     } else if (effectiveDomain === 'frontend') {
       if (feBucket)     meta.fe_bucket      = feBucket;
       if (feQuestionSet) meta.fe_question_set = feQuestionSet;
@@ -222,6 +224,15 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
         <div className="flex flex-col gap-3 pt-1 border-t border-border">
           <p className="text-xs text-muted uppercase tracking-wide font-medium mt-2">Details <span className="normal-case tracking-normal opacity-60">(optional)</span></p>
           <div className="flex gap-3 flex-wrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted">Difficulty</label>
+              <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className={`${inputCls}`}>
+                <option value="">— none —</option>
+                <option>Easy</option>
+                <option>Medium</option>
+                <option>Hard</option>
+              </select>
+            </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted">Platform</label>
               <select value={platform} onChange={e => setPlatform(e.target.value)} className={`${inputCls}`}>

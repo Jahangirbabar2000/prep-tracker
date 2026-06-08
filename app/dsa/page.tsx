@@ -26,8 +26,9 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
 
   let query = "SELECT * FROM problems WHERE domain = 'dsa'";
   const params: string[] = [];
-  if (sp.pattern) { query += ' AND pattern_tag = ?'; params.push(sp.pattern); }
-  if (sp.list)    { query += ' AND question_list = ?'; params.push(sp.list); }
+  if (sp.pattern)    { query += ' AND pattern_tag = ?';   params.push(sp.pattern); }
+  if (sp.list)       { query += ' AND question_list = ?'; params.push(sp.list); }
+  if (sp.difficulty) { query += ' AND difficulty = ?';    params.push(sp.difficulty); }
   query += ' ' + sortClause(sp.sort ?? '');
 
   const problems = db.prepare(query).all(...params) as Problem[];
@@ -69,8 +70,9 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
         basePath="/dsa"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'pattern', placeholder: 'All patterns', current: sp.pattern ?? '', options: [...DSA_PATTERNS, ...extraPatterns] },
-          { key: 'list',    placeholder: 'All lists',    current: sp.list    ?? '', options: ['NeetCode 150', 'Blind 75', 'Other'] },
+          { key: 'difficulty', placeholder: 'All difficulties', current: sp.difficulty ?? '', options: ['Easy', 'Medium', 'Hard'] },
+          { key: 'pattern',    placeholder: 'All patterns',     current: sp.pattern    ?? '', options: [...DSA_PATTERNS, ...extraPatterns] },
+          { key: 'list',       placeholder: 'All lists',        current: sp.list       ?? '', options: ['NeetCode 150', 'Blind 75', 'Other'] },
         ]}
       />
 

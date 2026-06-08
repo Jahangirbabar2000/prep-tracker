@@ -8,6 +8,7 @@ export interface Problem {
   platform?: string | null;
   pattern_tag?: string | null;
   question_list?: string | null;
+  difficulty?: string | null;
   // System Design
   sd_category?: string | null;
   sd_source?: string | null;
