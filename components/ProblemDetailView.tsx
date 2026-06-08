@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Attempt, Domain, Link as LinkType, Note, Problem } from '@/lib/types';
 import ProblemMetaForm from './ProblemMetaForm';
 import AttemptHistory from './AttemptHistory';
@@ -17,6 +18,8 @@ interface ProblemDetail extends Problem {
   notes: Note[];
   links: LinkType[];
   avg_time: number | null;
+  prev_id: number | null;
+  next_id: number | null;
 }
 
 interface Props {
@@ -29,6 +32,7 @@ interface Props {
 const sectionTitle = 'text-xs font-semibold text-muted uppercase tracking-wide';
 
 export default function ProblemDetailView({ id, domain, basePath, backLabel }: Props) {
+  const router = useRouter();
   const [data, setData] = useState<ProblemDetail | null>(null);
   const [showLog, setShowLog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -40,6 +44,19 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
   }
 
   useEffect(() => { reload(); }, [id]);
+
+  // Keyboard navigation — only when not editing name or typing in a field
+  useEffect(() => {
+    if (!data) return;
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'ArrowLeft'  && data.prev_id) router.push(`${basePath}/${data.prev_id}`);
+      if (e.key === 'ArrowRight' && data.next_id) router.push(`${basePath}/${data.next_id}`);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [data, basePath, router]);
 
   if (!data) return <div className="text-sm text-muted">Loading…</div>;
 
@@ -65,9 +82,29 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
     <div className="max-w-2xl flex flex-col gap-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href={basePath} className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg mb-2 transition-colors">
-            <ArrowLeft size={13} /> {backLabel}
-          </Link>
+          <div className="flex items-center gap-3 mb-2">
+            <Link href={basePath} className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
+              <ArrowLeft size={13} /> {backLabel}
+            </Link>
+            <div className="flex items-center gap-1">
+              <Link
+                href={data.prev_id ? `${basePath}/${data.prev_id}` : '#'}
+                aria-disabled={!data.prev_id}
+                className={`p-1 rounded transition-colors ${data.prev_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
+                title="Previous (←)"
+              >
+                <ChevronLeft size={15} />
+              </Link>
+              <Link
+                href={data.next_id ? `${basePath}/${data.next_id}` : '#'}
+                aria-disabled={!data.next_id}
+                className={`p-1 rounded transition-colors ${data.next_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
+                title="Next (→)"
+              >
+                <ChevronRight size={15} />
+              </Link>
+            </div>
+          </div>
           {editingName ? (
             <input
               type="text"

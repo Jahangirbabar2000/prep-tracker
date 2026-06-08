@@ -27,7 +27,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     ? attempts.reduce((s, a) => s + a.time_taken_mins, 0) / attempts.length
     : null;
 
-  return NextResponse.json({ ...problem, attempts, notes, links, avg_time: avgTime });
+  const prevId = (db.prepare(
+    'SELECT id FROM problems WHERE domain = ? AND id < ? ORDER BY id DESC LIMIT 1'
+  ).get(problem.domain, id) as { id: number } | undefined)?.id ?? null;
+
+  const nextId = (db.prepare(
+    'SELECT id FROM problems WHERE domain = ? AND id > ? ORDER BY id ASC LIMIT 1'
+  ).get(problem.domain, id) as { id: number } | undefined)?.id ?? null;
+
+  return NextResponse.json({ ...problem, attempts, notes, links, avg_time: avgTime, prev_id: prevId, next_id: nextId });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
