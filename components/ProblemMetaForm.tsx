@@ -23,7 +23,7 @@ interface Props {
 
 export default function ProblemMetaForm({ problem, onUpdated }: Props) {
   const [data, setData] = useState(problem);
-  const [notesPreview, setNotesPreview] = useState(false);
+  const [notesPreview, setNotesPreview] = useState(true);
 
   async function save(field: string, value: string) {
     const res = await fetch(`/api/problems/${problem.id}`, {
