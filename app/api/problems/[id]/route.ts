@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
 
   const allowed = [
-    'name', 'platform', 'pattern_tag', 'question_list',
+    'name', 'platform', 'pattern_tag', 'question_list', 'difficulty',
     'sd_category', 'sd_source',
     'fe_bucket', 'fe_question_set',
     'py_category',

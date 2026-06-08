@@ -32,6 +32,8 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
   const [data, setData] = useState<ProblemDetail | null>(null);
   const [showLog, setShowLog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameVal, setNameVal] = useState('');
 
   function reload() {
     fetch(`/api/problems/${id}`).then(r => r.json()).then(setData);
@@ -40,6 +42,18 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
   useEffect(() => { reload(); }, [id]);
 
   if (!data) return <div className="text-sm text-muted">Loading…</div>;
+
+  async function saveName() {
+    const trimmed = nameVal.trim();
+    setEditingName(false);
+    if (!trimmed || trimmed === data?.name) return;
+    await fetch(`/api/problems/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: trimmed }),
+    });
+    setData(d => d ? { ...d, name: trimmed } : d);
+  }
 
   async function deleteProblem() {
     setDeleting(true);
@@ -54,7 +68,25 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
           <Link href={basePath} className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg mb-2 transition-colors">
             <ArrowLeft size={13} /> {backLabel}
           </Link>
-          <h1 className="text-2xl font-semibold text-fg tracking-tight">{data.name}</h1>
+          {editingName ? (
+            <input
+              type="text"
+              value={nameVal}
+              onChange={e => setNameVal(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+              className="text-2xl font-semibold text-fg tracking-tight bg-transparent border-b-2 border-accent focus:outline-none w-full"
+              autoFocus
+            />
+          ) : (
+            <h1
+              className="text-2xl font-semibold text-fg tracking-tight cursor-text hover:underline decoration-dashed underline-offset-4 decoration-muted/40"
+              onClick={() => { setNameVal(data.name); setEditingName(true); }}
+              title="Click to edit"
+            >
+              {data.name}
+            </h1>
+          )}
           {data.next_due_date && (
             <p className="text-xs text-muted mt-1.5 tabular">
               Next due {data.next_due_date} · Interval level {data.interval_level}
