@@ -142,20 +142,22 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
         />
       </section>
 
-      {/* Notes */}
-      <section>
-        <h2 className={`${sectionTitle} mb-3`}>Active Recall Notes</h2>
-        <div className="flex flex-col gap-3">
-          <AddNoteForm problemId={data.id} onAdded={n => setData(d => d ? { ...d, notes: [...d.notes, n] } : d)} />
-          {data.notes.map(n => (
-            <NoteCard
-              key={n.id}
-              note={n}
-              onDelete={nid => setData(d => d ? { ...d, notes: d.notes.filter(x => x.id !== nid) } : d)}
-            />
-          ))}
-        </div>
-      </section>
+      {/* Notes — not shown for Python (the question+answer field IS the recall mechanism) */}
+      {domain !== 'python' && (
+        <section>
+          <h2 className={`${sectionTitle} mb-3`}>Active Recall Notes</h2>
+          <div className="flex flex-col gap-3">
+            <AddNoteForm problemId={data.id} onAdded={n => setData(d => d ? { ...d, notes: [...d.notes, n] } : d)} />
+            {data.notes.map(n => (
+              <NoteCard
+                key={n.id}
+                note={n}
+                onDelete={nid => setData(d => d ? { ...d, notes: d.notes.filter(x => x.id !== nid) } : d)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 const CONCEPT_DOMAINS = ['system_design', 'frontend', 'python'];
 
@@ -209,7 +210,7 @@ export default function SessionPage() {
             <div className="flex flex-col gap-4 px-6 py-5">
               {/* Answer text */}
               {card.notes_text ? (
-                <p className="text-sm text-fg/90 leading-relaxed whitespace-pre-wrap">{card.notes_text}</p>
+                <MarkdownRenderer content={card.notes_text} />
               ) : (
                 <p className="text-sm text-muted italic">No answer saved yet.</p>
               )}
