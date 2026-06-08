@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { Problem } from '@/lib/types';
 import { Link2 } from 'lucide-react';
+import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
@@ -115,6 +116,7 @@ export default function SystemDesignLogForm() {
         <textarea
           value={learned}
           onChange={e => setLearned(e.target.value)}
+          onPaste={e => { const md = pasteAsMarkdown(e, learned); if (md !== null) setLearned(md); }}
           placeholder="Key takeaways, decisions, patterns…"
           className={`${inputCls} resize-none h-28`}
         />

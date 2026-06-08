@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Problem } from '@/lib/types';
 import MarkdownRenderer from './MarkdownRenderer';
+import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
 
 const DSA_PATTERNS = [
   'Arrays & Hashing', 'Two Pointers', 'Sliding Window', 'Stack', 'Binary Search',
@@ -154,6 +155,10 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
             value={data.notes_text ?? ''}
             onChange={e => setData(d => ({ ...d, notes_text: e.target.value }))}
             onBlur={e => save('notes_text', e.target.value)}
+            onPaste={e => {
+              const md = pasteAsMarkdown(e, data.notes_text ?? '');
+              if (md !== null) setData(d => ({ ...d, notes_text: md }));
+            }}
             placeholder={notesPlaceholder}
             className={`${inputCls} resize-none h-28`}
           />
