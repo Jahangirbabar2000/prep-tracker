@@ -6,6 +6,7 @@ import { Clock, Check, X, Pencil, Trash2 } from 'lucide-react';
 
 interface Props {
   attempts: Attempt[];
+  showTime?: boolean;
   showPracticeType?: boolean;
   onUpdated: (attempt: Attempt) => void;
   onDeleted: (id: number) => void;
@@ -13,7 +14,7 @@ interface Props {
 
 const cellInput = 'bg-background border border-border rounded-md px-2 py-1 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
-export default function AttemptHistory({ attempts, showPracticeType, onUpdated, onDeleted }: Props) {
+export default function AttemptHistory({ attempts, showTime = true, showPracticeType, onUpdated, onDeleted }: Props) {
   const [editing, setEditing] = useState<number | null>(null);
   const [fields, setFields] = useState<Partial<Attempt>>({});
 
@@ -52,9 +53,7 @@ export default function AttemptHistory({ attempts, showPracticeType, onUpdated, 
   return (
     <div className="flex flex-col gap-3">
       <div className="inline-flex items-center gap-1.5 text-xs text-muted">
-        <Clock size={13} />
-        Avg solve time: <strong className="text-fg tabular">{avg} min</strong>
-        <span className="text-border-strong">·</span>
+        {showTime && <><Clock size={13} />Avg solve time: <strong className="text-fg tabular">{avg} min</strong><span className="text-border-strong">·</span></>}
         <span className="tabular">{attempts.length} attempt{attempts.length > 1 ? 's' : ''}</span>
       </div>
       <div className="overflow-x-auto border border-border rounded-xl bg-surface">
@@ -62,7 +61,7 @@ export default function AttemptHistory({ attempts, showPracticeType, onUpdated, 
           <thead>
             <tr className="text-left text-xs text-muted border-b border-border bg-surface-2/50">
               <th className="px-4 py-2.5 font-medium">Date</th>
-              <th className="px-4 py-2.5 font-medium">Time</th>
+              {showTime && <th className="px-4 py-2.5 font-medium">Time</th>}
               {showPracticeType && <th className="px-4 py-2.5 font-medium">Type</th>}
               <th className="px-4 py-2.5 font-medium">Struggled</th>
               <th className="px-4 py-2.5 font-medium text-right">Edit</th>
@@ -81,15 +80,17 @@ export default function AttemptHistory({ attempts, showPracticeType, onUpdated, 
                         className={`${cellInput} w-32`}
                       />
                     </td>
-                    <td className="px-4 py-2">
-                      <input
-                        type="number"
-                        value={fields.time_taken_mins ?? ''}
-                        onChange={e => setFields(f => ({ ...f, time_taken_mins: +e.target.value }))}
-                        className={`${cellInput} w-16`}
-                        min={1}
-                      />
-                    </td>
+                    {showTime && (
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          value={fields.time_taken_mins ?? ''}
+                          onChange={e => setFields(f => ({ ...f, time_taken_mins: +e.target.value }))}
+                          className={`${cellInput} w-16`}
+                          min={1}
+                        />
+                      </td>
+                    )}
                     {showPracticeType && (
                       <td className="px-4 py-2">
                         <select
@@ -123,7 +124,7 @@ export default function AttemptHistory({ attempts, showPracticeType, onUpdated, 
                 ) : (
                   <>
                     <td className="px-4 py-2.5 text-fg/80 tabular">{a.attempted_at.slice(0, 10)}</td>
-                    <td className="px-4 py-2.5 text-fg/80 tabular">{a.time_taken_mins} min</td>
+                    {showTime && <td className="px-4 py-2.5 text-fg/80 tabular">{a.time_taken_mins} min</td>}
                     {showPracticeType && (
                       <td className="px-4 py-2.5 text-muted capitalize">{a.practice_type ?? '—'}</td>
                     )}
