@@ -21,10 +21,15 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
 
   let query = "SELECT * FROM problems WHERE domain = 'python'";
   const params: string[] = [];
-  if (sp.category) { query += ' AND py_category = ?'; params.push(sp.category); }
+  if (sp.category) { query += ' AND py_category = ?';   params.push(sp.category); }
+  if (sp.list)     { query += ' AND question_list = ?'; params.push(sp.list); }
   query += ' ' + sortClause(sp.sort ?? '');
 
   const problems = db.prepare(query).all(...params) as Problem[];
+
+  const allLists = (db.prepare(
+    "SELECT DISTINCT question_list FROM problems WHERE domain = 'python' AND question_list IS NOT NULL"
+  ).all() as { question_list: string }[]).map(r => r.question_list);
 
   const todayCount = (db.prepare(`
     SELECT COUNT(DISTINCT a.problem_id) as n
@@ -51,7 +56,7 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
           )}
         </div>
         <Link href="/python/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
-          <Plus size={16} /> Log Attempt
+          <Plus size={16} /> Log Question
         </Link>
       </div>
 
@@ -59,7 +64,8 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
         basePath="/python"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'category', placeholder: 'All categories', current: sp.category ?? '', options: CATEGORIES },
+          { key: 'list',     placeholder: 'All lists',       current: sp.list     ?? '', options: allLists },
+          { key: 'category', placeholder: 'All categories',  current: sp.category ?? '', options: CATEGORIES },
         ]}
       />
 

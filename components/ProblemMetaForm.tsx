@@ -91,15 +91,40 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
       </>}
 
       {problem.domain === 'python' && <>
+        {field('Question List', 'question_list', <>
+          <input
+            list="py-lists-meta"
+            type="text"
+            value={(data.question_list as string) ?? ''}
+            onChange={e => setData(d => ({ ...d, question_list: e.target.value }))}
+            onBlur={e => save('question_list', e.target.value)}
+            placeholder="e.g. GFG Top 50"
+            className={inputCls}
+            autoComplete="off"
+          />
+          <datalist id="py-lists-meta">
+            {['GFG Top 50', 'GFG Top 100', 'GFG Python Interview Questions', 'Python Interview Questions', 'Other'].map(l => (
+              <option key={l} value={l} />
+            ))}
+          </datalist>
+        </>)}
         {field('Category', 'py_category', select('py_category', ['Language Quirks', 'stdlib', 'OOP', 'Concurrency', 'Other']))}
       </>}
 
-      {field(problem.domain === 'system_design' ? 'What I Learned' : 'Reference Notes', 'notes_text',
+      {field(
+        problem.domain === 'system_design' ? 'What I Learned' :
+        problem.domain === 'python'        ? 'Answer' :
+                                             'Reference Notes',
+        'notes_text',
         <textarea
           value={data.notes_text ?? ''}
           onChange={e => setData(d => ({ ...d, notes_text: e.target.value }))}
           onBlur={e => save('notes_text', e.target.value)}
-          placeholder={problem.domain === 'system_design' ? 'Key takeaways, decisions, patterns…' : 'Short context (links live below)…'}
+          placeholder={
+            problem.domain === 'system_design' ? 'Key takeaways, decisions, patterns…' :
+            problem.domain === 'python'        ? 'Key points, gotchas, syntax…' :
+                                                 'Short context (links live below)…'
+          }
           className={`${inputCls} resize-none h-28`}
         />
       )}
