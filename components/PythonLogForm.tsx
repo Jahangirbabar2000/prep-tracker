@@ -23,8 +23,8 @@ export default function PythonLogForm() {
   const [suggestions, setSuggestions] = useState<Problem[]>([]);
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
   const [answer, setAnswer] = useState('');
-  const [questionList, setQuestionList] = useState('');
-  const [category, setCategory] = useState('');
+  const [questionList, setQuestionList] = useState('GFG Top 50');
+  const [category, setCategory] = useState('Language Quirks');
   const [linkUrl, setLinkUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
