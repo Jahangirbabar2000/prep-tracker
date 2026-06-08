@@ -32,10 +32,16 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
   const problems = db.prepare(query).all(...params) as Problem[];
 
   const todayCount = (db.prepare(`
-    SELECT COUNT(*) as n FROM attempts a
+    SELECT COUNT(DISTINCT a.problem_id) as n
+    FROM attempts a
     JOIN problems p ON p.id = a.problem_id
     WHERE p.domain = 'system_design'
-    AND substr(a.attempted_at, 1, 10) = date('now', 'localtime')
+      AND substr(a.attempted_at, 1, 10) = date('now', 'localtime')
+      AND NOT EXISTS (
+        SELECT 1 FROM attempts prev
+        WHERE prev.problem_id = a.problem_id
+          AND substr(prev.attempted_at, 1, 10) < date('now', 'localtime')
+      )
   `).get() as { n: number }).n;
 
   return (
