@@ -14,9 +14,9 @@ const CATEGORIES = [
 const SOURCES = ['Hello Interview', 'Grokking', 'Alex Xu', 'YouTube', 'Other'];
 
 function sortClause(sort: string) {
-  if (sort === 'newest') return 'ORDER BY created_at DESC';
+  if (sort === 'next_review') return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
   if (sort === 'oldest') return 'ORDER BY created_at ASC';
-  return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
+  return 'ORDER BY created_at DESC'; // default: newest first
 }
 
 export default async function SystemDesignPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {

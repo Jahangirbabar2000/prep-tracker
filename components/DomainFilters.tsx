@@ -18,9 +18,9 @@ interface Props {
 const cls = 'bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition cursor-pointer';
 
 const SORT_OPTIONS = [
-  { value: 'next_review', label: 'Sort: Next review' },
   { value: 'newest',      label: 'Sort: Newest first' },
   { value: 'oldest',      label: 'Sort: Oldest first' },
+  { value: 'next_review', label: 'Sort: Next review' },
 ];
 
 export default function DomainFilters({ basePath, selects, currentSort }: Props) {
@@ -33,12 +33,12 @@ export default function DomainFilters({ basePath, selects, currentSort }: Props)
       if (v) params.set(s.key, v);
     }
     const sort = changedKey === 'sort' ? changedValue : currentSort;
-    if (sort && sort !== 'next_review') params.set('sort', sort);
+    if (sort && sort !== 'newest') params.set('sort', sort);
     const qs = params.toString();
     router.push(qs ? `${basePath}?${qs}` : basePath);
   }
 
-  const hasFilter = selects.some(s => s.current) || (currentSort && currentSort !== 'next_review');
+  const hasFilter = selects.some(s => s.current) || (currentSort && currentSort !== 'newest');
 
   return (
     <div className="flex flex-wrap gap-2 mb-6 items-center">
@@ -55,7 +55,7 @@ export default function DomainFilters({ basePath, selects, currentSort }: Props)
       ))}
 
       <select
-        value={currentSort || 'next_review'}
+        value={currentSort || 'newest'}
         onChange={e => push('sort', e.target.value)}
         className={cls}
       >
