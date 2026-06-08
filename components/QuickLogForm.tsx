@@ -249,6 +249,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
                 <option value="">— none —</option>
                 <option>NeetCode 150</option>
                 <option>Blind 75</option>
+                <option>HelloInterview Learn Code</option>
                 <option>Other</option>
               </select>
             </div>

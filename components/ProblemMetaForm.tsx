@@ -71,7 +71,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
       {problem.domain === 'dsa' && <>
         {field('Difficulty', 'difficulty', select('difficulty', ['Easy', 'Medium', 'Hard']))}
         {field('Platform', 'platform', select('platform', ['LeetCode', 'NeetCode', 'Hello Interview', 'Other']))}
-        {field('Question List', 'question_list', select('question_list', ['NeetCode 150', 'Blind 75', 'Other']))}
+        {field('Question List', 'question_list', select('question_list', ['NeetCode 150', 'Blind 75', 'HelloInterview Learn Code', 'Other']))}
         {field('Pattern', 'pattern_tag', <>
           {freeInput('pattern_tag', 'e.g. Sliding Window', 'dsa-patterns')}
           <datalist id="dsa-patterns">

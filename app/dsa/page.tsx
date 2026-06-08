@@ -78,7 +78,7 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
         selects={[
           { key: 'difficulty', placeholder: 'All difficulties', current: sp.difficulty ?? '', options: ['Easy', 'Medium', 'Hard'] },
           { key: 'pattern',    placeholder: 'All patterns',     current: sp.pattern    ?? '', options: [...DSA_PATTERNS, ...extraPatterns] },
-          { key: 'list',       placeholder: 'All lists',        current: sp.list       ?? '', options: ['NeetCode 150', 'Blind 75', 'Other'] },
+          { key: 'list',       placeholder: 'All lists',        current: sp.list       ?? '', options: ['NeetCode 150', 'Blind 75', 'HelloInterview Learn Code', 'Other'] },
         ]}
       />
 
