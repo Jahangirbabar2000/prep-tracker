@@ -26,7 +26,7 @@ function fmtLogged(iso: string): string {
 export default function ProblemListRow({ problem: p, basePath }: Props) {
   const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category;
   const qset = p.question_list ?? p.fe_question_set;
-  const isDue = p.next_due_date && p.next_due_date <= new Date().toISOString().split('T')[0];
+  const isDue = p.next_due_date && p.next_due_date <= new Date().toLocaleDateString('en-CA');
 
   return (
     <Link

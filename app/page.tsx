@@ -22,7 +22,7 @@ export default function ReviewQueuePage() {
       ORDER BY attempted_at DESC
       LIMIT 1
     )
-    WHERE p.next_due_date <= date('now')
+    WHERE p.next_due_date <= date('now', 'localtime')
     ORDER BY p.next_due_date ASC
   `).all() as RQI[];
 

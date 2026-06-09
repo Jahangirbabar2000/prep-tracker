@@ -74,7 +74,7 @@ export default function SessionPage() {
       body: JSON.stringify({
         time_taken_mins: 0,
         struggled,
-        attempted_at: new Date().toISOString().slice(0, 10),
+        attempted_at: new Date().toLocaleDateString('en-CA'),
       }),
     });
 

@@ -62,7 +62,7 @@ export default function PythonLogForm() {
     await fetch(`/api/problems/${pid}/attempts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ time_taken_mins: 0, struggled: false, attempted_at: new Date().toISOString().slice(0, 10) }),
+      body: JSON.stringify({ time_taken_mins: 0, struggled: false, attempted_at: new Date().toLocaleDateString('en-CA') }),
     });
 
     // Patch metadata
