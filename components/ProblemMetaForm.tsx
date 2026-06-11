@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Problem } from '@/lib/types';
 import MarkdownRenderer from './MarkdownRenderer';
 import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
@@ -11,11 +11,6 @@ const DSA_PATTERNS = [
   'Graphs', 'Depth-First Search', 'Breadth-First Search', 'Dynamic Programming',
   'Greedy', 'Intervals', 'Prefix Sum', 'Matrices', 'Math & Geometry',
 ];
-const SD_CATEGORIES = [
-  'Caching', 'Databases', 'Messaging Queues', 'Load Balancing', 'Sharding',
-  'API Design', 'Storage', 'Microservices', 'Consistency & Replication', 'Rate Limiting',
-];
-const SD_SOURCES = ['Hello Interview', 'Grokking', 'Alex Xu', 'YouTube', 'Other'];
 
 interface Props {
   problem: Problem;
@@ -25,6 +20,28 @@ interface Props {
 export default function ProblemMetaForm({ problem, onUpdated }: Props) {
   const [data, setData] = useState(problem);
   const [notesPreview, setNotesPreview] = useState(true);
+  const [opts, setOpts] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    const domain = problem.domain;
+    const pairs: [string, string][] =
+      domain === 'dsa'           ? [['dsa', 'platform'], ['dsa', 'question_list']] :
+      domain === 'system_design' ? [['system_design', 'sd_category']] :
+      domain === 'frontend'      ? [['frontend', 'fe_bucket'], ['frontend', 'fe_question_set']] :
+      domain === 'python'        ? [['python', 'question_list'], ['python', 'py_category']] :
+      [];
+
+    Promise.all(
+      pairs.map(([d, f]) =>
+        fetch(`/api/config/options?domain=${d}&field=${f}`)
+          .then(r => r.json())
+          .then((rows: { value: string }[]) => [`${d}/${f}`, rows.map(r => r.value)] as [string, string[]])
+          .catch(() => [`${d}/${f}`, []] as [string, string[]])
+      )
+    ).then(results => {
+      setOpts(Object.fromEntries(results));
+    });
+  }, [problem.domain]);
 
   async function save(field: string, value: string) {
     const res = await fetch(`/api/problems/${problem.id}`, {
@@ -70,12 +87,11 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
   );
 
   const notesLabel =
-    problem.domain === 'system_design' ? 'What I Learned' :
-    problem.domain === 'python'        ? 'Answer' :
-                                         'Reference Notes';
+    problem.domain === 'dsa' ? 'Reference Notes' : 'Answer';
 
   const notesPlaceholder =
-    problem.domain === 'system_design' ? 'Key takeaways, decisions, patterns… (markdown supported)' :
+    problem.domain === 'system_design' ? 'Key points, tradeoffs, when to use it… (markdown supported)' :
+    problem.domain === 'frontend'      ? 'Key points, gotchas, how it works… (markdown supported)' :
     problem.domain === 'python'        ? 'Key points, gotchas, syntax… (markdown supported)' :
                                          'Short context… (markdown supported)';
 
@@ -84,8 +100,8 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {problem.domain === 'dsa' && <>
           {field('Difficulty', 'difficulty', select('difficulty', ['Easy', 'Medium', 'Hard']))}
-          {field('Platform', 'platform', select('platform', ['LeetCode', 'NeetCode', 'Hello Interview', 'Other']))}
-          {field('Question List', 'question_list', select('question_list', ['NeetCode 150', 'Blind 75', 'HelloInterview Learn Code', 'Other']))}
+          {field('Platform', 'platform', select('platform', opts['dsa/platform'] ?? []))}
+          {field('Question List', 'question_list', select('question_list', opts['dsa/question_list'] ?? []))}
           {field('Pattern', 'pattern_tag', <>
             {freeInput('pattern_tag', 'e.g. Sliding Window', 'dsa-patterns')}
             <datalist id="dsa-patterns">
@@ -95,13 +111,12 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
         </>}
 
         {problem.domain === 'system_design' && <>
-          {field('Category', 'sd_category', select('sd_category', SD_CATEGORIES))}
-          {field('Source', 'sd_source', select('sd_source', SD_SOURCES))}
+          {field('Bucket', 'sd_category', select('sd_category', opts['system_design/sd_category'] ?? []))}
         </>}
 
         {problem.domain === 'frontend' && <>
-          {field('Bucket', 'fe_bucket', select('fe_bucket', ['JS Quirks', 'React Internals', 'Component Building']))}
-          {field('Question Set', 'fe_question_set', select('fe_question_set', ['React 100', 'JS 500', 'Frontend 75', 'Other']))}
+          {field('Bucket', 'fe_bucket', select('fe_bucket', opts['frontend/fe_bucket'] ?? []))}
+          {field('Question Set', 'fe_question_set', select('fe_question_set', opts['frontend/fe_question_set'] ?? []))}
         </>}
 
         {problem.domain === 'python' && <>
@@ -117,12 +132,12 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
               autoComplete="off"
             />
             <datalist id="py-lists-meta">
-              {['GFG Top 50', 'GFG Top 100', 'GFG Python Interview Questions', 'Python Interview Questions', 'Other'].map(l => (
+              {(opts['python/question_list'] ?? []).map(l => (
                 <option key={l} value={l} />
               ))}
             </datalist>
           </>)}
-          {field('Category', 'py_category', select('py_category', ['Language Quirks', 'stdlib', 'OOP', 'Concurrency', 'Other']))}
+          {field('Category', 'py_category', select('py_category', opts['python/py_category'] ?? []))}
         </>}
       </div>
 

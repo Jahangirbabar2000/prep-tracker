@@ -1,8 +1,9 @@
 import { getDb } from '@/lib/db';
+import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ProblemListRow from '@/components/ProblemListRow';
+import ProblemList from '@/components/ProblemList';
 import DomainFilters from '@/components/DomainFilters';
 
 export const dynamic = 'force-dynamic';
@@ -61,9 +62,12 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-fg tracking-tight">DSA</h1>
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-fg tabular">{withAvg.length}</span> total
+          </span>
           {todayCount > 0 && (
             <span className="text-sm text-muted">
-              <span className="font-semibold text-accent tabular">{todayCount}</span> today
+              · <span className="font-semibold text-accent tabular">{todayCount}</span> today
             </span>
           )}
         </div>
@@ -78,16 +82,14 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
         selects={[
           { key: 'difficulty', placeholder: 'All difficulties', current: sp.difficulty ?? '', options: ['Easy', 'Medium', 'Hard'] },
           { key: 'pattern',    placeholder: 'All patterns',     current: sp.pattern    ?? '', options: [...DSA_PATTERNS, ...extraPatterns] },
-          { key: 'list',       placeholder: 'All lists',        current: sp.list       ?? '', options: ['NeetCode 150', 'Blind 75', 'HelloInterview Learn Code', 'Other'] },
+          { key: 'list',       placeholder: 'All lists',        current: sp.list       ?? '', options: getConfigOptions('dsa', 'question_list') },
         ]}
       />
 
       {withAvg.length === 0 ? (
         <p className="text-sm text-muted py-8 text-center">No problems yet. Log your first attempt to get started.</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {withAvg.map(p => <ProblemListRow key={p.id} problem={p} basePath="/dsa" />)}
-        </div>
+        <ProblemList problems={withAvg} basePath="/dsa" groupByDate={(sp.sort ?? '') !== 'next_review'} />
       )}
     </div>
   );

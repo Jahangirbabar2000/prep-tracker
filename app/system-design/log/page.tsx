@@ -8,7 +8,7 @@ export default function SystemDesignLogPage() {
       <Link href="/system-design" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg mb-4 transition-colors">
         <ArrowLeft size={13} /> System Design
       </Link>
-      <h1 className="text-2xl font-semibold text-fg tracking-tight mb-6">Log Concept</h1>
+      <h1 className="text-2xl font-semibold text-fg tracking-tight mb-6">Log System Design Concept</h1>
       <SystemDesignLogForm />
     </div>
   );

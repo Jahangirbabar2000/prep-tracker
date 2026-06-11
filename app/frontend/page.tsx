@@ -1,8 +1,9 @@
 import { getDb } from '@/lib/db';
+import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ProblemListRow from '@/components/ProblemListRow';
+import ProblemList from '@/components/ProblemList';
 import DomainFilters from '@/components/DomainFilters';
 
 export const dynamic = 'force-dynamic';
@@ -43,9 +44,12 @@ export default async function FrontendPage({ searchParams }: { searchParams: Pro
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-fg tracking-tight">Frontend</h1>
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-fg tabular">{problems.length}</span> total
+          </span>
           {todayCount > 0 && (
             <span className="text-sm text-muted">
-              <span className="font-semibold text-accent tabular">{todayCount}</span> today
+              · <span className="font-semibold text-accent tabular">{todayCount}</span> today
             </span>
           )}
         </div>
@@ -58,17 +62,15 @@ export default async function FrontendPage({ searchParams }: { searchParams: Pro
         basePath="/frontend"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'bucket', placeholder: 'All buckets', current: sp.bucket ?? '', options: ['JS Quirks', 'React Internals', 'Component Building'] },
-          { key: 'set',    placeholder: 'All sets',    current: sp.set    ?? '', options: ['React 100', 'JS 500', 'Frontend 75', 'Other'] },
+          { key: 'bucket', placeholder: 'All buckets', current: sp.bucket ?? '', options: getConfigOptions('frontend', 'fe_bucket') },
+          { key: 'set',    placeholder: 'All sets',    current: sp.set    ?? '', options: getConfigOptions('frontend', 'fe_question_set') },
         ]}
       />
 
       {problems.length === 0 ? (
         <p className="text-sm text-muted py-8 text-center">No questions yet. Log your first attempt to get started.</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {problems.map(p => <ProblemListRow key={p.id} problem={p} basePath="/frontend" />)}
-        </div>
+        <ProblemList problems={problems} basePath="/frontend" groupByDate={(sp.sort ?? '') !== 'next_review'} />
       )}
     </div>
   );

@@ -1,10 +1,13 @@
 import { getDb } from '@/lib/db';
 import { ReviewQueueItem as RQI } from '@/lib/types';
 import ReviewQueueItemCard from '@/components/ReviewQueueItem';
+import UpcomingForecast from '@/components/UpcomingForecast';
 import Link from 'next/link';
 import { Check, Play } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ReviewQueuePage() {
   const db = getDb();
@@ -27,6 +30,42 @@ export default function ReviewQueuePage() {
   `).all() as RQI[];
 
   const conceptDue = items.filter(i => i.domain !== 'dsa').length;
+
+  // ── Upcoming 7-day forecast ───────────────────────────────────────────
+  const upcomingRows = db.prepare(`
+    SELECT p.next_due_date AS date, p.domain, COUNT(*) AS count
+    FROM problems p
+    WHERE p.next_due_date > date('now', 'localtime')
+      AND p.next_due_date <= date('now', '+7 days', 'localtime')
+    GROUP BY p.next_due_date, p.domain
+    ORDER BY p.next_due_date ASC
+  `).all() as { date: string; domain: string; count: number }[];
+
+  // Per-date totals + per-date domain breakdown
+  const byDate: Record<string, number> = {};
+  const byDateDomain: Record<string, Record<string, number>> = {};
+  const domainTotals: Record<string, number> = {};
+  for (const row of upcomingRows) {
+    byDate[row.date] = (byDate[row.date] ?? 0) + row.count;
+    byDateDomain[row.date] ??= {};
+    byDateDomain[row.date][row.domain] = (byDateDomain[row.date][row.domain] ?? 0) + row.count;
+    domainTotals[row.domain] = (domainTotals[row.domain] ?? 0) + row.count;
+  }
+  const totalUpcoming = Object.values(domainTotals).reduce((s, n) => s + n, 0);
+
+  // Build 7 day slots (+1 … +7 from today)
+  const slots = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i + 1);
+    const dateKey = d.toLocaleDateString('en-CA');
+    return {
+      dateKey,
+      label:      i === 0 ? 'Tomorrow' : DAYS[d.getDay()],
+      shortLabel: i === 0 ? 'Tmrw'     : DAYS[d.getDay()],
+      total:      byDate[dateKey] ?? 0,
+      domains:    byDateDomain[dateKey] ?? {},
+    };
+  });
 
   return (
     <div>
@@ -68,6 +107,12 @@ export default function ReviewQueuePage() {
           ))}
         </div>
       )}
+
+      <UpcomingForecast
+        slots={slots}
+        domainTotals={domainTotals}
+        totalUpcoming={totalUpcoming}
+      />
     </div>
   );
 }

@@ -1,17 +1,12 @@
 import { getDb } from '@/lib/db';
+import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ProblemListRow from '@/components/ProblemListRow';
+import ProblemList from '@/components/ProblemList';
 import DomainFilters from '@/components/DomainFilters';
 
 export const dynamic = 'force-dynamic';
-
-const CATEGORIES = [
-  'Caching', 'Databases', 'Messaging Queues', 'Load Balancing', 'Sharding',
-  'API Design', 'Storage', 'Microservices', 'Consistency & Replication', 'Rate Limiting',
-];
-const SOURCES = ['Hello Interview', 'Grokking', 'Alex Xu', 'YouTube', 'Other'];
 
 function sortClause(sort: string) {
   if (sort === 'next_review') return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
@@ -25,8 +20,7 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
 
   let query = "SELECT * FROM problems WHERE domain = 'system_design'";
   const params: string[] = [];
-  if (sp.category) { query += ' AND sd_category = ?'; params.push(sp.category); }
-  if (sp.source)   { query += ' AND sd_source = ?';   params.push(sp.source); }
+  if (sp.bucket) { query += ' AND sd_category = ?'; params.push(sp.bucket); }
   query += ' ' + sortClause(sp.sort ?? '');
 
   const problems = db.prepare(query).all(...params) as Problem[];
@@ -49,9 +43,12 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-fg tracking-tight">System Design</h1>
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-fg tabular">{problems.length}</span> total
+          </span>
           {todayCount > 0 && (
             <span className="text-sm text-muted">
-              <span className="font-semibold text-accent tabular">{todayCount}</span> today
+              · <span className="font-semibold text-accent tabular">{todayCount}</span> today
             </span>
           )}
         </div>
@@ -64,17 +61,14 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
         basePath="/system-design"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'category', placeholder: 'All categories', current: sp.category ?? '', options: CATEGORIES },
-          { key: 'source',   placeholder: 'All sources',    current: sp.source   ?? '', options: SOURCES },
+          { key: 'bucket', placeholder: 'All buckets', current: sp.bucket ?? '', options: getConfigOptions('system_design', 'sd_category') },
         ]}
       />
 
       {problems.length === 0 ? (
         <p className="text-sm text-muted py-8 text-center">No concepts yet. Log your first concept to get started.</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {problems.map(p => <ProblemListRow key={p.id} problem={p} basePath="/system-design" />)}
-        </div>
+        <ProblemList problems={problems} basePath="/system-design" groupByDate={(sp.sort ?? '') !== 'next_review'} />
       )}
     </div>
   );

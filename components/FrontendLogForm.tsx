@@ -8,32 +8,38 @@ import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
-export default function SystemDesignLogForm() {
+export default function FrontendLogForm() {
   const router = useRouter();
-  const [query, setQuery]                     = useState('');
-  const [suggestions, setSuggestions]         = useState<Problem[]>([]);
+  const [query, setQuery]                   = useState('');
+  const [suggestions, setSuggestions]       = useState<Problem[]>([]);
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
-  const [answer, setAnswer]                   = useState('');
-  const [bucket, setBucket]                   = useState('');
-  const [linkUrl, setLinkUrl]                 = useState('');
-  const [struggled, setStruggled]             = useState(true);
-  const [notes, setNotes]                     = useState<string[]>([]);
-  const [noteInput, setNoteInput]             = useState('');
-  const [submitting, setSubmitting]           = useState(false);
-  const [sdBuckets, setSdBuckets]             = useState<string[]>([]);
+  const [answer, setAnswer]                 = useState('');
+  const [bucket, setBucket]                 = useState('');
+  const [questionSet, setQuestionSet]       = useState('');
+  const [linkUrl, setLinkUrl]               = useState('');
+  const [struggled, setStruggled]           = useState(true);
+  const [notes, setNotes]                   = useState<string[]>([]);
+  const [noteInput, setNoteInput]           = useState('');
+  const [submitting, setSubmitting]         = useState(false);
+  const [feBuckets, setFeBuckets]           = useState<string[]>([]);
+  const [feSets, setFeSets]                 = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/config/options?domain=system_design&field=sd_category')
+    fetch('/api/config/options?domain=frontend&field=fe_bucket')
       .then(r => r.json())
-      .then((rows: { value: string }[]) => setSdBuckets(rows.map(r => r.value)))
+      .then((rows: { value: string }[]) => setFeBuckets(rows.map(r => r.value)))
+      .catch(() => {});
+    fetch('/api/config/options?domain=frontend&field=fe_question_set')
+      .then(r => r.json())
+      .then((rows: { value: string }[]) => setFeSets(rows.map(r => r.value)))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!query.trim() || selectedProblem) { setSuggestions([]); return; }
     const t = setTimeout(async () => {
-      const res = await fetch('/api/problems?domain=system_design');
+      const res = await fetch('/api/problems?domain=frontend');
       const all: Problem[] = await res.json();
       setSuggestions(all.filter(p => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8));
     }, 150);
@@ -46,26 +52,30 @@ export default function SystemDesignLogForm() {
     if (!name) return;
     setSubmitting(true);
 
+    // Create problem if new
     let pid = selectedProblem?.id ?? null;
     if (!pid) {
       const res = await fetch('/api/problems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, domain: 'system_design' }),
+        body: JSON.stringify({ name, domain: 'frontend' }),
       });
       const p: Problem = await res.json();
       pid = p.id;
     }
 
+    // Log attempt — no time, struggled captured explicitly
     await fetch(`/api/problems/${pid}/attempts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ time_taken_mins: 0, struggled, attempted_at: new Date().toLocaleDateString('en-CA') }),
     });
 
+    // Patch metadata
     const meta: Record<string, string> = {};
-    if (answer.trim()) meta.notes_text  = answer.trim();
-    if (bucket)        meta.sd_category = bucket;
+    if (answer.trim())      meta.notes_text      = answer.trim();
+    if (bucket)             meta.fe_bucket       = bucket;
+    if (questionSet)        meta.fe_question_set = questionSet;
     if (Object.keys(meta).length > 0) {
       await fetch(`/api/problems/${pid}`, {
         method: 'PATCH',
@@ -74,6 +84,7 @@ export default function SystemDesignLogForm() {
       });
     }
 
+    // Save link
     if (linkUrl.trim()) {
       await fetch(`/api/problems/${pid}/links`, {
         method: 'POST',
@@ -82,6 +93,7 @@ export default function SystemDesignLogForm() {
       });
     }
 
+    // Save quick notes
     for (const note of notes) {
       await fetch(`/api/problems/${pid}/notes`, {
         method: 'POST',
@@ -91,25 +103,20 @@ export default function SystemDesignLogForm() {
     }
 
     setSubmitting(false);
-    router.push(`/system-design/${pid}`);
-  }
-
-  function addNote() {
-    const t = noteInput.trim();
-    if (t) { setNotes(ns => [...ns, t]); setNoteInput(''); }
+    router.push(`/frontend/${pid}`);
   }
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
-      {/* Question / Concept */}
+      {/* Question title */}
       <div className="flex flex-col gap-1 relative">
-        <label className="text-xs font-medium text-muted uppercase tracking-wide">Question / Concept</label>
+        <label className="text-xs font-medium text-muted uppercase tracking-wide">Question</label>
         <input
           ref={inputRef}
           type="text"
           value={selectedProblem ? selectedProblem.name : query}
           onChange={e => { setQuery(e.target.value); setSelectedProblem(null); }}
-          placeholder="e.g. When would you use Kafka over Redis Pub/Sub?"
+          placeholder="e.g. What is the difference between useMemo and useCallback?"
           className={inputCls}
           autoComplete="off"
           autoFocus
@@ -124,7 +131,7 @@ export default function SystemDesignLogForm() {
                   className="w-full text-left px-3 py-2 text-sm text-fg hover:bg-surface-2 cursor-pointer"
                 >
                   {p.name}
-                  {p.sd_category && <span className="ml-2 text-xs text-muted">{p.sd_category}</span>}
+                  {p.fe_bucket && <span className="ml-2 text-xs text-muted">{p.fe_bucket}</span>}
                 </button>
               </li>
             ))}
@@ -141,7 +148,7 @@ export default function SystemDesignLogForm() {
           value={answer}
           onChange={e => setAnswer(e.target.value)}
           onPaste={e => { const md = pasteAsMarkdown(e, answer); if (md !== null) setAnswer(md); }}
-          placeholder="Key points, tradeoffs, when to use it… (markdown supported)"
+          placeholder="Key points, gotchas, how it works…"
           className={`${inputCls} resize-none h-28`}
         />
       </div>
@@ -149,15 +156,14 @@ export default function SystemDesignLogForm() {
       {/* Quick notes */}
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-muted uppercase tracking-wide">
-          Notes <span className="normal-case tracking-normal text-muted/60">(optional — Enter to add)</span>
+          Notes <span className="normal-case tracking-normal text-muted/60">(optional — one per line, Enter to add)</span>
         </label>
         {notes.length > 0 && (
           <ul className="flex flex-col gap-1">
             {notes.map((n, i) => (
               <li key={i} className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-fg">
                 <span className="flex-1">{n}</span>
-                <button type="button" onClick={() => setNotes(ns => ns.filter((_, j) => j !== i))}
-                  className="text-muted hover:text-danger transition-colors cursor-pointer text-xs">✕</button>
+                <button type="button" onClick={() => setNotes(ns => ns.filter((_, j) => j !== i))} className="text-muted hover:text-danger transition-colors cursor-pointer text-xs">✕</button>
               </li>
             ))}
           </ul>
@@ -167,26 +173,48 @@ export default function SystemDesignLogForm() {
             type="text"
             value={noteInput}
             onChange={e => setNoteInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addNote(); } }}
-            placeholder="e.g. Kafka guarantees ordering within a partition, not across"
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const t = noteInput.trim();
+                if (t) { setNotes(ns => [...ns, t]); setNoteInput(''); }
+              }
+            }}
+            placeholder="e.g. Closures capture variables by reference, not value"
             className={inputCls}
           />
-          <button type="button" onClick={addNote} disabled={!noteInput.trim()}
-            className="px-3 py-2 text-xs font-semibold text-accent border border-accent/30 rounded-lg hover:bg-accent/10 disabled:opacity-40 transition-colors cursor-pointer shrink-0">
+          <button
+            type="button"
+            onClick={() => { const t = noteInput.trim(); if (t) { setNotes(ns => [...ns, t]); setNoteInput(''); } }}
+            disabled={!noteInput.trim()}
+            className="px-3 py-2 text-xs font-semibold text-accent border border-accent/30 rounded-lg hover:bg-accent/10 disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+          >
             Add
           </button>
         </div>
       </div>
 
-      {/* Bucket */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-muted uppercase tracking-wide">
-          Bucket <span className="normal-case tracking-normal text-muted/60">(optional)</span>
-        </label>
-        <select value={bucket} onChange={e => setBucket(e.target.value)} className={inputCls}>
-          <option value="">— none —</option>
-          {sdBuckets.map(b => <option key={b} value={b}>{b}</option>)}
-        </select>
+      {/* Bucket + Question Set */}
+      <div className="flex gap-3 flex-wrap">
+        <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">
+            Bucket <span className="normal-case tracking-normal text-muted/60">(optional)</span>
+          </label>
+          <select value={bucket} onChange={e => setBucket(e.target.value)} className={inputCls}>
+            <option value="">— none —</option>
+            {feBuckets.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+          <label className="text-xs font-medium text-muted uppercase tracking-wide">
+            Question Set <span className="normal-case tracking-normal text-muted/60">(optional)</span>
+          </label>
+          <select value={questionSet} onChange={e => setQuestionSet(e.target.value)} className={inputCls}>
+            <option value="">— none —</option>
+            {feSets.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Link */}
@@ -198,7 +226,7 @@ export default function SystemDesignLogForm() {
           type="url"
           value={linkUrl}
           onChange={e => setLinkUrl(e.target.value)}
-          placeholder="https://hellointerview.com/…"
+          placeholder="https://react.dev/…"
           className={inputCls}
         />
       </div>
@@ -207,20 +235,29 @@ export default function SystemDesignLogForm() {
       <div className="flex items-center gap-3">
         <span className="text-xs font-medium text-muted uppercase tracking-wide">Did you struggle?</span>
         <div className="flex gap-1 bg-surface-2 rounded-lg p-0.5">
-          <button type="button" onClick={() => setStruggled(false)}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!struggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}>
+          <button
+            type="button"
+            onClick={() => setStruggled(false)}
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!struggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}
+          >
             No — knew it
           </button>
-          <button type="button" onClick={() => setStruggled(true)}
-            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${struggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}>
+          <button
+            type="button"
+            onClick={() => setStruggled(true)}
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${struggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}
+          >
             Yes — struggled
           </button>
         </div>
       </div>
 
-      <button type="submit" disabled={submitting || (!selectedProblem && !query.trim())}
-        className="min-h-[42px] px-6 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors self-start cursor-pointer">
-        {submitting ? 'Saving…' : 'Log Concept'}
+      <button
+        type="submit"
+        disabled={submitting || (!selectedProblem && !query.trim())}
+        className="min-h-[42px] px-6 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors self-start cursor-pointer"
+      >
+        {submitting ? 'Saving…' : 'Log Question'}
       </button>
     </form>
   );

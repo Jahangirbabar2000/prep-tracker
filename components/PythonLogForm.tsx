@@ -8,27 +8,37 @@ import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
-const PY_CATEGORIES = ['Language Quirks', 'stdlib', 'OOP', 'Concurrency', 'Other'];
-
-const PY_LISTS = [
-  'GFG Top 50',
-  'GFG Top 100',
-  'GFG Python Interview Questions',
-  'Python Interview Questions',
-  'Other',
-];
-
 export default function PythonLogForm() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Problem[]>([]);
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
   const [answer, setAnswer] = useState('');
-  const [questionList, setQuestionList] = useState('GFG Top 50');
-  const [category, setCategory] = useState('Language Quirks');
+  const [questionList, setQuestionList] = useState('');
+  const [category, setCategory] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  const [struggled, setStruggled] = useState(true);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [noteInput, setNoteInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [pyLists, setPyLists] = useState<string[]>([]);
+  const [pyCategories, setPyCategories] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/config/options?domain=python&field=question_list')
+      .then(r => r.json())
+      .then((rows: { value: string }[]) => {
+        setPyLists(rows.map(r => r.value));
+      })
+      .catch(() => {});
+    fetch('/api/config/options?domain=python&field=py_category')
+      .then(r => r.json())
+      .then((rows: { value: string }[]) => {
+        setPyCategories(rows.map(r => r.value));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!query.trim() || selectedProblem) { setSuggestions([]); return; }
@@ -58,11 +68,11 @@ export default function PythonLogForm() {
       pid = p.id;
     }
 
-    // Log attempt (no time, no struggled — concept review)
+    // Log attempt — no time, struggled captured explicitly
     await fetch(`/api/problems/${pid}/attempts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ time_taken_mins: 0, struggled: false, attempted_at: new Date().toLocaleDateString('en-CA') }),
+      body: JSON.stringify({ time_taken_mins: 0, struggled, attempted_at: new Date().toLocaleDateString('en-CA') }),
     });
 
     // Patch metadata
@@ -84,6 +94,15 @@ export default function PythonLogForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: linkUrl.trim(), label: name }),
+      });
+    }
+
+    // Save quick notes
+    for (const note of notes) {
+      await fetch(`/api/problems/${pid}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: note }),
       });
     }
 
@@ -138,24 +157,57 @@ export default function PythonLogForm() {
         />
       </div>
 
+      {/* Quick notes */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-muted uppercase tracking-wide">
+          Notes <span className="normal-case tracking-normal text-muted/60">(optional — one per line, Enter to add)</span>
+        </label>
+        {notes.length > 0 && (
+          <ul className="flex flex-col gap-1">
+            {notes.map((n, i) => (
+              <li key={i} className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-lg text-sm text-fg">
+                <span className="flex-1">{n}</span>
+                <button type="button" onClick={() => setNotes(ns => ns.filter((_, j) => j !== i))} className="text-muted hover:text-danger transition-colors cursor-pointer text-xs">✕</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={noteInput}
+            onChange={e => setNoteInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const t = noteInput.trim();
+                if (t) { setNotes(ns => [...ns, t]); setNoteInput(''); }
+              }
+            }}
+            placeholder="e.g. list is mutable, tuple is immutable"
+            className={inputCls}
+          />
+          <button
+            type="button"
+            onClick={() => { const t = noteInput.trim(); if (t) { setNotes(ns => [...ns, t]); setNoteInput(''); } }}
+            disabled={!noteInput.trim()}
+            className="px-3 py-2 text-xs font-semibold text-accent border border-accent/30 rounded-lg hover:bg-accent/10 disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+
       {/* Question list + Category */}
       <div className="flex gap-3 flex-wrap">
         <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
           <label className="text-xs font-medium text-muted uppercase tracking-wide">
             Question List <span className="normal-case tracking-normal text-muted/60">(optional)</span>
           </label>
-          <input
-            list="py-lists"
-            type="text"
-            value={questionList}
-            onChange={e => setQuestionList(e.target.value)}
-            placeholder="e.g. GFG Top 50"
-            className={inputCls}
-            autoComplete="off"
-          />
-          <datalist id="py-lists">
-            {PY_LISTS.map(l => <option key={l} value={l} />)}
-          </datalist>
+          <select value={questionList} onChange={e => setQuestionList(e.target.value)} className={inputCls}>
+            <option value="">— none —</option>
+            {pyLists.map(l => <option key={l} value={l}>{l}</option>)}
+          </select>
         </div>
 
         <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
@@ -164,7 +216,7 @@ export default function PythonLogForm() {
           </label>
           <select value={category} onChange={e => setCategory(e.target.value)} className={inputCls}>
             <option value="">— none —</option>
-            {PY_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {pyCategories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
       </div>
@@ -181,6 +233,27 @@ export default function PythonLogForm() {
           placeholder="https://geeksforgeeks.org/…"
           className={inputCls}
         />
+      </div>
+
+      {/* Struggled toggle */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium text-muted uppercase tracking-wide">Did you struggle?</span>
+        <div className="flex gap-1 bg-surface-2 rounded-lg p-0.5">
+          <button
+            type="button"
+            onClick={() => setStruggled(false)}
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!struggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}
+          >
+            No — knew it
+          </button>
+          <button
+            type="button"
+            onClick={() => setStruggled(true)}
+            className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${struggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}
+          >
+            Yes — struggled
+          </button>
+        </div>
       </div>
 
       <button

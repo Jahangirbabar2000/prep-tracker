@@ -1,13 +1,12 @@
 import { getDb } from '@/lib/db';
+import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ProblemListRow from '@/components/ProblemListRow';
+import ProblemList from '@/components/ProblemList';
 import DomainFilters from '@/components/DomainFilters';
 
 export const dynamic = 'force-dynamic';
-
-const CATEGORIES = ['Language Quirks', 'stdlib', 'OOP', 'Concurrency', 'Other'];
 
 function sortClause(sort: string) {
   if (sort === 'next_review') return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
@@ -27,9 +26,7 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
 
   const problems = db.prepare(query).all(...params) as Problem[];
 
-  const allLists = (db.prepare(
-    "SELECT DISTINCT question_list FROM problems WHERE domain = 'python' AND question_list IS NOT NULL"
-  ).all() as { question_list: string }[]).map(r => r.question_list);
+  const allLists = getConfigOptions('python', 'question_list');
 
   const todayCount = (db.prepare(`
     SELECT COUNT(DISTINCT a.problem_id) as n
@@ -49,9 +46,12 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-fg tracking-tight">Python</h1>
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-fg tabular">{problems.length}</span> total
+          </span>
           {todayCount > 0 && (
             <span className="text-sm text-muted">
-              <span className="font-semibold text-accent tabular">{todayCount}</span> today
+              · <span className="font-semibold text-accent tabular">{todayCount}</span> today
             </span>
           )}
         </div>
@@ -65,16 +65,14 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
         currentSort={sp.sort ?? ''}
         selects={[
           { key: 'list',     placeholder: 'All lists',       current: sp.list     ?? '', options: allLists },
-          { key: 'category', placeholder: 'All categories',  current: sp.category ?? '', options: CATEGORIES },
+          { key: 'category', placeholder: 'All categories',  current: sp.category ?? '', options: getConfigOptions('python', 'py_category') },
         ]}
       />
 
       {problems.length === 0 ? (
         <p className="text-sm text-muted py-8 text-center">No concepts yet. Log your first attempt to get started.</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {problems.map(p => <ProblemListRow key={p.id} problem={p} basePath="/python" />)}
-        </div>
+        <ProblemList problems={problems} basePath="/python" groupByDate={(sp.sort ?? '') !== 'next_review'} />
       )}
     </div>
   );

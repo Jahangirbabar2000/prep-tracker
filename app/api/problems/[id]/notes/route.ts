@@ -18,13 +18,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const { question, answer } = await req.json();
 
-  if (!question?.trim() || !answer?.trim()) {
-    return NextResponse.json({ error: 'question and answer are required' }, { status: 400 });
+  if (!question?.trim()) {
+    return NextResponse.json({ error: 'question is required' }, { status: 400 });
   }
 
   const note = db.prepare(
     'INSERT INTO notes (problem_id, question, answer) VALUES (?, ?, ?) RETURNING *'
-  ).get(id, question.trim(), answer.trim()) as Note;
+  ).get(id, question.trim(), answer?.trim() ?? '') as Note;
 
   return NextResponse.json(note, { status: 201 });
 }

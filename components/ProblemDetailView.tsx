@@ -10,6 +10,7 @@ import AttemptHistory from './AttemptHistory';
 import NoteCard from './NoteCard';
 import AddNoteForm from './AddNoteForm';
 import QuickLogForm from './QuickLogForm';
+import QuickNotes from './QuickNotes';
 import LinksManager from './LinksManager';
 import DeleteButton from './DeleteButton';
 
@@ -83,9 +84,12 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <Link href={basePath} className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
+            <button
+              onClick={() => { router.refresh(); router.push(basePath); }}
+              className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
+            >
               <ArrowLeft size={13} /> {backLabel}
-            </Link>
+            </button>
             <div className="flex items-center gap-1">
               <Link
                 href={data.prev_id ? `${basePath}/${data.prev_id}` : '#'}
@@ -172,15 +176,27 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
         )}
         <AttemptHistory
           attempts={data.attempts}
-          showTime={domain === 'dsa' || domain === 'frontend'}
+          showTime={domain === 'dsa'}
           showPracticeType={domain === 'system_design'}
           onUpdated={a => setData(d => d ? { ...d, attempts: d.attempts.map(x => x.id === a.id ? a : x) } : d)}
           onDeleted={aid => setData(d => d ? { ...d, attempts: d.attempts.filter(x => x.id !== aid) } : d)}
         />
       </section>
 
-      {/* Notes — not shown for Python (the question+answer field IS the recall mechanism) */}
-      {domain !== 'python' && (
+      {/* Quick one-liner notes — Python, Frontend & System Design */}
+      {domain !== 'dsa' && (
+        <section>
+          <h2 className={`${sectionTitle} mb-3`}>Notes</h2>
+          <QuickNotes
+            problemId={data.id}
+            notes={data.notes}
+            onChange={notes => setData(d => d ? { ...d, notes } : d)}
+          />
+        </section>
+      )}
+
+      {/* Full Q&A recall notes — DSA only */}
+      {domain === 'dsa' && (
         <section>
           <h2 className={`${sectionTitle} mb-3`}>Active Recall Notes</h2>
           <div className="flex flex-col gap-3">
@@ -189,7 +205,10 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
               <NoteCard
                 key={n.id}
                 note={n}
-                onDelete={nid => setData(d => d ? { ...d, notes: d.notes.filter(x => x.id !== nid) } : d)}
+                onDelete={async nid => {
+                  await fetch(`/api/problems/${data.id}/notes/${nid}`, { method: 'DELETE' });
+                  setData(d => d ? { ...d, notes: d.notes.filter(x => x.id !== nid) } : d);
+                }}
               />
             ))}
           </div>

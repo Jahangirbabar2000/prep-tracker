@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Inbox, Binary, Network, Layout, Code2 } from 'lucide-react';
+import { Inbox, Binary, Network, Layout, Code2, Settings } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 const links = [
@@ -17,6 +17,7 @@ const links = [
 export default function Nav() {
   const pathname = usePathname();
   const [todayCounts, setTodayCounts] = useState<Record<string, number>>({});
+  const [dueCounts,   setDueCounts]   = useState<Record<string, number>>({});
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
@@ -24,17 +25,32 @@ export default function Nav() {
   useEffect(() => {
     fetch('/api/stats/today')
       .then(r => r.json())
-      .then(setTodayCounts)
+      .then((data: { counts: Record<string, number>; due: Record<string, number> }) => {
+        setTodayCounts(data.counts ?? {});
+        setDueCounts(data.due ?? {});
+      })
       .catch(() => {});
   }, [pathname]); // re-fetch on every navigation so counts stay current
 
-  function CountBadge({ domain }: { domain: string | null }) {
-    if (!domain) return null;
-    const n = todayCounts[domain] ?? 0;
-    if (n === 0) return null;
+  // Total items overdue across all domains — shown only on the Review Queue tab
+  const totalDue = Object.values(dueCounts).reduce((s, n) => s + n, 0);
+
+  function Badges({ domain }: { domain: string | null }) {
+    // Review Queue tab: show overdue count in red
+    if (domain === null) {
+      if (totalDue === 0) return null;
+      return (
+        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-semibold bg-danger/15 text-danger leading-none">
+          {totalDue}
+        </span>
+      );
+    }
+    // Domain tabs: show today's new count in green (unchanged)
+    const today = todayCounts[domain] ?? 0;
+    if (today === 0) return null;
     return (
       <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-semibold bg-accent text-accent-fg leading-none">
-        {n}
+        {today}
       </span>
     );
   }
@@ -63,11 +79,22 @@ export default function Nav() {
               >
                 <Icon size={16} className={isActive(href) ? 'text-accent' : ''} />
                 {label}
-                <CountBadge domain={domain} />
+                <Badges domain={domain} />
               </Link>
             ))}
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <Link
+              href="/settings"
+              className={`p-2 rounded-md transition-colors cursor-pointer ${
+                pathname === '/settings' ? 'text-fg' : 'text-muted hover:text-fg'
+              }`}
+              title="Settings"
+            >
+              <Settings size={16} className={pathname === '/settings' ? 'text-accent' : ''} />
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
 
@@ -79,13 +106,26 @@ export default function Nav() {
           </span>
           Prep Tracker
         </span>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <Link
+            href="/settings"
+            className={`p-2 rounded-md transition-colors cursor-pointer ${
+              pathname === '/settings' ? 'text-fg' : 'text-muted hover:text-fg'
+            }`}
+            title="Settings"
+          >
+            <Settings size={16} className={pathname === '/settings' ? 'text-accent' : ''} />
+          </Link>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur border-t border-border flex">
         {links.map(({ href, short, Icon, domain }) => {
-          const n = domain ? (todayCounts[domain] ?? 0) : 0;
+          // Review Queue: red badge for total overdue; domain tabs: green badge for today count
+          const badgeN   = domain === null ? totalDue : (todayCounts[domain] ?? 0);
+          const badgeCls = domain === null ? 'bg-danger text-white' : 'bg-accent text-accent-fg';
           return (
             <Link
               key={href}
@@ -96,9 +136,9 @@ export default function Nav() {
             >
               <span className="relative inline-flex">
                 <Icon size={20} />
-                {n > 0 && (
-                  <span className="absolute -top-1.5 -right-2.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-0.5 rounded-full text-[10px] font-bold bg-accent text-accent-fg leading-none">
-                    {n}
+                {badgeN > 0 && (
+                  <span className={`absolute -top-1.5 -right-2.5 inline-flex items-center justify-center min-w-[16px] h-[16px] px-0.5 rounded-full text-[10px] font-bold leading-none ${badgeCls}`}>
+                    {badgeN}
                   </span>
                 )}
               </span>

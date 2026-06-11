@@ -46,9 +46,27 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
 
   const [linkUrl, setLinkUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [dsaPlatforms, setDsaPlatforms] = useState<string[]>([]);
+  const [dsaLists, setDsaLists] = useState<string[]>([]);
+  const [feBuckets, setFeBuckets] = useState<string[]>([]);
+  const [feSets, setFeSets] = useState<string[]>([]);
+  const [pyCategories, setPyCategories] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const effectiveDomain = defaultDomain ?? domain;
+
+  useEffect(() => {
+    fetch('/api/config/options?domain=dsa&field=platform')
+      .then(r => r.json()).then((rows: { value: string }[]) => setDsaPlatforms(rows.map(r => r.value))).catch(() => {});
+    fetch('/api/config/options?domain=dsa&field=question_list')
+      .then(r => r.json()).then((rows: { value: string }[]) => setDsaLists(rows.map(r => r.value))).catch(() => {});
+    fetch('/api/config/options?domain=frontend&field=fe_bucket')
+      .then(r => r.json()).then((rows: { value: string }[]) => setFeBuckets(rows.map(r => r.value))).catch(() => {});
+    fetch('/api/config/options?domain=frontend&field=fe_question_set')
+      .then(r => r.json()).then((rows: { value: string }[]) => setFeSets(rows.map(r => r.value))).catch(() => {});
+    fetch('/api/config/options?domain=python&field=py_category')
+      .then(r => r.json()).then((rows: { value: string }[]) => setPyCategories(rows.map(r => r.value))).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (inline && inputRef.current) inputRef.current.focus();
@@ -94,15 +112,15 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
     // Patch optional metadata if any was filled in
     const meta: Record<string, string> = {};
     if (effectiveDomain === 'dsa') {
-      if (platform)     meta.platform     = platform;
+      if (platform) meta.platform = platform;
       if (questionList) meta.question_list = questionList;
-      if (patternTag)   meta.pattern_tag  = patternTag;
-      if (difficulty)   meta.difficulty   = difficulty;
+      if (patternTag) meta.pattern_tag = patternTag;
+      if (difficulty) meta.difficulty = difficulty;
     } else if (effectiveDomain === 'frontend') {
-      if (feBucket)     meta.fe_bucket      = feBucket;
+      if (feBucket) meta.fe_bucket = feBucket;
       if (feQuestionSet) meta.fe_question_set = feQuestionSet;
     } else if (effectiveDomain === 'python') {
-      if (pyCategory)   meta.py_category  = pyCategory;
+      if (pyCategory) meta.py_category = pyCategory;
     }
     if (Object.keys(meta).length > 0) {
       await fetch(`/api/problems/${pid}`, {
@@ -208,11 +226,10 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
           <button
             type="button"
             onClick={() => setStruggled(s => !s)}
-            className={`min-h-[42px] px-4 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${
-              struggled
-                ? 'bg-danger/10 border-danger/40 text-danger'
-                : 'bg-accent/10 border-accent/40 text-accent'
-            }`}
+            className={`min-h-[42px] px-4 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${struggled
+              ? 'bg-danger/10 border-danger/40 text-danger'
+              : 'bg-accent/10 border-accent/40 text-accent'
+              }`}
           >
             {struggled ? 'Yes' : 'No'}
           </button>
@@ -237,20 +254,14 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
               <label className="text-xs text-muted">Platform</label>
               <select value={platform} onChange={e => setPlatform(e.target.value)} className={`${inputCls}`}>
                 <option value="">— none —</option>
-                <option>LeetCode</option>
-                <option>NeetCode</option>
-                <option>Hello Interview</option>
-                <option>Other</option>
+                {dsaPlatforms.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted">Question List</label>
               <select value={questionList} onChange={e => setQuestionList(e.target.value)} className={`${inputCls}`}>
                 <option value="">— none —</option>
-                <option>NeetCode 150</option>
-                <option>Blind 75</option>
-                <option>HelloInterview Learn Code</option>
-                <option>Other</option>
+                {dsaLists.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
           </div>
@@ -280,19 +291,14 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
               <label className="text-xs text-muted">Bucket</label>
               <select value={feBucket} onChange={e => setFeBucket(e.target.value)} className={inputCls}>
                 <option value="">— none —</option>
-                <option>JS Quirks</option>
-                <option>React Internals</option>
-                <option>Component Building</option>
+                {feBuckets.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-muted">Question Set</label>
               <select value={feQuestionSet} onChange={e => setFeQuestionSet(e.target.value)} className={inputCls}>
                 <option value="">— none —</option>
-                <option>React 100</option>
-                <option>JS 500</option>
-                <option>Frontend 75</option>
-                <option>Other</option>
+                {feSets.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
@@ -307,11 +313,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
             <label className="text-xs text-muted">Category</label>
             <select value={pyCategory} onChange={e => setPyCategory(e.target.value)} className={inputCls}>
               <option value="">— none —</option>
-              <option>Language Quirks</option>
-              <option>stdlib</option>
-              <option>OOP</option>
-              <option>Concurrency</option>
-              <option>Other</option>
+              {pyCategories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>

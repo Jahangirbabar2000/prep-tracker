@@ -21,6 +21,14 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
       <div className="flex flex-col gap-1 min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <DomainBadge domain={item.domain} />
+          {item.difficulty && (
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${
+              item.difficulty === 'Easy'   ? 'bg-green-500/10 text-green-500' :
+              item.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-500' :
+              item.difficulty === 'Hard'   ? 'bg-red-500/10 text-red-500' :
+              'bg-surface-2 text-muted'
+            }`}>{item.difficulty}</span>
+          )}
           {item.last_struggled ? (
             <span className="inline-flex items-center gap-1 text-xs text-danger font-medium">
               <AlertTriangle size={12} /> struggled

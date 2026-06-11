@@ -9,19 +9,11 @@ interface Props {
   basePath: string;
 }
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
 const DIFFICULTY_STYLE: Record<string, string> = {
   Easy:   'text-emerald-500 dark:text-emerald-400',
   Medium: 'text-amber-500  dark:text-amber-400',
   Hard:   'text-red-500    dark:text-red-400',
 };
-
-function fmtLogged(iso: string): string {
-  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
-  const thisYear = new Date().getFullYear();
-  return y === thisYear ? `${MONTHS[m - 1]} ${d}` : `${MONTHS[m - 1]} ${d}, ${y}`;
-}
 
 export default function ProblemListRow({ problem: p, basePath }: Props) {
   const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category;
@@ -47,16 +39,12 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          {tag && <span className="text-xs px-1.5 py-0.5 rounded bg-surface-2 text-muted">{tag}</span>}
-          {qset && <span className="text-xs text-muted">{qset}</span>}
-          {p.created_at && (
-            <span className="text-xs text-muted/50 tabular">
-              {(tag || qset) && <span className="mr-1 opacity-40">·</span>}
-              {fmtLogged(p.created_at)}
-            </span>
-          )}
-        </div>
+        {(tag || qset) && (
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {tag && <span className="text-xs px-1.5 py-0.5 rounded bg-surface-2 text-muted">{tag}</span>}
+            {qset && <span className="text-xs text-muted">{qset}</span>}
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 text-xs text-muted text-right tabular hidden sm:block">
