@@ -1,4 +1,5 @@
 import { Problem } from '@/lib/types';
+import { fmtDateOrToday } from '@/lib/fmt';
 import ProblemListRow from './ProblemListRow';
 
 interface Props {
@@ -6,17 +7,6 @@ interface Props {
   basePath: string;
   /** Group by logged date with dividers. Pass false for next_review sort where date order is meaningless. */
   groupByDate?: boolean;
-}
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-function fmtDate(iso: string): string {
-  const today = new Date().toLocaleDateString('en-CA');
-  const dateStr = iso.slice(0, 10);
-  if (dateStr === today) return 'Today';
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const thisYear = new Date().getFullYear();
-  return y === thisYear ? `${MONTHS[m - 1]} ${d}` : `${MONTHS[m - 1]} ${d}, ${y}`;
 }
 
 export default function ProblemList({ problems, basePath, groupByDate = true }: Props) {
@@ -37,7 +27,7 @@ export default function ProblemList({ problems, basePath, groupByDate = true }: 
     if (last && last.dateKey === dateKey) {
       last.items.push(p);
     } else {
-      groups.push({ dateKey, label: dateKey ? fmtDate(dateKey) : '', items: [p] });
+      groups.push({ dateKey, label: dateKey ? fmtDateOrToday(dateKey) : '', items: [p] });
     }
   }
 

@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { Problem } from '@/lib/types';
+import { fmtDate } from '@/lib/fmt';
 import { ChevronRight, Clock } from 'lucide-react';
+import ProficiencyBadge from './ProficiencyBadge';
 
 interface Props {
   problem: Problem & { avg_time?: number | null };
@@ -47,14 +49,13 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
         )}
       </div>
 
-      <div className="shrink-0 text-xs text-muted text-right tabular hidden sm:block">
-        {p.next_due_date ? (
-          <div>next {p.next_due_date}</div>
-        ) : (
-          <div className="opacity-60">not attempted</div>
-        )}
+      <div className="shrink-0 text-right hidden sm:flex flex-col items-end gap-1">
+        <ProficiencyBadge
+          level={p.interval_level}
+          nextDueDate={p.next_due_date ? fmtDate(p.next_due_date) : null}
+        />
         {p.avg_time != null && (
-          <div className="flex items-center gap-1 justify-end mt-0.5">
+          <div className="flex items-center gap-1 text-xs text-muted">
             <Clock size={11} /> {p.avg_time} min avg
           </div>
         )}

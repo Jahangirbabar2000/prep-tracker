@@ -82,16 +82,14 @@ function initSchema(db: Database.Database) {
   // Seed default config options (INSERT OR IGNORE so they only insert once)
   const seedOptions: { domain: string; field: string; value: string; sort_order: number }[] = [
     // dsa / platform
-    { domain: 'dsa', field: 'platform', value: 'LeetCode',         sort_order: 0 },
-    { domain: 'dsa', field: 'platform', value: 'NeetCode',         sort_order: 1 },
-    { domain: 'dsa', field: 'platform', value: 'Hello Interview',  sort_order: 2 },
-    { domain: 'dsa', field: 'platform', value: 'Other',            sort_order: 3 },
+    { domain: 'dsa', field: 'platform', value: 'LeetCode',        sort_order: 0 },
+    { domain: 'dsa', field: 'platform', value: 'NeetCode',        sort_order: 1 },
+    { domain: 'dsa', field: 'platform', value: 'Hello Interview', sort_order: 2 },
     // dsa / question_list
-    { domain: 'dsa', field: 'question_list', value: 'NeetCode 150',                sort_order: 0 },
-    { domain: 'dsa', field: 'question_list', value: 'Leetcode 75',                 sort_order: 1 },
-    { domain: 'dsa', field: 'question_list', value: 'Leetcode 150',                sort_order: 2 },
-    { domain: 'dsa', field: 'question_list', value: 'HelloInterview Learn Code',   sort_order: 3 },
-    { domain: 'dsa', field: 'question_list', value: 'Other',                       sort_order: 4 },
+    { domain: 'dsa', field: 'question_list', value: 'NeetCode 150',              sort_order: 0 },
+    { domain: 'dsa', field: 'question_list', value: 'Leetcode 75',               sort_order: 1 },
+    { domain: 'dsa', field: 'question_list', value: 'Leetcode 150',              sort_order: 2 },
+    { domain: 'dsa', field: 'question_list', value: 'HelloInterview Learn Code', sort_order: 3 },
     // system_design / sd_category
     { domain: 'system_design', field: 'sd_category', value: 'Core Concepts',    sort_order: 0 },
     { domain: 'system_design', field: 'sd_category', value: 'In a Hurry',       sort_order: 1 },
@@ -104,24 +102,20 @@ function initSchema(db: Database.Database) {
     { domain: 'frontend', field: 'fe_bucket', value: 'Component Building', sort_order: 2 },
     { domain: 'frontend', field: 'fe_bucket', value: 'CSS / Layout',       sort_order: 3 },
     { domain: 'frontend', field: 'fe_bucket', value: 'Performance',        sort_order: 4 },
-    { domain: 'frontend', field: 'fe_bucket', value: 'Other',              sort_order: 5 },
     // frontend / fe_question_set
     { domain: 'frontend', field: 'fe_question_set', value: 'GFE Quiz React 50', sort_order: 0 },
     { domain: 'frontend', field: 'fe_question_set', value: 'JS 500',            sort_order: 1 },
     { domain: 'frontend', field: 'fe_question_set', value: 'Frontend 75',       sort_order: 2 },
-    { domain: 'frontend', field: 'fe_question_set', value: 'Other',             sort_order: 3 },
     // python / question_list
-    { domain: 'python', field: 'question_list', value: 'GFG Top 50',                      sort_order: 0 },
-    { domain: 'python', field: 'question_list', value: 'GFG Top 100',                     sort_order: 1 },
-    { domain: 'python', field: 'question_list', value: 'GFG Python Interview Questions',  sort_order: 2 },
-    { domain: 'python', field: 'question_list', value: 'Python Interview Questions',      sort_order: 3 },
-    { domain: 'python', field: 'question_list', value: 'Other',                           sort_order: 4 },
+    { domain: 'python', field: 'question_list', value: 'GFG Python Interview Questions', sort_order: 0 },
+    { domain: 'python', field: 'question_list', value: 'GFG Top 50',                     sort_order: 1 },
+    { domain: 'python', field: 'question_list', value: 'GFG Top 100',                    sort_order: 2 },
+    { domain: 'python', field: 'question_list', value: 'Python Interview Questions',     sort_order: 3 },
     // python / py_category
     { domain: 'python', field: 'py_category', value: 'Language Quirks', sort_order: 0 },
     { domain: 'python', field: 'py_category', value: 'stdlib',          sort_order: 1 },
     { domain: 'python', field: 'py_category', value: 'OOP',             sort_order: 2 },
     { domain: 'python', field: 'py_category', value: 'Concurrency',     sort_order: 3 },
-    { domain: 'python', field: 'py_category', value: 'Other',           sort_order: 4 },
   ];
 
   const insertOption = db.prepare(

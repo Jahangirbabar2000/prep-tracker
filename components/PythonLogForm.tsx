@@ -29,13 +29,17 @@ export default function PythonLogForm() {
     fetch('/api/config/options?domain=python&field=question_list')
       .then(r => r.json())
       .then((rows: { value: string }[]) => {
-        setPyLists(rows.map(r => r.value));
+        const vals = rows.map(r => r.value);
+        setPyLists(vals);
+        if (vals.length > 0) setQuestionList(vals[0]);
       })
       .catch(() => {});
     fetch('/api/config/options?domain=python&field=py_category')
       .then(r => r.json())
       .then((rows: { value: string }[]) => {
-        setPyCategories(rows.map(r => r.value));
+        const vals = rows.map(r => r.value);
+        setPyCategories(vals);
+        if (vals.length > 0) setCategory(vals[0]);
       })
       .catch(() => {});
   }, []);

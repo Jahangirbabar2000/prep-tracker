@@ -24,11 +24,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-dvh antialiased">
-        <Nav />
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24 md:pb-12">
-          {children}
-        </main>
+      <body className="antialiased">
+        {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
+        <div className="min-h-dvh md:h-dvh md:flex">
+          <Nav />
+          <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-24 md:pb-10 md:overflow-y-auto">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );

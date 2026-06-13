@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 
 interface DaySlot {
@@ -25,31 +24,29 @@ const DOMAIN_LABEL: Record<string, string> = {
 };
 
 const DOMAIN_STYLE: Record<string, string> = {
-  dsa:           'text-accent',
+  dsa:           'text-red-400',
   system_design: 'text-orange-400',
   frontend:      'text-purple-400',
   python:        'text-emerald-400',
 };
 
 const DOMAIN_DOT: Record<string, string> = {
-  dsa:           'bg-accent',
+  dsa:           'bg-red-400',
   system_design: 'bg-orange-400',
   frontend:      'bg-purple-400',
   python:        'bg-emerald-400',
 };
 
+// Ordered so the domain row is always consistent left-to-right
+const DOMAIN_ORDER = ['python', 'dsa', 'frontend', 'system_design'];
+
 export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }: Props) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
   if (totalUpcoming === 0) return null;
-
-  const maxDay = Math.max(...slots.map(s => s.total), 1);
-  const BAR_MAX_H = 36; // px
 
   return (
     <div className="mt-10 pt-6 border-t border-border">
       {/* Section header */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-5">
         <CalendarDays size={14} className="text-muted" />
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wide">
           Upcoming · next 7 days
@@ -57,75 +54,37 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
         <span className="text-xs text-muted/50 tabular">{totalUpcoming} reviews</span>
       </div>
 
-      {/* 7-day bar chart */}
+      {/* 7-day columns */}
       <div className="flex items-end gap-2 mb-5">
-        {slots.map((slot, i) => {
-          const barH = slot.total > 0
-            ? Math.max(4, Math.round((slot.total / maxDay) * BAR_MAX_H))
-            : 0;
-          const isHovered = hoveredIdx === i;
-          const domainEntries = Object.entries(slot.domains).sort((a, b) => b[1] - a[1]);
+        {slots.map((slot) => {
+          const domainEntries = DOMAIN_ORDER
+            .filter(d => slot.domains[d] > 0)
+            .map(d => [d, slot.domains[d]] as [string, number]);
 
           return (
             <div
               key={slot.dateKey}
-              className="relative flex flex-col items-center gap-1.5 flex-1 cursor-default"
-              onMouseEnter={() => slot.total > 0 && setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(null)}
+              className="flex flex-col items-center gap-1.5 flex-1"
             >
-              {/* Tooltip */}
-              {isHovered && domainEntries.length > 0 && (
-                <div className={`
-                  absolute bottom-full mb-2 z-50
-                  bg-surface border border-border-strong rounded-xl shadow-lg
-                  px-3 py-2.5 min-w-[130px]
-                  ${i >= 5 ? 'right-0' : i <= 1 ? 'left-0' : 'left-1/2 -translate-x-1/2'}
-                `}>
-                  <p className="text-[11px] font-semibold text-fg mb-2">{slot.label}</p>
-                  <div className="flex flex-col gap-1.5">
-                    {domainEntries.map(([domain, count]) => (
-                      <div key={domain} className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOMAIN_DOT[domain] ?? 'bg-muted'}`} />
-                          <span className="text-[11px] text-muted">{DOMAIN_LABEL[domain] ?? domain}</span>
-                        </div>
-                        <span className="text-[11px] font-semibold text-fg tabular">{count}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Arrow */}
-                  <div className={`
-                    absolute top-full w-2.5 h-2.5 bg-surface border-r border-b border-border-strong rotate-45 -translate-y-[6px]
-                    ${i >= 5 ? 'right-3' : i <= 1 ? 'left-3' : 'left-1/2 -translate-x-1/2'}
-                  `} />
-                </div>
-              )}
-
-              {/* Count */}
-              <span className={`text-[11px] tabular font-medium transition-colors ${
-                slot.total > 0
-                  ? isHovered ? 'text-accent' : 'text-fg'
-                  : 'text-muted/30'
-              }`}>
-                {slot.total > 0 ? slot.total : '–'}
+              {/* Date label e.g. 06/22 */}
+              <span className="text-[10px] text-muted/50 tabular">
+                {slot.dateKey.slice(5, 7)}/{slot.dateKey.slice(8, 10)}
               </span>
 
-              {/* Bar */}
-              <div className="w-full flex items-end" style={{ height: `${BAR_MAX_H}px` }}>
-                {slot.total > 0 ? (
-                  <div
-                    className={`w-full rounded-t-sm transition-colors ${isHovered ? 'bg-accent/70' : 'bg-accent/35'}`}
-                    style={{ height: `${barH}px` }}
-                  />
-                ) : (
-                  <div className="w-full rounded-t-sm bg-border/40" style={{ height: '3px' }} />
-                )}
+              {/* Per-domain breakdown — fixed height so all columns align */}
+              <div className="flex flex-col items-center gap-0.5 h-[60px] justify-start pt-0.5">
+                {domainEntries.map(([domain, count]) => (
+                  <div key={domain} className="flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOMAIN_DOT[domain] ?? 'bg-muted'}`} />
+                    <span className={`text-[10px] font-medium tabular ${DOMAIN_STYLE[domain] ?? 'text-muted'}`}>
+                      {count}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               {/* Day label */}
-              <span className={`text-[11px] font-medium uppercase tracking-wide transition-colors ${
-                isHovered ? 'text-fg' : 'text-muted/60'
-              }`}>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted/60">
                 {slot.shortLabel}
               </span>
             </div>
@@ -133,13 +92,15 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
         })}
       </div>
 
-      {/* Domain breakdown — total for the week */}
+      {/* Weekly domain totals */}
       <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-        {Object.entries(domainTotals)
-          .sort((a, b) => b[1] - a[1])
-          .map(([domain, count]) => (
+        {DOMAIN_ORDER
+          .filter(d => domainTotals[d] > 0)
+          .map(domain => (
             <span key={domain} className="text-xs text-muted">
-              <span className={`font-semibold ${DOMAIN_STYLE[domain] ?? 'text-fg'}`}>{count}</span>
+              <span className={`font-semibold ${DOMAIN_STYLE[domain] ?? 'text-fg'}`}>
+                {domainTotals[domain]}
+              </span>
               {' '}{DOMAIN_LABEL[domain] ?? domain}
             </span>
           ))

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Attempt } from '@/lib/types';
+import { fmtDate } from '@/lib/fmt';
 import { Clock, Check, X, Pencil, Trash2 } from 'lucide-react';
 
 interface Props {
@@ -123,7 +124,7 @@ export default function AttemptHistory({ attempts, showTime = true, showPractice
                   </>
                 ) : (
                   <>
-                    <td className="px-4 py-2.5 text-fg/80 tabular">{a.attempted_at.slice(0, 10)}</td>
+                    <td className="px-4 py-2.5 text-fg/80 tabular">{fmtDate(a.attempted_at)}</td>
                     {showTime && <td className="px-4 py-2.5 text-fg/80 tabular">{a.time_taken_mins} min</td>}
                     {showPracticeType && (
                       <td className="px-4 py-2.5 text-muted capitalize">{a.practice_type ?? '—'}</td>

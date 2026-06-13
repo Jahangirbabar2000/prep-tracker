@@ -3,7 +3,7 @@ import { ReviewQueueItem as RQI } from '@/lib/types';
 import ReviewQueueItemCard from '@/components/ReviewQueueItem';
 import UpcomingForecast from '@/components/UpcomingForecast';
 import Link from 'next/link';
-import { Check, Play } from 'lucide-react';
+import { Check, History, Play } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +11,12 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ReviewQueuePage() {
   const db = getDb();
+
+  const { cnt: todayCount } = db.prepare(`
+    SELECT COUNT(*) AS cnt
+    FROM attempts
+    WHERE substr(attempted_at, 1, 10) = date('now', 'localtime')
+  `).get() as { cnt: number };
 
   const items = db.prepare(`
     SELECT
@@ -75,6 +81,15 @@ export default function ReviewQueuePage() {
           <p className="text-sm text-muted mt-1">Everything due across all domains, most overdue first.</p>
         </div>
         <div className="flex items-center gap-3">
+          {todayCount > 0 && (
+            <Link
+              href="/review/history"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-surface border border-border text-fg text-sm font-medium rounded-lg hover:border-border-strong transition-colors"
+            >
+              <History size={13} /> Today&apos;s History
+              <span className="opacity-50 font-normal">({todayCount})</span>
+            </Link>
+          )}
           {conceptDue > 0 && (
             <Link
               href="/review/session"

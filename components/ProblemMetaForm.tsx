@@ -120,23 +120,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
         </>}
 
         {problem.domain === 'python' && <>
-          {field('Question List', 'question_list', <>
-            <input
-              list="py-lists-meta"
-              type="text"
-              value={(data.question_list as string) ?? ''}
-              onChange={e => setData(d => ({ ...d, question_list: e.target.value }))}
-              onBlur={e => save('question_list', e.target.value)}
-              placeholder="e.g. GFG Top 50"
-              className={inputCls}
-              autoComplete="off"
-            />
-            <datalist id="py-lists-meta">
-              {(opts['python/question_list'] ?? []).map(l => (
-                <option key={l} value={l} />
-              ))}
-            </datalist>
-          </>)}
+          {field('Question List', 'question_list', select('question_list', opts['python/question_list'] ?? []))}
           {field('Category', 'py_category', select('py_category', opts['python/py_category'] ?? []))}
         </>}
       </div>

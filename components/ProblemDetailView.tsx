@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { fmtDate } from '@/lib/fmt';
+import ProficiencyBadge from './ProficiencyBadge';
 import { Attempt, Domain, Link as LinkType, Note, Problem } from '@/lib/types';
 import ProblemMetaForm from './ProblemMetaForm';
 import AttemptHistory from './AttemptHistory';
@@ -128,13 +130,25 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
               {data.name}
             </h1>
           )}
-          {data.next_due_date && (
-            <p className="text-xs text-muted mt-1.5 tabular">
-              Next due {data.next_due_date} · Interval level {data.interval_level}
-            </p>
-          )}
+          <div className="flex items-center gap-2 mt-1.5">
+            <ProficiencyBadge
+              level={data.interval_level}
+              nextDueDate={data.next_due_date ? fmtDate(data.next_due_date) : null}
+            />
+            {data.next_due_date && (
+              <span className="text-xs text-muted tabular">· due {fmtDate(data.next_due_date)}</span>
+            )}
+          </div>
         </div>
-        <DeleteButton onConfirm={deleteProblem} disabled={deleting} />
+        <div className="flex items-center gap-2 shrink-0">
+          <DeleteButton onConfirm={deleteProblem} disabled={deleting} />
+          <Link
+            href={`${basePath}/log`}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
+          >
+            <Plus size={15} /> Log Question
+          </Link>
+        </div>
       </div>
 
       {/* Metadata */}

@@ -26,7 +26,11 @@ export default function SystemDesignLogForm() {
   useEffect(() => {
     fetch('/api/config/options?domain=system_design&field=sd_category')
       .then(r => r.json())
-      .then((rows: { value: string }[]) => setSdBuckets(rows.map(r => r.value)))
+      .then((rows: { value: string }[]) => {
+        const vals = rows.map(r => r.value);
+        setSdBuckets(vals);
+        if (vals.length > 0) setBucket(vals[0]);
+      })
       .catch(() => {});
   }, []);
 

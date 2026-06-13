@@ -28,11 +28,19 @@ export default function FrontendLogForm() {
   useEffect(() => {
     fetch('/api/config/options?domain=frontend&field=fe_bucket')
       .then(r => r.json())
-      .then((rows: { value: string }[]) => setFeBuckets(rows.map(r => r.value)))
+      .then((rows: { value: string }[]) => {
+        const vals = rows.map(r => r.value);
+        setFeBuckets(vals);
+        if (vals.length > 0) setBucket(vals[0]);
+      })
       .catch(() => {});
     fetch('/api/config/options?domain=frontend&field=fe_question_set')
       .then(r => r.json())
-      .then((rows: { value: string }[]) => setFeSets(rows.map(r => r.value)))
+      .then((rows: { value: string }[]) => {
+        const vals = rows.map(r => r.value);
+        setFeSets(vals);
+        if (vals.length > 0) setQuestionSet(vals[0]);
+      })
       .catch(() => {});
   }, []);
 
