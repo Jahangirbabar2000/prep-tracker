@@ -281,14 +281,16 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
               <span className="text-xs text-muted italic">No practice link — add via Edit.</span>
             )}
 
-            {lastResult !== null ? (
+            {lastResult !== null && (
               <span className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
                 lastResult ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'
               }`}>
                 {lastResult ? '✓ Solved it' : '✗ Struggled'}
               </span>
-            ) : (
-              <div className="ml-auto flex items-center gap-2 flex-wrap">
+            )}
+            {/* Log controls — desktop only */}
+            {lastResult === null && (
+              <div className="hidden md:flex ml-auto items-center gap-2 flex-wrap">
                 <input
                   type="number"
                   min="0"

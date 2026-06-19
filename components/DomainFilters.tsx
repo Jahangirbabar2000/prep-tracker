@@ -41,13 +41,13 @@ export default function DomainFilters({ basePath, selects, currentSort }: Props)
   const hasFilter = selects.some(s => s.current) || (currentSort && currentSort !== 'newest');
 
   return (
-    <div className="flex flex-wrap gap-2 mb-6 items-center">
+    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap mb-6 items-center">
       {selects.map(s => (
         <select
           key={s.key}
           value={s.current}
           onChange={e => push(s.key, e.target.value)}
-          className={cls}
+          className={`${cls} w-full sm:w-auto`}
         >
           <option value="">{s.placeholder}</option>
           {s.options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -57,7 +57,7 @@ export default function DomainFilters({ basePath, selects, currentSort }: Props)
       <select
         value={currentSort || 'newest'}
         onChange={e => push('sort', e.target.value)}
-        className={cls}
+        className={`${cls} w-full sm:w-auto`}
       >
         {SORT_OPTIONS.map(o => (
           <option key={o.value} value={o.value}>{o.label}</option>
@@ -67,7 +67,7 @@ export default function DomainFilters({ basePath, selects, currentSort }: Props)
       {hasFilter && (
         <button
           onClick={() => router.push(basePath)}
-          className="px-3 py-2 text-sm text-muted hover:text-fg transition-colors cursor-pointer"
+          className="px-3 py-2 text-sm text-muted hover:text-fg transition-colors cursor-pointer col-span-1"
         >
           Clear
         </button>
