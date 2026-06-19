@@ -1,38 +1,28 @@
 import { queryAll, queryOne, localToday } from '@/lib/db';
-import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ProblemList from '@/components/ProblemList';
-import DomainFilters from '@/components/DomainFilters';
+import DomainPageClient, { DomainFilterConfig } from '@/components/DomainPageClient';
 import LogShortcut from '@/components/LogShortcut';
-import { proficiencyClause, PROFICIENCY_OPTIONS } from '@/lib/filters';
 
 export const dynamic = 'force-dynamic';
 
-function sortClause(sort: string) {
-  if (sort === 'next_review') return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
-  if (sort === 'oldest') return 'ORDER BY created_at ASC';
-  return 'ORDER BY created_at DESC';
-}
+const FILTER_CONFIGS: DomainFilterConfig[] = [
+  { key: 'category', placeholder: 'All categories', field: 'py_category' },
+];
 
 export default async function PythonPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   const today = localToday();
 
-  let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'python'";
-  const params: string[] = [];
-  if (sp.category)    { query += ' AND py_category = ?';   params.push(sp.category); }
-  if (sp.list)        { query += ' AND question_list = ?'; params.push(sp.list); }
-  if (sp.proficiency) query += proficiencyClause(sp.proficiency);
-  query += ' ' + sortClause(sp.sort ?? '');
-
-  const [problems, todayRow, allLists, pyCategories] = await Promise.all([
-    queryAll<Problem>(query, params),
+  const [problems, todayRow] = await Promise.all([
+    queryAll<Problem>(`
+      SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count
+      FROM problems WHERE domain = 'python' ORDER BY created_at DESC
+    `),
     queryOne<{ n: number }>(`
       SELECT COUNT(DISTINCT a.problem_id) as n
-      FROM attempts a
-      JOIN problems p ON p.id = a.problem_id
+      FROM attempts a JOIN problems p ON p.id = a.problem_id
       WHERE p.domain = 'python'
         AND substr(a.attempted_at, 1, 10) = ?
         AND NOT EXISTS (
@@ -41,8 +31,6 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
             AND substr(prev.attempted_at, 1, 10) < ?
         )
     `, [today, today]),
-    getConfigOptions('python', 'question_list'),
-    getConfigOptions('python', 'py_category'),
   ]);
 
   const todayCount = todayRow?.n ?? 0;
@@ -67,21 +55,13 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
         </Link>
       </div>
 
-      <DomainFilters
+      <DomainPageClient
+        allProblems={problems}
         basePath="/python"
-        currentSort={sp.sort ?? ''}
-        selects={[
-          { key: 'list',        placeholder: 'All lists',       current: sp.list        ?? '', options: allLists },
-          { key: 'category',    placeholder: 'All categories',  current: sp.category    ?? '', options: pyCategories },
-          { key: 'proficiency', placeholder: 'All levels',      current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
-        ]}
+        filterConfigs={FILTER_CONFIGS}
+        initialParams={sp}
+        emptyMessage="No concepts yet. Log your first attempt to get started."
       />
-
-      {problems.length === 0 ? (
-        <p className="text-sm text-muted py-8 text-center">No concepts yet. Log your first attempt to get started.</p>
-      ) : (
-        <ProblemList problems={problems} basePath="/python" groupByDate={(sp.sort ?? '') !== 'next_review'} />
-      )}
     </div>
   );
 }

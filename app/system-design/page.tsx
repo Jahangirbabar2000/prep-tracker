@@ -1,38 +1,29 @@
 import { queryAll, queryOne, localToday } from '@/lib/db';
-import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
-import ProblemList from '@/components/ProblemList';
-import DomainFilters from '@/components/DomainFilters';
+import DomainPageClient, { DomainFilterConfig } from '@/components/DomainPageClient';
 import LogShortcut from '@/components/LogShortcut';
-import { proficiencyClause, PROFICIENCY_OPTIONS } from '@/lib/filters';
 
 export const dynamic = 'force-dynamic';
 
-function sortClause(sort: string) {
-  if (sort === 'next_review') return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
-  if (sort === 'oldest') return 'ORDER BY created_at ASC';
-  return 'ORDER BY created_at DESC';
-}
+const FILTER_CONFIGS: DomainFilterConfig[] = [
+  { key: 'bucket', placeholder: 'All buckets', field: 'sd_category' },
+  { key: 'topic',  placeholder: 'All topics',  field: 'sd_topic'    },
+];
 
 export default async function SystemDesignPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   const today = localToday();
 
-  let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'system_design'";
-  const params: string[] = [];
-  if (sp.bucket)      { query += ' AND sd_category = ?'; params.push(sp.bucket); }
-  if (sp.topic)       { query += ' AND sd_topic = ?';    params.push(sp.topic); }
-  if (sp.proficiency) query += proficiencyClause(sp.proficiency);
-  query += ' ' + sortClause(sp.sort ?? '');
-
-  const [problems, todayRow, sdCategories, sdTopics] = await Promise.all([
-    queryAll<Problem>(query, params),
+  const [problems, todayRow] = await Promise.all([
+    queryAll<Problem>(`
+      SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count
+      FROM problems WHERE domain = 'system_design' ORDER BY created_at DESC
+    `),
     queryOne<{ n: number }>(`
       SELECT COUNT(DISTINCT a.problem_id) as n
-      FROM attempts a
-      JOIN problems p ON p.id = a.problem_id
+      FROM attempts a JOIN problems p ON p.id = a.problem_id
       WHERE p.domain = 'system_design'
         AND substr(a.attempted_at, 1, 10) = ?
         AND NOT EXISTS (
@@ -41,8 +32,6 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
             AND substr(prev.attempted_at, 1, 10) < ?
         )
     `, [today, today]),
-    getConfigOptions('system_design', 'sd_category'),
-    getConfigOptions('system_design', 'sd_topic'),
   ]);
 
   const todayCount = todayRow?.n ?? 0;
@@ -67,21 +56,13 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
         </Link>
       </div>
 
-      <DomainFilters
+      <DomainPageClient
+        allProblems={problems}
         basePath="/system-design"
-        currentSort={sp.sort ?? ''}
-        selects={[
-          { key: 'bucket',      placeholder: 'All buckets', current: sp.bucket      ?? '', options: sdCategories },
-          { key: 'topic',       placeholder: 'All topics',  current: sp.topic       ?? '', options: sdTopics },
-          { key: 'proficiency', placeholder: 'All levels',  current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
-        ]}
+        filterConfigs={FILTER_CONFIGS}
+        initialParams={sp}
+        emptyMessage="No concepts yet. Log your first concept to get started."
       />
-
-      {problems.length === 0 ? (
-        <p className="text-sm text-muted py-8 text-center">No concepts yet. Log your first concept to get started.</p>
-      ) : (
-        <ProblemList problems={problems} basePath="/system-design" groupByDate={(sp.sort ?? '') !== 'next_review'} />
-      )}
     </div>
   );
 }

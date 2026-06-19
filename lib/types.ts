@@ -29,6 +29,7 @@ export interface Problem {
   created_at: string;
   // Computed in list queries
   attempt_count?: number;
+  avg_time?: number | null;
 }
 
 export interface Attempt {
