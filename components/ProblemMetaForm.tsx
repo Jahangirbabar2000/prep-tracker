@@ -26,9 +26,10 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
     const domain = problem.domain;
     const pairs: [string, string][] =
       domain === 'dsa'           ? [['dsa', 'platform'], ['dsa', 'question_list']] :
-      domain === 'system_design' ? [['system_design', 'sd_category']] :
+      domain === 'system_design' ? [['system_design', 'sd_category'], ['system_design', 'sd_topic']] :
       domain === 'frontend'      ? [['frontend', 'fe_bucket'], ['frontend', 'fe_question_set']] :
       domain === 'python'        ? [['python', 'question_list'], ['python', 'py_category']] :
+      domain === 'ai'            ? [['ai', 'question_list'], ['ai', 'ai_category']] :
       [];
 
     Promise.all(
@@ -93,6 +94,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
     problem.domain === 'system_design' ? 'Key points, tradeoffs, when to use it… (markdown supported)' :
     problem.domain === 'frontend'      ? 'Key points, gotchas, how it works… (markdown supported)' :
     problem.domain === 'python'        ? 'Key points, gotchas, syntax… (markdown supported)' :
+    problem.domain === 'ai'            ? 'Key concepts, use cases, gotchas… (markdown supported)' :
                                          'Short context… (markdown supported)';
 
   return (
@@ -112,6 +114,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
 
         {problem.domain === 'system_design' && <>
           {field('Bucket', 'sd_category', select('sd_category', opts['system_design/sd_category'] ?? []))}
+          {field('Topic',  'sd_topic',    select('sd_topic',    opts['system_design/sd_topic']    ?? []))}
         </>}
 
         {problem.domain === 'frontend' && <>
@@ -122,6 +125,11 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
         {problem.domain === 'python' && <>
           {field('Question List', 'question_list', select('question_list', opts['python/question_list'] ?? []))}
           {field('Category', 'py_category', select('py_category', opts['python/py_category'] ?? []))}
+        </>}
+
+        {problem.domain === 'ai' && <>
+          {field('Question List', 'question_list', select('question_list', opts['ai/question_list'] ?? []))}
+          {field('Category', 'ai_category', select('ai_category', opts['ai/ai_category'] ?? []))}
         </>}
       </div>
 

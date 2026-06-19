@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import ProblemList from '@/components/ProblemList';
 import DomainFilters from '@/components/DomainFilters';
+import LogShortcut from '@/components/LogShortcut';
+import { proficiencyClause, PROFICIENCY_OPTIONS } from '@/lib/filters';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +20,11 @@ export default async function FrontendPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const db = getDb();
 
-  let query = "SELECT * FROM problems WHERE domain = 'frontend'";
+  let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'frontend'";
   const params: string[] = [];
-  if (sp.bucket) { query += ' AND fe_bucket = ?'; params.push(sp.bucket); }
-  if (sp.set)    { query += ' AND fe_question_set = ?'; params.push(sp.set); }
+  if (sp.bucket)      { query += ' AND fe_bucket = ?';       params.push(sp.bucket); }
+  if (sp.set)         { query += ' AND fe_question_set = ?'; params.push(sp.set); }
+  if (sp.proficiency) query += proficiencyClause(sp.proficiency);
   query += ' ' + sortClause(sp.sort ?? '');
 
   const problems = db.prepare(query).all(...params) as Problem[];
@@ -53,8 +56,9 @@ export default async function FrontendPage({ searchParams }: { searchParams: Pro
             </span>
           )}
         </div>
+        <LogShortcut href="/frontend/log" />
         <Link href="/frontend/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
-          <Plus size={16} /> Log Attempt
+          <Plus size={16} /> Log Question <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
         </Link>
       </div>
 
@@ -62,8 +66,9 @@ export default async function FrontendPage({ searchParams }: { searchParams: Pro
         basePath="/frontend"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'bucket', placeholder: 'All buckets', current: sp.bucket ?? '', options: getConfigOptions('frontend', 'fe_bucket') },
-          { key: 'set',    placeholder: 'All sets',    current: sp.set    ?? '', options: getConfigOptions('frontend', 'fe_question_set') },
+          { key: 'bucket',      placeholder: 'All buckets',    current: sp.bucket      ?? '', options: getConfigOptions('frontend', 'fe_bucket') },
+          { key: 'set',         placeholder: 'All sets',       current: sp.set         ?? '', options: getConfigOptions('frontend', 'fe_question_set') },
+          { key: 'proficiency', placeholder: 'All levels',     current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
         ]}
       />
 

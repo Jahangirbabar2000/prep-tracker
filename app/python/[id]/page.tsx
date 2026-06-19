@@ -1,9 +1,9 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import ProblemDetailView from '@/components/ProblemDetailView';
+import ProblemViewPage from '@/components/ProblemViewPage';
 
 export default function PythonDetailPage() {
   const { id } = useParams<{ id: string }>();
-  return <ProblemDetailView id={id} domain="python" basePath="/python" backLabel="Python" />;
+  return <ProblemViewPage id={id} domain="python" basePath="/python" backLabel="Python" />;
 }

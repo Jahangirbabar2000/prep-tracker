@@ -1,9 +1,9 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import ProblemDetailView from '@/components/ProblemDetailView';
+import ProblemViewPage from '@/components/ProblemViewPage';
 
 export default function FrontendDetailPage() {
   const { id } = useParams<{ id: string }>();
-  return <ProblemDetailView id={id} domain="frontend" basePath="/frontend" backLabel="Frontend" />;
+  return <ProblemViewPage id={id} domain="frontend" basePath="/frontend" backLabel="Frontend" />;
 }

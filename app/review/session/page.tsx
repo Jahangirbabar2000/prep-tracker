@@ -6,26 +6,30 @@ import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
-const CONCEPT_DOMAINS = ['system_design', 'frontend', 'python'];
-
 const DOMAIN_LABEL: Record<string, string> = {
+  dsa:           'DSA',
   system_design: 'System Design',
-  frontend: 'Frontend',
-  python: 'Python',
+  frontend:      'Frontend',
+  python:        'Python',
+  ai:            'AI',
 };
 
 const DOMAIN_STYLE: Record<string, string> = {
-  system_design: 'bg-orange-500/10 text-orange-400',
-  frontend:      'bg-purple-500/10  text-purple-400',
+  dsa:           'bg-blue-500/10    text-blue-400',
+  system_design: 'bg-orange-500/10  text-orange-400',
+  frontend:      'bg-violet-500/10  text-violet-400',
   python:        'bg-emerald-500/10 text-emerald-400',
+  ai:            'bg-rose-500/10    text-rose-400',
 };
+
+const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
 }
 
 function cardTag(item: ReviewQueueItem): string | null {
-  return item.sd_category ?? item.fe_bucket ?? item.py_category ?? item.question_list ?? null;
+  return item.pattern_tag ?? item.sd_topic ?? item.sd_category ?? item.fe_bucket ?? item.py_category ?? item.ai_category ?? item.question_list ?? null;
 }
 
 function domainPath(domain: string) {
@@ -33,38 +37,43 @@ function domainPath(domain: string) {
 }
 
 export default function SessionPage() {
-  const [status, setStatus]     = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
-  const [cards, setCards]       = useState<ReviewQueueItem[]>([]);
-  const [idx, setIdx]           = useState(0);
-  const [revealed, setRevealed] = useState(false);
-  const [links, setLinks]       = useState<LinkType[] | null>(null);
+  const [status, setStatus]       = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
+  const [cards, setCards]         = useState<ReviewQueueItem[]>([]);
+  const [idx, setIdx]             = useState(0);
+  const [revealed, setRevealed]   = useState(false);
+  const [links, setLinks]         = useState<LinkType[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [results, setResults]   = useState<{ struggled: boolean }[]>([]);
+  const [results, setResults]     = useState<{ struggled: boolean }[]>([]);
 
-  // Load due concept-domain cards
+  // DSA log form state
+  const [dsaTime, setDsaTime]           = useState('');
+  const [dsaStruggled, setDsaStruggled] = useState(true);
+
   useEffect(() => {
     fetch('/api/review-queue')
       .then(r => r.json())
       .then((all: ReviewQueueItem[]) => {
-        const filtered = all.filter(i => CONCEPT_DOMAINS.includes(i.domain));
-        if (filtered.length === 0) { setStatus('empty'); return; }
-        setCards(filtered);
+        if (all.length === 0) { setStatus('empty'); return; }
+        setCards(all);
         setStatus('ready');
       });
   }, []);
 
-  // Fetch links lazily when card is revealed
   const card = cards[idx] ?? null;
+  const isDSA = card?.domain === 'dsa';
+
+  // Fetch links: eagerly for DSA, lazily on reveal for concept domains
   useEffect(() => {
-    if (!revealed || !card) return;
+    if (!card) return;
+    if (!isDSA && !revealed) return;
     setLinks(null);
     fetch(`/api/problems/${card.id}/links`)
       .then(r => r.json())
       .then(setLinks)
       .catch(() => setLinks([]));
-  }, [revealed, card?.id]);
+  }, [revealed, card?.id, isDSA]);
 
-  const advance = useCallback(async (struggled: boolean) => {
+  const advance = useCallback(async (struggled: boolean, timeTakenMins = 0) => {
     if (!card || submitting) return;
     setSubmitting(true);
 
@@ -72,7 +81,7 @@ export default function SessionPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        time_taken_mins: 0,
+        time_taken_mins: timeTakenMins,
         struggled,
         attempted_at: new Date().toLocaleDateString('en-CA'),
       }),
@@ -87,18 +96,24 @@ export default function SessionPage() {
       setIdx(i => i + 1);
       setRevealed(false);
       setLinks(null);
+      setDsaTime('');
+      setDsaStruggled(true);
     }
   }, [card, idx, cards.length, submitting]);
 
-  // Keyboard shortcuts
+  const advanceDsa = useCallback(() => {
+    advance(dsaStruggled, parseInt(dsaTime) || 0);
+  }, [advance, dsaStruggled, dsaTime]);
+
+  // Keyboard shortcuts — concept domains only
   useEffect(() => {
-    if (status !== 'ready') return;
+    if (status !== 'ready' || isDSA) return;
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if ((e.key === ' ' || e.key === 'Spacebar') && !revealed) {
+      if (e.key === ' ' || e.key === 'Spacebar') {
         e.preventDefault();
-        setRevealed(true);
+        setRevealed(r => !r);
       }
       if (revealed && !submitting) {
         if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') advance(false);
@@ -107,9 +122,7 @@ export default function SessionPage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [status, revealed, submitting, advance]);
-
-  // ── States ────────────────────────────────────────────────────────────
+  }, [status, revealed, submitting, advance, isDSA]);
 
   if (status === 'loading') {
     return (
@@ -123,7 +136,7 @@ export default function SessionPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
         <p className="text-fg font-medium">Nothing due for a session right now.</p>
-        <p className="text-sm text-muted">No Python, Frontend, or System Design items are overdue.</p>
+        <p className="text-sm text-muted">You&apos;re all caught up across all domains.</p>
         <Link href="/" className="text-sm text-accent hover:text-accent-hover transition-colors">
           ← Review Queue
         </Link>
@@ -155,8 +168,6 @@ export default function SessionPage() {
       </div>
     );
   }
-
-  // ── Active card ───────────────────────────────────────────────────────
 
   const progress = (idx / cards.length) * 100;
   const t = cardTag(card);
@@ -194,76 +205,150 @@ export default function SessionPage() {
           {card.name}
         </p>
 
-        {/* Divider + reveal / answer */}
-        <div className="border-t border-border">
-          {!revealed ? (
-            <div className="flex flex-col items-center gap-2 py-8">
-              <button
-                onClick={() => setRevealed(true)}
-                className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
-              >
-                Reveal answer
-              </button>
-              <span className="text-xs text-muted/50">Space</span>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4 px-6 py-5">
-              {/* Answer text */}
-              {card.notes_text ? (
-                <MarkdownRenderer content={card.notes_text} />
-              ) : (
-                <p className="text-sm text-muted italic">No answer saved yet.</p>
-              )}
+        {/* ── DSA: practice link + log form ── */}
+        {isDSA ? (
+          <div className="border-t border-border px-6 py-5 flex flex-col gap-5">
+            {/* Practice links */}
+            {links && links.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {links.map(l => (
+                  <a
+                    key={l.id}
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold rounded-lg hover:bg-blue-500/20 transition-colors"
+                  >
+                    <ExternalLink size={14} />
+                    {l.label || hostOf(l.url)}
+                  </a>
+                ))}
+              </div>
+            )}
+            {links && links.length === 0 && (
+              <p className="text-sm text-muted italic">No practice link saved.</p>
+            )}
 
-              {/* Links */}
-              {links && links.length > 0 && (
-                <div className="flex flex-wrap gap-3">
-                  {links.map(l => (
-                    <a
-                      key={l.id}
-                      href={l.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
-                    >
-                      {l.label || hostOf(l.url)}
-                      <ExternalLink size={10} />
-                    </a>
-                  ))}
+            {/* Log form */}
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-muted font-medium uppercase tracking-wide">Log your attempt</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={dsaTime}
+                    onChange={e => setDsaTime(e.target.value)}
+                    placeholder="mins"
+                    className={`${inputCls} w-20`}
+                  />
+                  <span className="text-xs text-muted">min</span>
                 </div>
-              )}
-
-              {/* Open full */}
-              <div className="flex justify-end">
-                <Link
-                  href={`${domainPath(card.domain)}/${card.id}`}
-                  target="_blank"
-                  className="text-xs text-muted hover:text-fg transition-colors"
-                >
-                  Open full →
-                </Link>
+                <div className="flex gap-1 bg-surface-2 rounded-lg p-0.5 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setDsaStruggled(false)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!dsaStruggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}
+                  >
+                    Solved it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDsaStruggled(true)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${dsaStruggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}
+                  >
+                    Struggled
+                  </button>
+                </div>
               </div>
-
-              {/* Got it / Struggled */}
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => advance(false)}
-                  disabled={submitting}
-                  className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
-                >
-                  ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">Y</span>
-                </button>
-                <button
-                  onClick={() => advance(true)}
-                  disabled={submitting}
-                  className="flex-1 py-2.5 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-lg hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
-                >
-                  ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
-                </button>
-              </div>
+              <button
+                onClick={advanceDsa}
+                disabled={submitting}
+                className="py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+              >
+                {submitting ? 'Saving…' : 'Log & Next →'}
+              </button>
             </div>
-          )}
-        </div>
+
+            {/* Open full */}
+            <div className="flex justify-end">
+              <Link
+                href={`/dsa/${card.id}`}
+                target="_blank"
+                className="text-xs text-muted hover:text-fg transition-colors"
+              >
+                Open full →
+              </Link>
+            </div>
+          </div>
+        ) : (
+          /* ── Concept domains: Q&A flashcard ── */
+          <div className="border-t border-border">
+            {!revealed ? (
+              <div className="flex flex-col items-center gap-2 py-8">
+                <button
+                  onClick={() => setRevealed(true)}
+                  className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
+                >
+                  Reveal answer
+                </button>
+                <span className="text-xs text-muted/50">Space</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 px-6 py-5">
+                {card.notes_text ? (
+                  <MarkdownRenderer content={card.notes_text} />
+                ) : (
+                  <p className="text-sm text-muted italic">No answer saved yet.</p>
+                )}
+
+                {links && links.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {links.map(l => (
+                      <a
+                        key={l.id}
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
+                      >
+                        {l.label || hostOf(l.url)}
+                        <ExternalLink size={10} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <Link
+                    href={`${domainPath(card.domain)}/${card.id}`}
+                    target="_blank"
+                    className="text-xs text-muted hover:text-fg transition-colors"
+                  >
+                    Open full →
+                  </Link>
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => advance(false)}
+                    disabled={submitting}
+                    className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
+                  >
+                    ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">Y</span>
+                  </button>
+                  <button
+                    onClick={() => advance(true)}
+                    disabled={submitting}
+                    className="flex-1 py-2.5 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-lg hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
+                  >
+                    ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

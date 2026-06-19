@@ -1,0 +1,406 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pencil, Plus } from 'lucide-react';
+import { fmtDate } from '@/lib/fmt';
+import ProficiencyBadge from './ProficiencyBadge';
+import { Attempt, Domain, Link as LinkType, Note, Problem } from '@/lib/types';
+import AttemptHistory from './AttemptHistory';
+import QuickNotes from './QuickNotes';
+import NoteCard from './NoteCard';
+import MarkdownRenderer from './MarkdownRenderer';
+
+interface ProblemDetail extends Problem {
+  attempts: Attempt[];
+  notes: Note[];
+  links: LinkType[];
+  avg_time: number | null;
+  prev_id: number | null;
+  next_id: number | null;
+  position: number;
+  total: number;
+}
+
+interface Props {
+  id: string;
+  domain: Domain;
+  basePath: string;
+  backLabel: string;
+}
+
+const DOMAIN_LABEL: Record<Domain, string> = {
+  dsa:           'DSA',
+  system_design: 'System Design',
+  frontend:      'Frontend',
+  python:        'Python',
+  ai:            'AI',
+};
+
+const DOMAIN_STYLE: Record<Domain, string> = {
+  dsa:           'bg-blue-500/10    text-blue-400',
+  system_design: 'bg-orange-500/10  text-orange-400',
+  frontend:      'bg-violet-500/10  text-violet-400',
+  python:        'bg-emerald-500/10 text-emerald-400',
+  ai:            'bg-rose-500/10    text-rose-400',
+};
+
+function hostOf(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
+}
+
+function cardTag(p: Problem): string | null {
+  return p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category ?? p.question_list ?? null;
+}
+
+const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
+const sectionTitle = 'text-xs font-semibold text-muted uppercase tracking-wide';
+
+export default function ProblemViewPage({ id, domain, basePath, backLabel }: Props) {
+  const router = useRouter();
+  const isDSA = domain === 'dsa';
+
+  const [data, setData]           = useState<ProblemDetail | null>(null);
+  const [revealed, setRevealed]   = useState(false);
+  const [links, setLinks]         = useState<LinkType[] | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [lastResult, setLastResult] = useState<boolean | null>(null);
+
+  // DSA-specific log form state
+  const [dsaTime, setDsaTime]           = useState('');
+  const [dsaStruggled, setDsaStruggled] = useState(true);
+
+  function reload() {
+    fetch(`/api/problems/${id}`).then(r => r.json()).then(setData);
+  }
+
+  useEffect(() => { reload(); }, [id]);
+
+  // Fetch links: eagerly for DSA, lazily on reveal for others
+  useEffect(() => {
+    if (!data) return;
+    if (!isDSA && !revealed) return;
+    setLinks(null);
+    fetch(`/api/problems/${data.id}/links`)
+      .then(r => r.json())
+      .then(setLinks)
+      .catch(() => setLinks([]));
+  }, [revealed, data?.id, isDSA]);
+
+  // Log attempt — non-DSA (no time)
+  const logAttempt = useCallback(async (struggled: boolean) => {
+    if (!data || submitting) return;
+    setSubmitting(true);
+    await fetch(`/api/problems/${data.id}/attempts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        time_taken_mins: 0,
+        struggled,
+        attempted_at: new Date().toLocaleDateString('en-CA'),
+      }),
+    });
+    setSubmitting(false);
+    setLastResult(!struggled);
+    reload();
+    setTimeout(() => setLastResult(null), 2000);
+  }, [data, submitting]);
+
+  // Log attempt — DSA (with time)
+  const logDsaAttempt = useCallback(async () => {
+    if (!data || submitting) return;
+    setSubmitting(true);
+    await fetch(`/api/problems/${data.id}/attempts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        time_taken_mins: parseInt(dsaTime) || 0,
+        struggled: dsaStruggled,
+        attempted_at: new Date().toLocaleDateString('en-CA'),
+      }),
+    });
+    setSubmitting(false);
+    setLastResult(!dsaStruggled);
+    setDsaTime('');
+    reload();
+    setTimeout(() => setLastResult(null), 2000);
+  }, [data, submitting, dsaTime, dsaStruggled]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!data) return;
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (!isDSA) {
+        if (e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          setRevealed(r => !r);
+        }
+        if (revealed && !submitting && lastResult === null) {
+          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') logAttempt(false);
+          if (e.key === 'n' || e.key === 'N') logAttempt(true);
+        }
+      }
+      if (e.key === 'Escape') router.push(basePath);
+      if (e.key === 'l' || e.key === 'L') router.push(`${basePath}/log`);
+      if (e.key === 'e' || e.key === 'E') router.push(`${basePath}/${id}/edit`);
+      if (e.key === 'ArrowLeft'  && data?.next_id) router.push(`${basePath}/${data.next_id}`);
+      if (e.key === 'ArrowRight' && data?.prev_id) router.push(`${basePath}/${data.prev_id}`);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isDSA]);
+
+  if (!data) return <div className="text-sm text-muted">Loading…</div>;
+
+  const tag = cardTag(data);
+
+  return (
+    <div className="max-w-5xl flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push(basePath)}
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={13} /> {backLabel} <span className="opacity-40 font-normal text-[10px] ml-0.5">Esc</span>
+          </button>
+          <div className="flex items-center gap-0.5">
+            <Link
+              href={data.next_id ? `${basePath}/${data.next_id}` : '#'}
+              aria-disabled={!data.next_id}
+              className={`p-1 rounded transition-colors ${data.next_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
+              title="Newer (←)"
+            >
+              <ChevronLeft size={15} />
+            </Link>
+            <span className="text-xs text-muted/50 tabular-nums px-1 min-w-[3rem] text-center">
+              {data.position} / {data.total}
+            </span>
+            <Link
+              href={data.prev_id ? `${basePath}/${data.prev_id}` : '#'}
+              aria-disabled={!data.prev_id}
+              className={`p-1 rounded transition-colors ${data.prev_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
+              title="Older (→)"
+            >
+              <ChevronRight size={15} />
+            </Link>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`${basePath}/${id}/edit`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted border border-border rounded-lg hover:text-fg hover:border-border-strong transition-colors"
+          >
+            <Pencil size={12} /> Edit <span className="opacity-40 font-normal text-[10px] ml-0.5">E</span>
+          </Link>
+          <Link
+            href={`${basePath}/log`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-accent text-accent-fg rounded-lg hover:bg-accent-hover transition-colors"
+          >
+            <Plus size={12} /> {isDSA ? 'Log Attempt' : 'Log Question'} <span className="opacity-50 font-normal text-[10px] ml-0.5">L</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Card */}
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+        {/* Domain + tag + proficiency */}
+        <div className="flex items-center justify-between gap-2 px-6 pt-5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${DOMAIN_STYLE[domain]}`}>
+              {DOMAIN_LABEL[domain]}
+            </span>
+            {tag && <span className="text-xs text-muted truncate">{tag}</span>}
+          </div>
+          <ProficiencyBadge
+            level={data.interval_level}
+            nextDueDate={data.next_due_date ? fmtDate(data.next_due_date) : null}
+            attemptCount={data.attempts.length}
+          />
+        </div>
+
+        {/* Question */}
+        <p className="px-6 pt-4 pb-5 text-lg font-semibold text-fg leading-snug">
+          {data.name}
+        </p>
+
+        {/* ── DSA: compact single-row ── */}
+        {isDSA ? (
+          <div className="border-t border-border px-6 py-3 flex items-center gap-3 flex-wrap">
+            {/* Practice link */}
+            {links && links.length > 0 && links.map(l => (
+              <a
+                key={l.id}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg hover:bg-blue-500/20 transition-colors"
+              >
+                <ExternalLink size={12} />
+                {l.label || hostOf(l.url)}
+              </a>
+            ))}
+            {links && links.length === 0 && (
+              <span className="text-xs text-muted italic">No practice link — add via Edit.</span>
+            )}
+
+            {/* Log attempt controls */}
+            {lastResult !== null ? (
+              <span className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                lastResult ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'
+              }`}>
+                {lastResult ? '✓ Solved it' : '✗ Struggled'}
+              </span>
+            ) : (
+              <div className="ml-auto flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  value={dsaTime}
+                  onChange={e => setDsaTime(e.target.value)}
+                  placeholder="mins"
+                  className={`${inputCls} w-20 text-sm`}
+                />
+                <div className="flex gap-0.5 bg-surface-2 rounded-lg p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setDsaStruggled(false)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!dsaStruggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}
+                  >
+                    Solved it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDsaStruggled(true)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${dsaStruggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}
+                  >
+                    Struggled
+                  </button>
+                </div>
+                <button
+                  onClick={logDsaAttempt}
+                  disabled={submitting}
+                  className="px-4 py-1.5 bg-accent text-accent-fg text-xs font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  {submitting ? 'Saving…' : 'Log'}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ── Non-DSA: flashcard reveal ── */
+          <div className="border-t border-border">
+            {!revealed ? (
+              <div className="flex flex-col items-center gap-2 py-8">
+                <button
+                  onClick={() => setRevealed(true)}
+                  className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
+                >
+                  Reveal answer
+                </button>
+                <span className="text-xs text-muted/50">Space</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 px-6 py-5">
+                {data.notes_text ? (
+                  <MarkdownRenderer content={data.notes_text} />
+                ) : (
+                  <p className="text-sm text-muted italic">No answer saved yet.</p>
+                )}
+
+                {links && links.length > 0 && (
+                  <div className="flex flex-wrap gap-3">
+                    {links.map(l => (
+                      <a
+                        key={l.id}
+                        href={l.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
+                      >
+                        {l.label || hostOf(l.url)}
+                        <ExternalLink size={10} />
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {lastResult !== null ? (
+                  <div className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold ${
+                    lastResult ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'
+                  }`}>
+                    {lastResult ? '✓ Logged — Got it' : '✗ Logged — Struggled'}
+                  </div>
+                ) : (
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      onClick={() => logAttempt(false)}
+                      disabled={submitting}
+                      className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">Y</span>
+                    </button>
+                    <button
+                      onClick={() => logAttempt(true)}
+                      disabled={submitting}
+                      className="flex-1 py-2.5 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-lg hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Attempt history */}
+      <section>
+        <h2 className={`${sectionTitle} mb-3`}>Attempt History</h2>
+        <AttemptHistory
+          attempts={data.attempts}
+          showTime={isDSA}
+          showPracticeType={domain === 'system_design'}
+          onUpdated={a => setData(d => d ? { ...d, attempts: d.attempts.map(x => x.id === a.id ? a : x) } : d)}
+          onDeleted={aid => setData(d => d ? { ...d, attempts: d.attempts.filter(x => x.id !== aid) } : d)}
+        />
+      </section>
+
+      {/* Notes — one-liners for non-DSA */}
+      {!isDSA && data.notes.length > 0 && (
+        <section>
+          <h2 className={`${sectionTitle} mb-3`}>Notes</h2>
+          <QuickNotes
+            problemId={data.id}
+            notes={data.notes}
+            onChange={notes => setData(d => d ? { ...d, notes } : d)}
+          />
+        </section>
+      )}
+
+      {/* Active recall Q&A — DSA only */}
+      {isDSA && data.notes.length > 0 && (
+        <section>
+          <h2 className={`${sectionTitle} mb-3`}>Active Recall Notes</h2>
+          <div className="flex flex-col gap-3">
+            {data.notes.map(n => (
+              <NoteCard
+                key={n.id}
+                note={n}
+                onDelete={async nid => {
+                  await fetch(`/api/problems/${data.id}/notes/${nid}`, { method: 'DELETE' });
+                  setData(d => d ? { ...d, notes: d.notes.filter(x => x.id !== nid) } : d);
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}

@@ -10,10 +10,18 @@ interface Level {
   dot: string;    // dot colour
 }
 
+const STRUGGLING: Level = {
+  label:       'Struggling',
+  description: "Tried but not clicking yet — keep at it, it'll stick.",
+  interval:    'Next review in ~3 days',
+  pill:        'bg-danger/10 text-danger',
+  dot:         'bg-danger',
+};
+
 const LEVELS: Record<number, Level> = {
   0: {
     label:       'New',
-    description: 'Not yet reviewed — log an attempt to start your streak.',
+    description: 'Not yet reviewed — log an attempt to start tracking.',
     interval:    'No review scheduled yet',
     pill:        'bg-muted/15 text-muted',
     dot:         'bg-muted',
@@ -51,14 +59,16 @@ const LEVELS: Record<number, Level> = {
 interface Props {
   level: number;
   nextDueDate?: string | null;
+  attemptCount?: number;
 }
 
-export default function ProficiencyBadge({ level, nextDueDate }: Props) {
+export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: Props) {
   const [visible, setVisible] = useState(false);
-  const cfg = LEVELS[Math.min(Math.max(level, 0), 4)];
+  const isStruggling = level === 0 && !!nextDueDate && (attemptCount ?? 0) >= 2;
+  const cfg = isStruggling ? STRUGGLING : LEVELS[Math.min(Math.max(level, 0), 4)];
 
-  const struggleResult = level <= 1 ? 'stays at Learning' : `drops to ${LEVELS[level - 1]?.label}`;
-  const successResult  = level >= 4 ? 'stays at Mastered'  : `advances to ${LEVELS[level + 1]?.label}`;
+  const struggleResult = isStruggling ? 'stays at Struggling' : level <= 1 ? 'stays at Learning' : `drops to ${LEVELS[level - 1]?.label}`;
+  const successResult  = isStruggling ? 'advances to Learning' : level >= 4 ? 'stays at Mastered' : `advances to ${LEVELS[level + 1]?.label}`;
 
   return (
     <span className="relative inline-flex items-center">
@@ -75,9 +85,9 @@ export default function ProficiencyBadge({ level, nextDueDate }: Props) {
         {cfg.label}
       </button>
 
-      {/* Tooltip */}
+      {/* Tooltip — right-aligned so it never clips the viewport edge */}
       {visible && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 w-64 pointer-events-none">
+        <div className="absolute bottom-full right-0 mb-2 z-50 w-64 pointer-events-none">
           <div className="bg-surface border border-border-strong rounded-xl shadow-lg px-3.5 py-3 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
@@ -100,8 +110,8 @@ export default function ProficiencyBadge({ level, nextDueDate }: Props) {
               </p>
             </div>
           </div>
-          {/* Arrow */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-surface border-r border-b border-border-strong rotate-45 -translate-y-[6px]" />
+          {/* Arrow — offset right to align with the badge */}
+          <div className="absolute top-full right-3 w-2.5 h-2.5 bg-surface border-r border-b border-border-strong rotate-45 -translate-y-[6px]" />
         </div>
       )}
     </span>

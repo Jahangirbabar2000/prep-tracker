@@ -8,38 +8,38 @@ import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
-export default function SystemDesignLogForm() {
+export default function AILogForm() {
   const router = useRouter();
-  const [query, setQuery]                     = useState('');
-  const [suggestions, setSuggestions]         = useState<Problem[]>([]);
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<Problem[]>([]);
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
-  const [answer, setAnswer]                   = useState('');
-  const [bucket, setBucket]                   = useState('');
-  const [topic, setTopic]                     = useState('');
-  const [linkUrl, setLinkUrl]                 = useState('');
-  const [struggled, setStruggled]             = useState(true);
-  const [notes, setNotes]                     = useState<string[]>([]);
-  const [noteInput, setNoteInput]             = useState('');
-  const [submitting, setSubmitting]           = useState(false);
-  const [sdBuckets, setSdBuckets]             = useState<string[]>([]);
-  const [sdTopics, setSdTopics]               = useState<string[]>([]);
+  const [answer, setAnswer] = useState('');
+  const [questionList, setQuestionList] = useState('');
+  const [category, setCategory] = useState('');
+  const [linkUrl, setLinkUrl] = useState('https://github.com/alexeygrigorev/ai-engineering-field-guide/blob/main/interview/questions/01-theory.md');
+  const [struggled, setStruggled] = useState(true);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [noteInput, setNoteInput] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [aiLists, setAiLists] = useState<string[]>([]);
+  const [aiCategories, setAiCategories] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/config/options?domain=system_design&field=sd_category')
+    fetch('/api/config/options?domain=ai&field=question_list')
       .then(r => r.json())
       .then((rows: { value: string }[]) => {
         const vals = rows.map(r => r.value);
-        setSdBuckets(vals);
-        if (vals.length > 0) setBucket(vals[0]);
+        setAiLists(vals);
+        if (vals.length > 0) setQuestionList(vals[0]);
       })
       .catch(() => {});
-    fetch('/api/config/options?domain=system_design&field=sd_topic')
+    fetch('/api/config/options?domain=ai&field=ai_category')
       .then(r => r.json())
       .then((rows: { value: string }[]) => {
         const vals = rows.map(r => r.value);
-        setSdTopics(vals);
-        if (vals.length > 0) setTopic(vals[0]);
+        setAiCategories(vals);
+        if (vals.length > 0) setCategory(vals[0]);
       })
       .catch(() => {});
   }, []);
@@ -47,7 +47,7 @@ export default function SystemDesignLogForm() {
   useEffect(() => {
     if (!query.trim() || selectedProblem) { setSuggestions([]); return; }
     const t = setTimeout(async () => {
-      const res = await fetch('/api/problems?domain=system_design');
+      const res = await fetch('/api/problems?domain=ai');
       const all: Problem[] = await res.json();
       setSuggestions(all.filter(p => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8));
     }, 150);
@@ -65,7 +65,7 @@ export default function SystemDesignLogForm() {
       const res = await fetch('/api/problems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, domain: 'system_design' }),
+        body: JSON.stringify({ name, domain: 'ai' }),
       });
       const p: Problem = await res.json();
       pid = p.id;
@@ -78,9 +78,9 @@ export default function SystemDesignLogForm() {
     });
 
     const meta: Record<string, string> = {};
-    if (answer.trim()) meta.notes_text  = answer.trim();
-    if (bucket)        meta.sd_category = bucket;
-    if (topic)         meta.sd_topic    = topic;
+    if (answer.trim())       meta.notes_text    = answer.trim();
+    if (questionList.trim()) meta.question_list = questionList.trim();
+    if (category)            meta.ai_category   = category;
     if (Object.keys(meta).length > 0) {
       await fetch(`/api/problems/${pid}`, {
         method: 'PATCH',
@@ -106,7 +106,7 @@ export default function SystemDesignLogForm() {
     }
 
     setSubmitting(false);
-    router.push(`/system-design/${pid}`);
+    router.push(`/ai/${pid}`);
   }
 
   function addNote() {
@@ -116,15 +116,15 @@ export default function SystemDesignLogForm() {
 
   return (
     <form onSubmit={submit} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); (e.currentTarget as HTMLFormElement).requestSubmit(); } }} className="flex flex-col gap-6">
-      {/* Question / Concept */}
+      {/* Question */}
       <div className="flex flex-col gap-1.5 relative">
-        <label className="text-xs font-semibold text-muted uppercase tracking-wider">Question / Concept</label>
+        <label className="text-xs font-semibold text-muted uppercase tracking-wider">Question</label>
         <input
           ref={inputRef}
           type="text"
           value={selectedProblem ? selectedProblem.name : query}
           onChange={e => { setQuery(e.target.value); setSelectedProblem(null); }}
-          placeholder="e.g. When would you use Kafka over Redis Pub/Sub?"
+          placeholder="e.g. What is the difference between RAG and fine-tuning?"
           className={`${inputCls} text-base`}
           autoComplete="off"
           autoFocus
@@ -139,7 +139,7 @@ export default function SystemDesignLogForm() {
                   className="w-full text-left px-3 py-2 text-sm text-fg hover:bg-surface-2 cursor-pointer"
                 >
                   {p.name}
-                  {p.sd_category && <span className="ml-2 text-xs text-muted">{p.sd_category}</span>}
+                  {p.ai_category && <span className="ml-2 text-xs text-muted">{p.ai_category}</span>}
                 </button>
               </li>
             ))}
@@ -156,7 +156,7 @@ export default function SystemDesignLogForm() {
           value={answer}
           onChange={e => setAnswer(e.target.value)}
           onPaste={e => { const md = pasteAsMarkdown(e, answer); if (md !== null) setAnswer(md); }}
-          placeholder="Key points, tradeoffs, when to use it… (markdown supported)"
+          placeholder="Key concepts, use cases, gotchas… (markdown supported)"
           className={`${inputCls} resize-y min-h-[160px]`}
         />
       </div>
@@ -188,7 +188,7 @@ export default function SystemDesignLogForm() {
             value={noteInput}
             onChange={e => setNoteInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addNote(); } }}
-            placeholder="e.g. Kafka guarantees ordering within a partition, not across"
+            placeholder="e.g. Use hybrid search for better retrieval"
             className={inputCls}
           />
           <button
@@ -209,18 +209,18 @@ export default function SystemDesignLogForm() {
         </p>
 
         <div className="flex gap-3 flex-wrap">
-          <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-xs text-muted">Bucket</label>
-            <select value={bucket} onChange={e => setBucket(e.target.value)} className={inputCls}>
+          <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
+            <label className="text-xs text-muted">Question List</label>
+            <select value={questionList} onChange={e => setQuestionList(e.target.value)} className={inputCls}>
               <option value="">— none —</option>
-              {sdBuckets.map(b => <option key={b} value={b}>{b}</option>)}
+              {aiLists.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-            <label className="text-xs text-muted">Topic</label>
-            <select value={topic} onChange={e => setTopic(e.target.value)} className={inputCls}>
+            <label className="text-xs text-muted">Category</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className={inputCls}>
               <option value="">— none —</option>
-              {sdTopics.map(t => <option key={t} value={t}>{t}</option>)}
+              {aiCategories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>
@@ -233,7 +233,7 @@ export default function SystemDesignLogForm() {
             type="url"
             value={linkUrl}
             onChange={e => setLinkUrl(e.target.value)}
-            placeholder="https://hellointerview.com/…"
+            placeholder="https://github.com/…"
             className={inputCls}
           />
         </div>

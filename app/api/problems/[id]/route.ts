@@ -35,7 +35,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     'SELECT id FROM problems WHERE domain = ? AND id > ? ORDER BY id ASC LIMIT 1'
   ).get(problem.domain, id) as { id: number } | undefined)?.id ?? null;
 
-  return NextResponse.json({ ...problem, attempts, notes, links, avg_time: avgTime, prev_id: prevId, next_id: nextId });
+  // position: 1 = newest (highest id), N = oldest. Count how many in same domain have id > this one.
+  const { total } = db.prepare(
+    'SELECT COUNT(*) AS total FROM problems WHERE domain = ?'
+  ).get(problem.domain) as { total: number };
+
+  const { newer_count } = db.prepare(
+    'SELECT COUNT(*) AS newer_count FROM problems WHERE domain = ? AND id > ?'
+  ).get(problem.domain, id) as { newer_count: number };
+
+  const position = newer_count + 1;
+
+  return NextResponse.json({ ...problem, attempts, notes, links, avg_time: avgTime, prev_id: prevId, next_id: nextId, position, total });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -45,9 +56,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const allowed = [
     'name', 'platform', 'pattern_tag', 'question_list', 'difficulty',
-    'sd_category', 'sd_source',
+    'sd_category', 'sd_topic', 'sd_source',
     'fe_bucket', 'fe_question_set',
     'py_category',
+    'ai_category',
     'resource_url', 'notes_text',
   ];
 

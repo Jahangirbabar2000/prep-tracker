@@ -21,24 +21,27 @@ const DOMAIN_LABEL: Record<string, string> = {
   system_design: 'System Design',
   frontend:      'Frontend',
   python:        'Python',
+  ai:            'AI',
 };
 
 const DOMAIN_STYLE: Record<string, string> = {
-  dsa:           'text-red-400',
+  dsa:           'text-blue-400',
   system_design: 'text-orange-400',
-  frontend:      'text-purple-400',
+  frontend:      'text-violet-400',
   python:        'text-emerald-400',
+  ai:            'text-rose-400',
 };
 
 const DOMAIN_DOT: Record<string, string> = {
-  dsa:           'bg-red-400',
+  dsa:           'bg-blue-400',
   system_design: 'bg-orange-400',
-  frontend:      'bg-purple-400',
+  frontend:      'bg-violet-400',
   python:        'bg-emerald-400',
+  ai:            'bg-rose-400',
 };
 
 // Ordered so the domain row is always consistent left-to-right
-const DOMAIN_ORDER = ['python', 'dsa', 'frontend', 'system_design'];
+const DOMAIN_ORDER = ['python', 'dsa', 'frontend', 'system_design', 'ai'];
 
 export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }: Props) {
   if (totalUpcoming === 0) return null;
@@ -71,8 +74,8 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
                 {slot.dateKey.slice(5, 7)}/{slot.dateKey.slice(8, 10)}
               </span>
 
-              {/* Per-domain breakdown — fixed height so all columns align */}
-              <div className="flex flex-col items-center gap-0.5 h-[60px] justify-start pt-0.5">
+              {/* Per-domain breakdown — fixed height so all columns align (5 domains × ~16px each) */}
+              <div className="flex flex-col items-center gap-0.5 h-[90px] justify-start pt-0.5">
                 {domainEntries.map(([domain, count]) => (
                   <div key={domain} className="flex items-center gap-1">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOMAIN_DOT[domain] ?? 'bg-muted'}`} />

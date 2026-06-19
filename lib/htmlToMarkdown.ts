@@ -66,8 +66,22 @@ function nodeToMd(node: Node, listType?: 'ul' | 'ol', listIdx?: { n: number }): 
     case 'hr':
       return '\n---\n\n';
 
-    case 'a':
-      return inner(); // just the text, skip URL noise
+    case 'sup': {
+      // Strip citation superscripts like [1], [2] from Wikipedia/docs sites
+      const supText = (el.textContent ?? '').trim().replace(/^\[|\]$/g, '');
+      if (/^\d+$/.test(supText)) return '';
+      return inner();
+    }
+
+    case 'a': {
+      const href = el.getAttribute('href') ?? '';
+      const text = inner().trim();
+      if (!text) return '';
+      // Fragment-only links (#footnote) — just the text
+      if (!href || href.startsWith('#')) return text;
+      // Real URLs — render as markdown link
+      return `[${text}](${href})`;
+    }
 
     // Structural wrappers — just recurse
     case 'div': case 'section': case 'article':

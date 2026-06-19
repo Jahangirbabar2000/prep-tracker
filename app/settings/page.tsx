@@ -17,6 +17,7 @@ const SECTIONS = [
     domain: 'system_design', label: 'System Design',
     fields: [
       { field: 'sd_category', label: 'Bucket' },
+      { field: 'sd_topic',    label: 'Topic' },
     ],
   },
   {
@@ -31,6 +32,13 @@ const SECTIONS = [
     fields: [
       { field: 'question_list', label: 'Question List' },
       { field: 'py_category',   label: 'Category' },
+    ],
+  },
+  {
+    domain: 'ai', label: 'AI',
+    fields: [
+      { field: 'question_list', label: 'Question List' },
+      { field: 'ai_category',   label: 'Category' },
     ],
   },
 ];

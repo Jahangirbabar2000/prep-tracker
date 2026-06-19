@@ -27,8 +27,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const problem = db.prepare('SELECT * FROM problems WHERE id = ?').get(id) as Problem | undefined;
   if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const attemptDate = attempted_at ? new Date(attempted_at) : new Date();
-  const attemptedAtStr = attemptDate.toISOString().slice(0, 19).replace('T', ' ');
+  const dateStr = attempted_at
+    ? String(attempted_at).slice(0, 10)
+    : (db.prepare("SELECT date('now', 'localtime') AS d").get() as { d: string }).d;
+  const attemptedAtStr = `${dateStr} 00:00:00`;
+  const attemptDate = new Date(`${dateStr}T12:00:00`);
 
   const attempt = db.prepare(
     `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled, practice_type)

@@ -21,8 +21,10 @@ interface ProblemDetail extends Problem {
   notes: Note[];
   links: LinkType[];
   avg_time: number | null;
-  prev_id: number | null;
-  next_id: number | null;
+  prev_id: number | null;  // older (lower id)
+  next_id: number | null;  // newer (higher id)
+  position: number;        // 1 = newest
+  total: number;
 }
 
 interface Props {
@@ -51,11 +53,14 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
   // Keyboard navigation — only when not editing name or typing in a field
   useEffect(() => {
     if (!data) return;
+    const { prev_id, next_id } = data;
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === 'ArrowLeft'  && data.prev_id) router.push(`${basePath}/${data.prev_id}`);
-      if (e.key === 'ArrowRight' && data.next_id) router.push(`${basePath}/${data.next_id}`);
+      if (e.key === 'Escape') router.push(`${basePath}/${id}`);
+      if (e.key === 'l' || e.key === 'L') router.push(`${basePath}/log`);
+      if (e.key === 'ArrowLeft'  && next_id) router.push(`${basePath}/${next_id}/edit`);
+      if (e.key === 'ArrowRight' && prev_id) router.push(`${basePath}/${prev_id}/edit`);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -87,25 +92,28 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
         <div>
           <div className="flex items-center gap-3 mb-2">
             <button
-              onClick={() => { router.refresh(); router.push(basePath); }}
+              onClick={() => router.push(`${basePath}/${id}`)}
               className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
             >
-              <ArrowLeft size={13} /> {backLabel}
+              <ArrowLeft size={13} /> {backLabel} <span className="opacity-40 font-normal text-[10px] ml-0.5">Esc</span>
             </button>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <Link
-                href={data.prev_id ? `${basePath}/${data.prev_id}` : '#'}
-                aria-disabled={!data.prev_id}
-                className={`p-1 rounded transition-colors ${data.prev_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
-                title="Previous (←)"
+                href={data.next_id ? `${basePath}/${data.next_id}/edit` : '#'}
+                aria-disabled={!data.next_id}
+                className={`p-1 rounded transition-colors ${data.next_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
+                title="Newer (←)"
               >
                 <ChevronLeft size={15} />
               </Link>
+              <span className="text-xs text-muted/50 tabular-nums px-1 min-w-[3rem] text-center">
+                {data.position} / {data.total}
+              </span>
               <Link
-                href={data.next_id ? `${basePath}/${data.next_id}` : '#'}
-                aria-disabled={!data.next_id}
-                className={`p-1 rounded transition-colors ${data.next_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
-                title="Next (→)"
+                href={data.prev_id ? `${basePath}/${data.prev_id}/edit` : '#'}
+                aria-disabled={!data.prev_id}
+                className={`p-1 rounded transition-colors ${data.prev_id ? 'text-muted hover:text-fg hover:bg-surface-2 cursor-pointer' : 'text-muted/25 pointer-events-none'}`}
+                title="Older (→)"
               >
                 <ChevronRight size={15} />
               </Link>
@@ -134,6 +142,7 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
             <ProficiencyBadge
               level={data.interval_level}
               nextDueDate={data.next_due_date ? fmtDate(data.next_due_date) : null}
+              attemptCount={data.attempts.length}
             />
             {data.next_due_date && (
               <span className="text-xs text-muted tabular">· due {fmtDate(data.next_due_date)}</span>
@@ -142,12 +151,6 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <DeleteButton onConfirm={deleteProblem} disabled={deleting} />
-          <Link
-            href={`${basePath}/log`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
-          >
-            <Plus size={15} /> Log Question
-          </Link>
         </div>
       </div>
 

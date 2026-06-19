@@ -13,29 +13,27 @@ export const dynamic = 'force-dynamic';
 function sortClause(sort: string) {
   if (sort === 'next_review') return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
   if (sort === 'oldest') return 'ORDER BY created_at ASC';
-  return 'ORDER BY created_at DESC'; // default: newest first
+  return 'ORDER BY created_at DESC';
 }
 
-export default async function PythonPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+export default async function AIPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
   const db = getDb();
 
-  let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'python'";
+  let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'ai'";
   const params: string[] = [];
-  if (sp.category)    { query += ' AND py_category = ?';   params.push(sp.category); }
+  if (sp.category)    { query += ' AND ai_category = ?';  params.push(sp.category); }
   if (sp.list)        { query += ' AND question_list = ?'; params.push(sp.list); }
   if (sp.proficiency) query += proficiencyClause(sp.proficiency);
   query += ' ' + sortClause(sp.sort ?? '');
 
   const problems = db.prepare(query).all(...params) as Problem[];
 
-  const allLists = getConfigOptions('python', 'question_list');
-
   const todayCount = (db.prepare(`
     SELECT COUNT(DISTINCT a.problem_id) as n
     FROM attempts a
     JOIN problems p ON p.id = a.problem_id
-    WHERE p.domain = 'python'
+    WHERE p.domain = 'ai'
       AND substr(a.attempted_at, 1, 10) = date('now', 'localtime')
       AND NOT EXISTS (
         SELECT 1 FROM attempts prev
@@ -48,7 +46,7 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
     <div>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-fg tracking-tight">Python</h1>
+          <h1 className="text-2xl font-semibold text-fg tracking-tight">AI</h1>
           <span className="text-sm text-muted">
             <span className="font-semibold text-fg tabular">{problems.length}</span> total
           </span>
@@ -58,26 +56,26 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
             </span>
           )}
         </div>
-        <LogShortcut href="/python/log" />
-        <Link href="/python/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
+        <LogShortcut href="/ai/log" />
+        <Link href="/ai/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
           <Plus size={16} /> Log Question <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
         </Link>
       </div>
 
       <DomainFilters
-        basePath="/python"
+        basePath="/ai"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'list',        placeholder: 'All lists',       current: sp.list        ?? '', options: allLists },
-          { key: 'category',    placeholder: 'All categories',  current: sp.category    ?? '', options: getConfigOptions('python', 'py_category') },
+          { key: 'list',        placeholder: 'All lists',       current: sp.list        ?? '', options: getConfigOptions('ai', 'question_list') },
+          { key: 'category',    placeholder: 'All categories',  current: sp.category    ?? '', options: getConfigOptions('ai', 'ai_category') },
           { key: 'proficiency', placeholder: 'All levels',      current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
         ]}
       />
 
       {problems.length === 0 ? (
-        <p className="text-sm text-muted py-8 text-center">No concepts yet. Log your first attempt to get started.</p>
+        <p className="text-sm text-muted py-8 text-center">No questions yet. Log your first to get started.</p>
       ) : (
-        <ProblemList problems={problems} basePath="/python" groupByDate={(sp.sort ?? '') !== 'next_review'} />
+        <ProblemList problems={problems} basePath="/ai" groupByDate={(sp.sort ?? '') !== 'next_review'} />
       )}
     </div>
   );

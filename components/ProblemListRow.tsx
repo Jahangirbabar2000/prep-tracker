@@ -18,8 +18,8 @@ const DIFFICULTY_STYLE: Record<string, string> = {
 };
 
 export default function ProblemListRow({ problem: p, basePath }: Props) {
-  const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category;
-  const qset = p.question_list ?? p.fe_question_set;
+  const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category;
+  const qset = p.question_list ?? p.fe_question_set ?? p.sd_topic;
   const isDue = p.next_due_date && p.next_due_date <= new Date().toLocaleDateString('en-CA');
 
   return (
@@ -53,6 +53,7 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
         <ProficiencyBadge
           level={p.interval_level}
           nextDueDate={p.next_due_date ? fmtDate(p.next_due_date) : null}
+          attemptCount={p.attempt_count}
         />
         {p.avg_time != null && (
           <div className="flex items-center gap-1 text-xs text-muted">

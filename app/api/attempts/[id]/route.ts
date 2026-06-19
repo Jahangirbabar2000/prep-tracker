@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.time_taken_mins !== undefined) fields.time_taken_mins = body.time_taken_mins;
   if (body.struggled !== undefined) fields.struggled = body.struggled ? 1 : 0;
   if (body.attempted_at !== undefined) {
-    fields.attempted_at = new Date(body.attempted_at).toISOString().slice(0, 19).replace('T', ' ');
+    fields.attempted_at = `${String(body.attempted_at).slice(0, 10)} 00:00:00`;
   }
   if (body.practice_type !== undefined) fields.practice_type = body.practice_type;
 
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { newLevel, nextDueDate } = computeNextDue(
     !!latest.struggled,
     problem.interval_level,
-    new Date(latest.attempted_at)
+new Date(`${String(latest.attempted_at).slice(0, 10)}T12:00:00`)
   );
   db.prepare('UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?')
     .run(newLevel, nextDueDate, attempt.problem_id);
@@ -63,7 +63,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { newLevel, nextDueDate } = computeNextDue(
       !!latest.struggled,
       problem.interval_level,
-      new Date(latest.attempted_at)
+  new Date(`${String(latest.attempted_at).slice(0, 10)}T12:00:00`)
     );
     db.prepare('UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?')
       .run(newLevel, nextDueDate, attempt.problem_id);

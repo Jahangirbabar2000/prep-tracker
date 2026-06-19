@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   }
 
   const result = db.prepare(
-    'INSERT INTO problems (name, domain) VALUES (?, ?) RETURNING *'
+    "INSERT INTO problems (name, domain, created_at) VALUES (?, ?, datetime('now', 'localtime')) RETURNING *"
   ).get(name.trim(), domain) as Problem;
 
   return NextResponse.json(result, { status: 201 });

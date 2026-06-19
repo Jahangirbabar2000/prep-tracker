@@ -24,6 +24,7 @@ function initSchema(db: Database.Database) {
       pattern_tag       TEXT,
       question_list     TEXT,
       sd_category       TEXT,
+      sd_topic          TEXT,
       sd_source         TEXT,
       fe_bucket         TEXT,
       fe_question_set   TEXT,
@@ -32,13 +33,13 @@ function initSchema(db: Database.Database) {
       notes_text        TEXT,
       interval_level    INTEGER NOT NULL DEFAULT 0,
       next_due_date     TEXT,
-      created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at        TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
     );
 
     CREATE TABLE IF NOT EXISTS attempts (
       id               INTEGER PRIMARY KEY AUTOINCREMENT,
       problem_id       INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
-      attempted_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      attempted_at     TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
       time_taken_mins  INTEGER NOT NULL,
       struggled        INTEGER NOT NULL DEFAULT 0,
       practice_type    TEXT
@@ -96,6 +97,17 @@ function initSchema(db: Database.Database) {
     { domain: 'system_design', field: 'sd_category', value: 'Patterns',         sort_order: 2 },
     { domain: 'system_design', field: 'sd_category', value: 'Key Technologies', sort_order: 3 },
     { domain: 'system_design', field: 'sd_category', value: 'Advanced Topics',  sort_order: 4 },
+    // system_design / sd_topic
+    { domain: 'system_design', field: 'sd_topic', value: 'Databases',        sort_order: 0 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Caching',          sort_order: 1 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Message Queues',   sort_order: 2 },
+    { domain: 'system_design', field: 'sd_topic', value: 'API Design',       sort_order: 3 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Microservices',    sort_order: 4 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Storage',          sort_order: 5 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Scalability',      sort_order: 6 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Availability',     sort_order: 7 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Networking',       sort_order: 8 },
+    { domain: 'system_design', field: 'sd_topic', value: 'Observability',    sort_order: 9 },
     // frontend / fe_bucket
     { domain: 'frontend', field: 'fe_bucket', value: 'JS Quirks',          sort_order: 0 },
     { domain: 'frontend', field: 'fe_bucket', value: 'React Internals',    sort_order: 1 },
@@ -116,6 +128,16 @@ function initSchema(db: Database.Database) {
     { domain: 'python', field: 'py_category', value: 'stdlib',          sort_order: 1 },
     { domain: 'python', field: 'py_category', value: 'OOP',             sort_order: 2 },
     { domain: 'python', field: 'py_category', value: 'Concurrency',     sort_order: 3 },
+    // ai / question_list
+    { domain: 'ai', field: 'question_list', value: 'AI Engineering Field Guide', sort_order: 0 },
+    // ai / ai_category
+    { domain: 'ai', field: 'ai_category', value: 'LLM Practice',                  sort_order: 0 },
+    { domain: 'ai', field: 'ai_category', value: 'RAG Systems',                   sort_order: 1 },
+    { domain: 'ai', field: 'ai_category', value: 'Agents and Tool Use',           sort_order: 2 },
+    { domain: 'ai', field: 'ai_category', value: 'Testing and Evaluation',        sort_order: 3 },
+    { domain: 'ai', field: 'ai_category', value: 'Monitoring',                    sort_order: 4 },
+    { domain: 'ai', field: 'ai_category', value: 'Cost and Latency Optimization', sort_order: 5 },
+    { domain: 'ai', field: 'ai_category', value: 'Safety and Guardrails',         sort_order: 6 },
   ];
 
   const insertOption = db.prepare(
@@ -130,4 +152,15 @@ function initSchema(db: Database.Database) {
   if (!cols.some(c => c.name === 'difficulty')) {
     db.exec('ALTER TABLE problems ADD COLUMN difficulty TEXT');
   }
+  if (!cols.some(c => c.name === 'ai_category')) {
+    db.exec('ALTER TABLE problems ADD COLUMN ai_category TEXT');
+  }
+  if (!cols.some(c => c.name === 'sd_topic')) {
+    db.exec('ALTER TABLE problems ADD COLUMN sd_topic TEXT');
+  }
+
+  // Fix any remaining UTC timestamps that are in the future relative to local time
+  // (written before the datetime('now', 'localtime') fix was applied)
+  db.exec("UPDATE problems SET created_at = datetime(created_at, 'localtime') WHERE created_at > datetime('now', 'localtime')");
+  db.exec("UPDATE attempts SET attempted_at = datetime(attempted_at, 'localtime') WHERE attempted_at > datetime('now', 'localtime')");
 }

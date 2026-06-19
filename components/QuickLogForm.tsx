@@ -143,8 +143,8 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
     if (onLogged) {
       onLogged();
     } else {
-      router.push('/');
-      router.refresh();
+      const domainPath = effectiveDomain === 'system_design' ? '/system-design' : `/${effectiveDomain}`;
+      router.push(`${domainPath}/${pid}`);
     }
   }
 
@@ -236,110 +236,130 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
         </div>
       </div>
 
-      {/* ── DSA optional metadata ─────────────────────────────────────── */}
-      {effectiveDomain === 'dsa' && !problemId && (
-        <div className="flex flex-col gap-3 pt-1 border-t border-border">
-          <p className="text-xs text-muted uppercase tracking-wide font-medium mt-2">Details <span className="normal-case tracking-normal opacity-60">(optional)</span></p>
-          <div className="flex gap-3 flex-wrap">
+      {/* ── Classification card (domain-specific optional metadata + link) ── */}
+      {!problemId && (
+        <div className="rounded-xl border border-border bg-surface p-4 flex flex-col gap-4">
+          <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">
+            Classification &amp; Link <span className="normal-case tracking-normal font-normal opacity-50">— optional</span>
+          </p>
+
+          {effectiveDomain === 'dsa' && (
+            <>
+              <div className="flex gap-3 flex-wrap">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted">Difficulty</label>
+                  <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className={inputCls}>
+                    <option value="">— none —</option>
+                    <option>Easy</option>
+                    <option>Medium</option>
+                    <option>Hard</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted">Platform</label>
+                  <select value={platform} onChange={e => setPlatform(e.target.value)} className={inputCls}>
+                    <option value="">— none —</option>
+                    {dsaPlatforms.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-muted">Question List</label>
+                  <select value={questionList} onChange={e => setQuestionList(e.target.value)} className={inputCls}>
+                    <option value="">— none —</option>
+                    {dsaLists.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted">Pattern</label>
+                <input
+                  list="qf-dsa-patterns"
+                  type="text"
+                  value={patternTag}
+                  onChange={e => setPatternTag(e.target.value)}
+                  placeholder="e.g. Sliding Window"
+                  className={inputCls}
+                />
+                <datalist id="qf-dsa-patterns">
+                  {DSA_PATTERNS.map(p => <option key={p} value={p} />)}
+                </datalist>
+              </div>
+            </>
+          )}
+
+          {effectiveDomain === 'frontend' && (
+            <div className="flex gap-3 flex-wrap">
+              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+                <label className="text-xs text-muted">Bucket</label>
+                <select value={feBucket} onChange={e => setFeBucket(e.target.value)} className={inputCls}>
+                  <option value="">— none —</option>
+                  {feBuckets.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+                <label className="text-xs text-muted">Question Set</label>
+                <select value={feQuestionSet} onChange={e => setFeQuestionSet(e.target.value)} className={inputCls}>
+                  <option value="">— none —</option>
+                  {feSets.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {effectiveDomain === 'python' && (
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted">Difficulty</label>
-              <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className={`${inputCls}`}>
+              <label className="text-xs text-muted">Category</label>
+              <select value={pyCategory} onChange={e => setPyCategory(e.target.value)} className={inputCls}>
                 <option value="">— none —</option>
-                <option>Easy</option>
-                <option>Medium</option>
-                <option>Hard</option>
+                {pyCategories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted">Platform</label>
-              <select value={platform} onChange={e => setPlatform(e.target.value)} className={`${inputCls}`}>
-                <option value="">— none —</option>
-                {dsaPlatforms.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted">Question List</label>
-              <select value={questionList} onChange={e => setQuestionList(e.target.value)} className={`${inputCls}`}>
-                <option value="">— none —</option>
-                {dsaLists.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1 relative">
-            <label className="text-xs text-muted">Pattern</label>
+          )}
+
+          <div className="flex flex-col gap-1">
+            <label className="inline-flex items-center gap-1.5 text-xs text-muted">
+              <Link2 size={11} /> Link
+            </label>
             <input
-              list="qf-dsa-patterns"
-              type="text"
-              value={patternTag}
-              onChange={e => setPatternTag(e.target.value)}
-              placeholder="e.g. Sliding Window"
+              type="url"
+              value={linkUrl}
+              onChange={e => setLinkUrl(e.target.value)}
+              placeholder="https://leetcode.com/problems/…"
               className={inputCls}
             />
-            <datalist id="qf-dsa-patterns">
-              {DSA_PATTERNS.map(p => <option key={p} value={p} />)}
-            </datalist>
           </div>
         </div>
       )}
 
-      {/* ── Frontend optional metadata ────────────────────────────────── */}
-      {effectiveDomain === 'frontend' && !problemId && (
-        <div className="flex flex-col gap-3 pt-1 border-t border-border">
-          <p className="text-xs text-muted uppercase tracking-wide font-medium mt-2">Details <span className="normal-case tracking-normal opacity-60">(optional)</span></p>
-          <div className="flex gap-3 flex-wrap">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted">Bucket</label>
-              <select value={feBucket} onChange={e => setFeBucket(e.target.value)} className={inputCls}>
-                <option value="">— none —</option>
-                {feBuckets.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted">Question Set</label>
-              <select value={feQuestionSet} onChange={e => setFeQuestionSet(e.target.value)} className={inputCls}>
-                <option value="">— none —</option>
-                {feSets.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+      {/* Bottom action bar: struggled + submit */}
+      <div className="flex items-center justify-between gap-4 pt-2 border-t border-border">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs font-semibold text-muted uppercase tracking-wider">Struggled?</span>
+          <div className="flex gap-0.5 bg-surface-2 rounded-lg p-0.5">
+            <button
+              type="button"
+              onClick={() => setStruggled(false)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!struggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}
+            >
+              No — knew it
+            </button>
+            <button
+              type="button"
+              onClick={() => setStruggled(true)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${struggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}
+            >
+              Yes — struggled
+            </button>
           </div>
         </div>
-      )}
-
-      {/* ── Python optional metadata ──────────────────────────────────── */}
-      {effectiveDomain === 'python' && !problemId && (
-        <div className="flex flex-col gap-3 pt-1 border-t border-border">
-          <p className="text-xs text-muted uppercase tracking-wide font-medium mt-2">Details <span className="normal-case tracking-normal opacity-60">(optional)</span></p>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-muted">Category</label>
-            <select value={pyCategory} onChange={e => setPyCategory(e.target.value)} className={inputCls}>
-              <option value="">— none —</option>
-              {pyCategories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
-      )}
-
-      {/* Optional link */}
-      <div className="flex flex-col gap-1">
-        <label className="inline-flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wide">
-          <Link2 size={12} /> Link <span className="normal-case tracking-normal text-muted/60">(optional)</span>
-        </label>
-        <input
-          type="url"
-          value={linkUrl}
-          onChange={e => setLinkUrl(e.target.value)}
-          placeholder="https://leetcode.com/problems/…"
-          className={inputCls}
-        />
+        <button
+          type="submit"
+          disabled={submitting || !timeTaken || (!problemId && !selectedProblem && !query.trim())}
+          className="min-h-[38px] px-5 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+        >
+          {submitting ? 'Logging…' : 'Log Attempt'}
+        </button>
       </div>
-
-      <button
-        type="submit"
-        disabled={submitting || !timeTaken || (!problemId && !selectedProblem && !query.trim())}
-        className="min-h-[42px] px-6 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors self-start cursor-pointer"
-      >
-        {submitting ? 'Logging…' : 'Log Attempt'}
-      </button>
     </form>
   );
 }

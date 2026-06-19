@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import ProblemList from '@/components/ProblemList';
 import DomainFilters from '@/components/DomainFilters';
+import LogShortcut from '@/components/LogShortcut';
+import { proficiencyClause, PROFICIENCY_OPTIONS } from '@/lib/filters';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +27,12 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const db = getDb();
 
-  let query = "SELECT * FROM problems WHERE domain = 'dsa'";
+  let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'dsa'";
   const params: string[] = [];
   if (sp.pattern)    { query += ' AND pattern_tag = ?';   params.push(sp.pattern); }
   if (sp.list)       { query += ' AND question_list = ?'; params.push(sp.list); }
   if (sp.difficulty) { query += ' AND difficulty = ?';    params.push(sp.difficulty); }
+  if (sp.proficiency) query += proficiencyClause(sp.proficiency);
   query += ' ' + sortClause(sp.sort ?? '');
 
   const problems = db.prepare(query).all(...params) as Problem[];
@@ -71,8 +74,9 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
             </span>
           )}
         </div>
+        <LogShortcut href="/dsa/log" />
         <Link href="/dsa/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
-          <Plus size={16} /> Log Attempt
+          <Plus size={16} /> Log Attempt <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
         </Link>
       </div>
 
@@ -80,9 +84,10 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
         basePath="/dsa"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'difficulty', placeholder: 'All difficulties', current: sp.difficulty ?? '', options: ['Easy', 'Medium', 'Hard'] },
-          { key: 'pattern',    placeholder: 'All patterns',     current: sp.pattern    ?? '', options: [...DSA_PATTERNS, ...extraPatterns] },
-          { key: 'list',       placeholder: 'All lists',        current: sp.list       ?? '', options: getConfigOptions('dsa', 'question_list') },
+          { key: 'difficulty',  placeholder: 'All difficulties', current: sp.difficulty  ?? '', options: ['Easy', 'Medium', 'Hard'] },
+          { key: 'pattern',     placeholder: 'All patterns',     current: sp.pattern    ?? '', options: [...DSA_PATTERNS, ...extraPatterns] },
+          { key: 'list',        placeholder: 'All lists',        current: sp.list       ?? '', options: getConfigOptions('dsa', 'question_list') },
+          { key: 'proficiency', placeholder: 'All levels',       current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
         ]}
       />
 

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import ProblemList from '@/components/ProblemList';
 import DomainFilters from '@/components/DomainFilters';
+import LogShortcut from '@/components/LogShortcut';
+import { proficiencyClause, PROFICIENCY_OPTIONS } from '@/lib/filters';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,9 +20,11 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const db = getDb();
 
-  let query = "SELECT * FROM problems WHERE domain = 'system_design'";
+  let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'system_design'";
   const params: string[] = [];
-  if (sp.bucket) { query += ' AND sd_category = ?'; params.push(sp.bucket); }
+  if (sp.bucket)      { query += ' AND sd_category = ?'; params.push(sp.bucket); }
+  if (sp.topic)       { query += ' AND sd_topic = ?';    params.push(sp.topic); }
+  if (sp.proficiency) query += proficiencyClause(sp.proficiency);
   query += ' ' + sortClause(sp.sort ?? '');
 
   const problems = db.prepare(query).all(...params) as Problem[];
@@ -52,8 +56,9 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
             </span>
           )}
         </div>
+        <LogShortcut href="/system-design/log" />
         <Link href="/system-design/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
-          <Plus size={16} /> Log Concept
+          <Plus size={16} /> Log Question <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
         </Link>
       </div>
 
@@ -61,7 +66,9 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
         basePath="/system-design"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'bucket', placeholder: 'All buckets', current: sp.bucket ?? '', options: getConfigOptions('system_design', 'sd_category') },
+          { key: 'bucket',      placeholder: 'All buckets', current: sp.bucket      ?? '', options: getConfigOptions('system_design', 'sd_category') },
+          { key: 'topic',       placeholder: 'All topics',  current: sp.topic       ?? '', options: getConfigOptions('system_design', 'sd_topic') },
+          { key: 'proficiency', placeholder: 'All levels',  current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
         ]}
       />
 

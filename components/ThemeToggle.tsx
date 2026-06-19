@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
-export default function ThemeToggle() {
+interface ThemeToggleProps {
+  /** When true, renders as an icon-only button. When false, renders as a full nav row with label. */
+  collapsed?: boolean;
+}
+
+export default function ThemeToggle({ collapsed = true }: ThemeToggleProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
@@ -28,13 +33,29 @@ export default function ThemeToggle() {
     window.dispatchEvent(new Event('themechange'));
   }
 
+  const Icon = mounted && theme === 'dark' ? Sun : Moon;
+  const label = mounted && theme === 'dark' ? 'Light mode' : 'Dark mode';
+
+  if (!collapsed) {
+    return (
+      <button
+        onClick={toggle}
+        aria-label={mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle theme'}
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:bg-surface-2 hover:text-fg transition-colors cursor-pointer"
+      >
+        <Icon size={18} />
+        <span className="whitespace-nowrap">{label}</span>
+      </button>
+    );
+  }
+
   return (
     <button
       onClick={toggle}
       aria-label={mounted ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : 'Toggle theme'}
       className="flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer"
     >
-      {mounted && theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      <Icon size={18} />
     </button>
   );
 }

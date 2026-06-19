@@ -8,5 +8,5 @@ export function computeNextDue(
   const newLevel = struggled ? Math.max(0, currentLevel - 1) : Math.min(currentLevel + 1, 3);
   const due = new Date(attemptDate);
   due.setDate(due.getDate() + INTERVALS[newLevel]);
-  return { newLevel, nextDueDate: due.toISOString().split('T')[0] };
+  return { newLevel, nextDueDate: due.toLocaleDateString('en-CA') };
 }

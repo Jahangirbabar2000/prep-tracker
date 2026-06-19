@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Inbox, Binary, Network, Layout, Code2, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Inbox, Binary, Network, Layout, Code2, Brain, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 const links = [
@@ -12,6 +12,7 @@ const links = [
   { href: '/system-design', label: 'System Design',short: 'SysD',  Icon: Network, domain: 'system_design' },
   { href: '/frontend',      label: 'Frontend',     short: 'FE',    Icon: Layout,  domain: 'frontend' },
   { href: '/python',        label: 'Python',       short: 'Py',    Icon: Code2,   domain: 'python' },
+  { href: '/ai',            label: 'AI',           short: 'AI',    Icon: Brain,   domain: 'ai' },
 ];
 
 export default function Nav() {
@@ -123,17 +124,27 @@ export default function Nav() {
           collapsed ? 'w-[60px]' : 'w-[220px]',
         ].join(' ')}
       >
-        {/* Logo / brand */}
+        {/* Logo / brand + collapse toggle */}
         <div className={[
-          'flex items-center gap-2.5 h-14 border-b border-border shrink-0',
-          collapsed ? 'justify-center px-0' : 'px-4',
+          'flex items-center h-14 border-b border-border shrink-0',
+          collapsed ? 'justify-center px-2' : 'px-3',
         ].join(' ')}>
           <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
             <Binary size={16} />
           </span>
           {!collapsed && (
-            <span className="font-semibold text-fg text-sm whitespace-nowrap">Prep Tracker</span>
+            <span className="font-semibold text-fg text-sm whitespace-nowrap flex-1 ml-2.5">Prep Tracker</span>
           )}
+          <button
+            onClick={toggleCollapse}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={[
+              'flex items-center justify-center w-7 h-7 rounded-md text-muted hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer shrink-0',
+              collapsed ? 'mt-0' : 'ml-1',
+            ].join(' ')}
+          >
+            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
         </div>
 
         {/* Nav links */}
@@ -169,20 +180,19 @@ export default function Nav() {
             )}
           </div>
 
-          {/* Theme toggle + collapse button */}
-          <div className={[
-            'flex items-center',
-            collapsed ? 'flex-col gap-0.5' : 'justify-between',
-          ].join(' ')}>
-            <ThemeToggle />
-            <button
-              onClick={toggleCollapse}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              className="flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer"
-            >
-              {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
-          </div>
+          {/* Theme toggle */}
+          {collapsed ? (
+            <div className="relative group flex justify-center">
+              <ThemeToggle collapsed={true} />
+              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none hidden group-hover:block">
+                <div className="bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 shadow-lg whitespace-nowrap">
+                  <span className="text-xs font-medium text-fg">Toggle theme</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <ThemeToggle collapsed={false} />
+          )}
         </div>
       </aside>
 

@@ -1,4 +1,4 @@
-export type Domain = 'dsa' | 'system_design' | 'frontend' | 'python';
+export type Domain = 'dsa' | 'system_design' | 'frontend' | 'python' | 'ai';
 
 export interface Problem {
   id: number;
@@ -11,12 +11,15 @@ export interface Problem {
   difficulty?: string | null;
   // System Design
   sd_category?: string | null;
+  sd_topic?: string | null;
   sd_source?: string | null;
   // Frontend
   fe_bucket?: string | null;
   fe_question_set?: string | null;
   // Python
   py_category?: string | null;
+  // AI
+  ai_category?: string | null;
   // Universal
   resource_url?: string | null;
   notes_text?: string | null;
@@ -24,6 +27,8 @@ export interface Problem {
   interval_level: number;
   next_due_date?: string | null;
   created_at: string;
+  // Computed in list queries
+  attempt_count?: number;
 }
 
 export interface Attempt {
