@@ -62,7 +62,7 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
           )}
         </div>
         <LogShortcut href="/system-design/log" />
-        <Link href="/system-design/log" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
+        <Link href="/system-design/log" className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
           <Plus size={16} /> Log Question <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
         </Link>
       </div>
