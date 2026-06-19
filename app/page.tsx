@@ -131,27 +131,54 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-fg tracking-tight">Review Queue</h1>
-          <p className="text-sm text-muted mt-1">Everything due across all domains, most overdue first.</p>
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold text-fg tracking-tight">Review Queue</h1>
+            <p className="text-sm text-muted mt-1">Everything due across all domains, most overdue first.</p>
+          </div>
+          {/* Desktop buttons */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <Link
+              href="/review/history"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface border border-border text-fg text-sm font-medium rounded-lg hover:border-border-strong transition-colors"
+            >
+              <History size={13} /> Today&apos;s History
+              {todayCount > 0 && <span className="opacity-50 font-normal">({todayCount})</span>}
+            </Link>
+            {conceptDue > 0 && (
+              <Link
+                href="/review/session"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+              >
+                <Play size={13} /> Start Session
+                <span className="opacity-70 font-normal">({conceptDue})</span>
+              </Link>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Mobile buttons — full-width row below the title */}
+        <div className="flex md:hidden items-center gap-2 mt-4">
           <Link
             href="/review/history"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface border border-border text-fg text-sm font-medium rounded-lg hover:border-border-strong transition-colors"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-surface border border-border text-fg text-sm font-medium rounded-xl hover:border-border-strong transition-colors"
           >
-            <History size={13} /> Today&apos;s History
+            <History size={14} /> History
             {todayCount > 0 && <span className="opacity-50 font-normal">({todayCount})</span>}
           </Link>
-          {conceptDue > 0 && (
+          {conceptDue > 0 ? (
             <Link
               href="/review/session"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-xl hover:bg-accent-hover transition-colors"
             >
-              <Play size={13} /> Start Session
+              <Play size={14} /> Start Session
               <span className="opacity-70 font-normal">({conceptDue})</span>
             </Link>
+          ) : (
+            <span className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-surface border border-border text-muted text-sm font-medium rounded-xl opacity-50 cursor-default">
+              <Play size={14} /> All caught up
+            </span>
           )}
         </div>
       </div>
