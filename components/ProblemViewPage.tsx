@@ -157,25 +157,41 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     return () => window.removeEventListener('keydown', onKey);
   }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isDSA]);
 
-  // Touch swipe navigation
+  // Touch swipe navigation — locks vertical scroll once direction is determined horizontal
   useEffect(() => {
     if (!data) return;
+    let isHorizontal: boolean | null = null;
+
     const onTouchStart = (e: TouchEvent) => {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
+      isHorizontal = null;
     };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const dx = e.touches[0].clientX - touchStartX.current;
+      const dy = e.touches[0].clientY - touchStartY.current;
+      if (isHorizontal === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+        isHorizontal = Math.abs(dx) > Math.abs(dy);
+      }
+      if (isHorizontal) e.preventDefault();
+    };
+
     const onTouchEnd = (e: TouchEvent) => {
       const dx = e.changedTouches[0].clientX - touchStartX.current;
       const dy = e.changedTouches[0].clientY - touchStartY.current;
-      // Ignore if mostly vertical or too short
+      isHorizontal = null;
       if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       if (dx < 0 && data.prev_id) router.push(`${basePath}/${data.prev_id}`);
       if (dx > 0 && data.next_id) router.push(`${basePath}/${data.next_id}`);
     };
+
     document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: false }); // non-passive to allow preventDefault
     document.addEventListener('touchend', onTouchEnd, { passive: true });
     return () => {
       document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);
     };
   }, [data, basePath, router]);
