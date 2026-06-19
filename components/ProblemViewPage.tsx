@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pencil, Plus } from 'lucide-react';
@@ -61,15 +61,19 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
   const router = useRouter();
   const isDSA = domain === 'dsa';
 
-  const [data, setData]           = useState<ProblemDetail | null>(null);
-  const [revealed, setRevealed]   = useState(false);
-  const [links, setLinks]         = useState<LinkType[] | null>(null);
+  const [data, setData]             = useState<ProblemDetail | null>(null);
+  const [revealed, setRevealed]     = useState(false);
+  const [links, setLinks]           = useState<LinkType[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [lastResult, setLastResult] = useState<boolean | null>(null);
 
   // DSA-specific log form state
   const [dsaTime, setDsaTime]           = useState('');
   const [dsaStruggled, setDsaStruggled] = useState(true);
+
+  // Swipe tracking
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
   function reload() {
     fetch(`/api/problems/${id}`).then(r => r.json()).then(setData);
@@ -127,7 +131,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     setTimeout(() => setLastResult(null), 2000);
   }, [data, submitting, dsaTime, dsaStruggled]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (desktop only — touch handled separately)
   useEffect(() => {
     if (!data) return;
     function onKey(e: KeyboardEvent) {
@@ -153,6 +157,29 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     return () => window.removeEventListener('keydown', onKey);
   }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isDSA]);
 
+  // Touch swipe navigation
+  useEffect(() => {
+    if (!data) return;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      const dy = e.changedTouches[0].clientY - touchStartY.current;
+      // Ignore if mostly vertical or too short
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if (dx < 0 && data.prev_id) router.push(`${basePath}/${data.prev_id}`);
+      if (dx > 0 && data.next_id) router.push(`${basePath}/${data.next_id}`);
+    };
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [data, basePath, router]);
+
   if (!data) return <div className="text-sm text-muted">Loading…</div>;
 
   const tag = cardTag(data);
@@ -166,9 +193,17 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
             onClick={() => router.push(basePath)}
             className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
           >
-            <ArrowLeft size={13} /> {backLabel} <span className="opacity-40 font-normal text-[10px] ml-0.5">Esc</span>
+            <ArrowLeft size={13} /> {backLabel}
+            <span className="hidden md:inline opacity-40 font-normal text-[10px] ml-0.5">Esc</span>
           </button>
-          <div className="flex items-center gap-0.5">
+
+          {/* Position counter — always visible */}
+          <span className="text-xs text-muted/50 tabular-nums">
+            {data.position} / {data.total}
+          </span>
+
+          {/* Chevron arrows — desktop only; mobile uses swipe */}
+          <div className="hidden md:flex items-center gap-0.5">
             <Link
               href={data.next_id ? `${basePath}/${data.next_id}` : '#'}
               aria-disabled={!data.next_id}
@@ -177,9 +212,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
             >
               <ChevronLeft size={15} />
             </Link>
-            <span className="text-xs text-muted/50 tabular-nums px-1 min-w-[3rem] text-center">
-              {data.position} / {data.total}
-            </span>
             <Link
               href={data.prev_id ? `${basePath}/${data.prev_id}` : '#'}
               aria-disabled={!data.prev_id}
@@ -190,7 +222,9 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
             </Link>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Edit + Log — desktop only */}
+        <div className="hidden md:flex items-center gap-2">
           <Link
             href={`${basePath}/${id}/edit`}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted border border-border rounded-lg hover:text-fg hover:border-border-strong transition-colors"
@@ -231,7 +265,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         {/* ── DSA: compact single-row ── */}
         {isDSA ? (
           <div className="border-t border-border px-6 py-3 flex items-center gap-3 flex-wrap">
-            {/* Practice link */}
             {links && links.length > 0 && links.map(l => (
               <a
                 key={l.id}
@@ -248,7 +281,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
               <span className="text-xs text-muted italic">No practice link — add via Edit.</span>
             )}
 
-            {/* Log attempt controls */}
             {lastResult !== null ? (
               <span className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
                 lastResult ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'
@@ -256,7 +288,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                 {lastResult ? '✓ Solved it' : '✗ Struggled'}
               </span>
             ) : (
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-2 flex-wrap">
                 <input
                   type="number"
                   min="0"
@@ -298,11 +330,11 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
               <div className="flex flex-col items-center gap-2 py-8">
                 <button
                   onClick={() => setRevealed(true)}
-                  className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
+                  className="px-8 py-3 bg-accent text-accent-fg text-sm font-semibold rounded-xl hover:bg-accent-hover transition-colors cursor-pointer"
                 >
                   Reveal answer
                 </button>
-                <span className="text-xs text-muted/50">Space</span>
+                <span className="hidden md:block text-xs text-muted/50">Space</span>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-6 py-5">
@@ -330,7 +362,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                 )}
 
                 {lastResult !== null ? (
-                  <div className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold ${
+                  <div className={`flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold ${
                     lastResult ? 'bg-accent/10 text-accent' : 'bg-danger/10 text-danger'
                   }`}>
                     {lastResult ? '✓ Logged — Got it' : '✗ Logged — Struggled'}
@@ -340,16 +372,18 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                     <button
                       onClick={() => logAttempt(false)}
                       disabled={submitting}
-                      className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
+                      className="flex-1 py-3 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-xl hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
                     >
-                      ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">Y</span>
+                      ✓ Got it
+                      <span className="hidden md:inline text-xs font-normal opacity-50 ml-1">Y</span>
                     </button>
                     <button
                       onClick={() => logAttempt(true)}
                       disabled={submitting}
-                      className="flex-1 py-2.5 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-lg hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
+                      className="flex-1 py-3 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-xl hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
                     >
-                      ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
+                      ✗ Struggled
+                      <span className="hidden md:inline text-xs font-normal opacity-50 ml-1">N</span>
                     </button>
                   </div>
                 )}
@@ -359,8 +393,8 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         )}
       </div>
 
-      {/* Attempt history */}
-      <section>
+      {/* Attempt history — desktop only */}
+      <section className="hidden md:block">
         <h2 className={`${sectionTitle} mb-3`}>Attempt History</h2>
         <AttemptHistory
           attempts={data.attempts}
@@ -373,7 +407,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
 
       {/* Notes — one-liners for non-DSA */}
       {!isDSA && data.notes.length > 0 && (
-        <section>
+        <section className="hidden md:block">
           <h2 className={`${sectionTitle} mb-3`}>Notes</h2>
           <QuickNotes
             problemId={data.id}
@@ -385,7 +419,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
 
       {/* Active recall Q&A — DSA only */}
       {isDSA && data.notes.length > 0 && (
-        <section>
+        <section className="hidden md:block">
           <h2 className={`${sectionTitle} mb-3`}>Active Recall Notes</h2>
           <div className="flex flex-col gap-3">
             {data.notes.map(n => (
