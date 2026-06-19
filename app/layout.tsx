@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
         <div className="min-h-dvh md:h-dvh md:flex">
           <Nav />
-          <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-24 md:pb-10 md:overflow-y-auto">
+          <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-32 md:pb-10 md:overflow-y-auto">
             {children}
           </main>
         </div>

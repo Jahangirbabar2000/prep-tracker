@@ -27,7 +27,8 @@ const DOMAIN_TAG_STYLE: Record<string, string> = {
 
 export default function ProblemListRow({ problem: p, basePath }: Props) {
   const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category;
-  const qset = p.question_list ?? p.fe_question_set ?? p.sd_topic;
+  // Only show the secondary bucket label for system design (sd_topic = "In a Hurry" etc.)
+  const qset = p.domain === 'system_design' ? (p.sd_topic ?? null) : null;
   const isDue = p.next_due_date && p.next_due_date <= new Date().toLocaleDateString('en-CA');
 
   return (

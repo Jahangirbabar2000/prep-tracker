@@ -218,7 +218,7 @@ export default function Nav() {
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium min-h-[56px] transition-colors cursor-pointer relative ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-4 text-[11px] font-medium min-h-[72px] transition-colors cursor-pointer relative ${
                 isActive(href) ? 'text-accent' : 'text-muted'
               }`}
             >
