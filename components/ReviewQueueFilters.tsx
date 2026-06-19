@@ -33,7 +33,7 @@ export default function ReviewQueueFilters({ currentDomain, currentProficiency }
   const hasFilter = !!currentDomain || !!currentProficiency;
 
   return (
-    <div className="flex flex-wrap gap-2 mb-5 items-center">
+    <div className="hidden md:flex flex-wrap gap-2 mb-5 items-center">
       <select
         value={currentDomain}
         onChange={e => push(e.target.value, currentProficiency)}

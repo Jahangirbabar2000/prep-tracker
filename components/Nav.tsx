@@ -205,15 +205,6 @@ export default function Nav() {
           Prep Tracker
         </span>
         <div className="flex items-center gap-1">
-          <Link
-            href="/settings"
-            className={`p-2 rounded-md transition-colors cursor-pointer ${
-              pathname === '/settings' ? 'text-fg' : 'text-muted hover:text-fg'
-            }`}
-            title="Settings"
-          >
-            <Settings size={16} className={pathname === '/settings' ? 'text-accent' : ''} />
-          </Link>
           <ThemeToggle />
         </div>
       </div>
