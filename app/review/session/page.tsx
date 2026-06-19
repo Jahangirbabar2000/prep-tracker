@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
@@ -37,13 +37,15 @@ function domainPath(domain: string) {
 }
 
 export default function SessionPage() {
-  const [status, setStatus]       = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
-  const [cards, setCards]         = useState<ReviewQueueItem[]>([]);
-  const [idx, setIdx]             = useState(0);
-  const [revealed, setRevealed]   = useState(false);
-  const [links, setLinks]         = useState<LinkType[] | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [results, setResults]     = useState<{ struggled: boolean }[]>([]);
+  const [status, setStatus]           = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
+  const [queue, setQueue]             = useState<ReviewQueueItem[]>([]);
+  const [totalCards, setTotalCards]   = useState(0);
+  const [revealed, setRevealed]       = useState(false);
+  const [links, setLinks]             = useState<LinkType[] | null>(null);
+  const [submitting, setSubmitting]   = useState(false);
+  const [results, setResults]         = useState<{ struggled: boolean }[]>([]);
+  const [skippedIds, setSkippedIds]   = useState<Set<number>>(new Set());
+  const [skippedCount, setSkippedCount] = useState(0);
 
   // DSA log form state
   const [dsaTime, setDsaTime]           = useState('');
@@ -54,13 +56,15 @@ export default function SessionPage() {
       .then(r => r.json())
       .then((all: ReviewQueueItem[]) => {
         if (all.length === 0) { setStatus('empty'); return; }
-        setCards(all);
+        setQueue(all);
+        setTotalCards(all.length);
         setStatus('ready');
       });
   }, []);
 
-  const card = cards[idx] ?? null;
-  const isDSA = card?.domain === 'dsa';
+  const card   = queue[0] ?? null;
+  const isDSA  = card?.domain === 'dsa';
+  const isRevisit = card ? skippedIds.has(card.id) : false;
 
   // Fetch links: eagerly for DSA, lazily on reveal for concept domains
   useEffect(() => {
@@ -72,6 +76,54 @@ export default function SessionPage() {
       .then(setLinks)
       .catch(() => setLinks([]));
   }, [revealed, card?.id, isDSA]);
+
+  const resetCardState = useCallback(() => {
+    setRevealed(false);
+    setLinks(null);
+    setDsaTime('');
+    setDsaStruggled(true);
+  }, []);
+
+  // Skip this card → push to end of queue
+  const skip = useCallback(() => {
+    if (!card || submitting) return;
+    const [head, ...rest] = queue;
+    const newQueue = [...rest, head];
+    const newSkipped = new Set(skippedIds);
+    newSkipped.add(head.id);
+
+    // If every remaining card has already been skipped, end the session
+    if (newQueue.every(c => newSkipped.has(c.id))) {
+      setSkippedCount(sc => sc + newQueue.length);
+      setStatus('done');
+      return;
+    }
+
+    setQueue(newQueue);
+    setSkippedIds(newSkipped);
+    resetCardState();
+  }, [card, queue, skippedIds, submitting, resetCardState]);
+
+  // Skip all cards of the current domain → push them to end
+  const skipSection = useCallback(() => {
+    if (!card) return;
+    const domain = card.domain;
+    const keep = queue.filter(c => c.domain !== domain);
+    const move = queue.filter(c => c.domain === domain);
+    const newQueue = [...keep, ...move];
+    const newSkipped = new Set(skippedIds);
+    move.forEach(c => newSkipped.add(c.id));
+
+    if (keep.length === 0 || keep.every(c => newSkipped.has(c.id))) {
+      setSkippedCount(sc => sc + newQueue.filter(c => newSkipped.has(c.id)).length);
+      setStatus('done');
+      return;
+    }
+
+    setQueue(newQueue);
+    setSkippedIds(newSkipped);
+    resetCardState();
+  }, [card, queue, skippedIds, resetCardState]);
 
   const advance = useCallback(async (struggled: boolean, timeTakenMins = 0) => {
     if (!card || submitting) return;
@@ -87,42 +139,44 @@ export default function SessionPage() {
       }),
     });
 
+    const newSkipped = new Set(skippedIds);
+    newSkipped.delete(card.id);
+    setSkippedIds(newSkipped);
     setResults(prev => [...prev, { struggled }]);
     setSubmitting(false);
 
-    if (idx + 1 >= cards.length) {
+    const remaining = queue.slice(1);
+    if (remaining.length === 0 || remaining.every(c => newSkipped.has(c.id))) {
+      setSkippedCount(remaining.filter(c => newSkipped.has(c.id)).length);
       setStatus('done');
     } else {
-      setIdx(i => i + 1);
-      setRevealed(false);
-      setLinks(null);
-      setDsaTime('');
-      setDsaStruggled(true);
+      setQueue(remaining);
+      resetCardState();
     }
-  }, [card, idx, cards.length, submitting]);
+  }, [card, queue, skippedIds, submitting, resetCardState]);
 
   const advanceDsa = useCallback(() => {
     advance(dsaStruggled, parseInt(dsaTime) || 0);
   }, [advance, dsaStruggled, dsaTime]);
 
-  // Keyboard shortcuts — concept domains only
+  // Keyboard shortcuts
   useEffect(() => {
-    if (status !== 'ready' || isDSA) return;
+    if (status !== 'ready') return;
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.key === ' ' || e.key === 'Spacebar') {
-        e.preventDefault();
-        setRevealed(r => !r);
+      if (!isDSA) {
+        if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); setRevealed(r => !r); }
+        if (revealed && !submitting) {
+          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') advance(false);
+          if (e.key === 'n' || e.key === 'N') advance(true);
+        }
       }
-      if (revealed && !submitting) {
-        if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') advance(false);
-        if (e.key === 'n' || e.key === 'N') advance(true);
-      }
+      if (e.key === 's' || e.key === 'S') skip();
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [status, revealed, submitting, advance, isDSA]);
+  }, [status, revealed, submitting, advance, skip, isDSA]);
 
   if (status === 'loading') {
     return (
@@ -146,7 +200,7 @@ export default function SessionPage() {
 
   if (status === 'done') {
     const struggledCount = results.filter(r => r.struggled).length;
-    const gotCount = results.length - struggledCount;
+    const gotCount       = results.length - struggledCount;
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
         <div className="flex flex-col gap-2">
@@ -158,6 +212,11 @@ export default function SessionPage() {
             <span className="mx-2 opacity-40">·</span>
             {results.length} reviewed
           </p>
+          {skippedCount > 0 && (
+            <p className="text-xs text-muted mt-1">
+              {skippedCount} skipped — they&apos;ll appear in your next session
+            </p>
+          )}
         </div>
         <Link
           href="/"
@@ -169,8 +228,9 @@ export default function SessionPage() {
     );
   }
 
-  const progress = (idx / cards.length) * 100;
-  const t = cardTag(card);
+  const reviewed = results.length;
+  const progress = (reviewed / totalCards) * 100;
+  const t = cardTag(card!);
 
   return (
     <div className="flex flex-col gap-5 max-w-xl mx-auto">
@@ -179,7 +239,7 @@ export default function SessionPage() {
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
           <ArrowLeft size={13} /> Exit session
         </Link>
-        <span className="text-xs text-muted tabular">{idx + 1} / {cards.length}</span>
+        <span className="text-xs text-muted tabular">{reviewed + 1} / {totalCards}</span>
       </div>
 
       {/* Progress bar */}
@@ -192,23 +252,32 @@ export default function SessionPage() {
 
       {/* Card */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-        {/* Domain + tag */}
+        {/* Domain + tag + skip-section */}
         <div className="flex items-center gap-2 px-6 pt-5">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card.domain]}`}>
-            {DOMAIN_LABEL[card.domain]}
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
+            {DOMAIN_LABEL[card!.domain]}
           </span>
           {t && <span className="text-xs text-muted">{t}</span>}
+          {isRevisit && (
+            <span className="text-xs text-muted/50 italic">revisiting</span>
+          )}
+          <button
+            type="button"
+            onClick={skipSection}
+            className="ml-auto text-xs text-muted/50 hover:text-muted transition-colors cursor-pointer whitespace-nowrap"
+          >
+            Skip all {DOMAIN_LABEL[card!.domain]} ›
+          </button>
         </div>
 
         {/* Question */}
         <p className="px-6 pt-4 pb-6 text-lg font-semibold text-fg leading-snug">
-          {card.name}
+          {card!.name}
         </p>
 
         {/* ── DSA: practice link + log form ── */}
         {isDSA ? (
           <div className="border-t border-border px-6 py-5 flex flex-col gap-5">
-            {/* Practice links */}
             {links && links.length > 0 && (
               <div className="flex flex-col gap-2">
                 {links.map(l => (
@@ -229,7 +298,6 @@ export default function SessionPage() {
               <p className="text-sm text-muted italic">No practice link saved.</p>
             )}
 
-            {/* Log form */}
             <div className="flex flex-col gap-3">
               <p className="text-xs text-muted font-medium uppercase tracking-wide">Log your attempt</p>
               <div className="flex items-center gap-3">
@@ -268,12 +336,19 @@ export default function SessionPage() {
               >
                 {submitting ? 'Saving…' : 'Log & Next →'}
               </button>
+              <button
+                type="button"
+                onClick={skip}
+                disabled={submitting}
+                className="inline-flex items-center justify-center gap-1.5 text-xs text-muted/60 hover:text-muted transition-colors cursor-pointer py-1"
+              >
+                <SkipForward size={12} /> Skip this question
+              </button>
             </div>
 
-            {/* Open full */}
             <div className="flex justify-end">
               <Link
-                href={`/dsa/${card.id}`}
+                href={`/dsa/${card!.id}`}
                 target="_blank"
                 className="text-xs text-muted hover:text-fg transition-colors"
               >
@@ -285,19 +360,26 @@ export default function SessionPage() {
           /* ── Concept domains: Q&A flashcard ── */
           <div className="border-t border-border">
             {!revealed ? (
-              <div className="flex flex-col items-center gap-2 py-8">
+              <div className="flex flex-col items-center gap-3 py-8">
                 <button
                   onClick={() => setRevealed(true)}
                   className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
                 >
                   Reveal answer
                 </button>
-                <span className="text-xs text-muted/50">Space</span>
+                <span className="text-xs text-muted/40">Space to reveal · S to skip</span>
+                <button
+                  type="button"
+                  onClick={skip}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted/50 hover:text-muted transition-colors cursor-pointer"
+                >
+                  <SkipForward size={12} /> Skip this question
+                </button>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-6 py-5">
-                {card.notes_text ? (
-                  <MarkdownRenderer content={card.notes_text} />
+                {card!.notes_text ? (
+                  <MarkdownRenderer content={card!.notes_text} />
                 ) : (
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
@@ -321,7 +403,7 @@ export default function SessionPage() {
 
                 <div className="flex justify-end">
                   <Link
-                    href={`${domainPath(card.domain)}/${card.id}`}
+                    href={`${domainPath(card!.domain)}/${card!.id}`}
                     target="_blank"
                     className="text-xs text-muted hover:text-fg transition-colors"
                   >
@@ -345,6 +427,15 @@ export default function SessionPage() {
                     ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={skip}
+                  disabled={submitting}
+                  className="inline-flex items-center justify-center gap-1.5 text-xs text-muted/50 hover:text-muted transition-colors cursor-pointer py-1"
+                >
+                  <SkipForward size={12} /> Skip this question <span className="opacity-40 ml-0.5">S</span>
+                </button>
               </div>
             )}
           </div>
