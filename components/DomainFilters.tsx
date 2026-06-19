@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
 
 export interface SelectConfig {
   key: string;        // query-param name
@@ -25,6 +26,7 @@ const SORT_OPTIONS = [
 
 export default function DomainFilters({ basePath, selects, currentSort }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   function push(changedKey: string, changedValue: string) {
     const params = new URLSearchParams();
@@ -35,13 +37,15 @@ export default function DomainFilters({ basePath, selects, currentSort }: Props)
     const sort = changedKey === 'sort' ? changedValue : currentSort;
     if (sort && sort !== 'newest') params.set('sort', sort);
     const qs = params.toString();
-    router.push(qs ? `${basePath}?${qs}` : basePath);
+    startTransition(() => {
+      router.replace(qs ? `${basePath}?${qs}` : basePath, { scroll: false } as never);
+    });
   }
 
   const hasFilter = selects.some(s => s.current) || (currentSort && currentSort !== 'newest');
 
   return (
-    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap mb-6 items-center">
+    <div className={`grid grid-cols-2 gap-2 sm:flex sm:flex-wrap mb-6 items-center transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
       {selects.map(s => (
         <select
           key={s.key}
@@ -66,7 +70,7 @@ export default function DomainFilters({ basePath, selects, currentSort }: Props)
 
       {hasFilter && (
         <button
-          onClick={() => router.push(basePath)}
+          onClick={() => startTransition(() => router.replace(basePath, { scroll: false } as never))}
           className="px-3 py-2 text-sm text-muted hover:text-fg transition-colors cursor-pointer col-span-1"
         >
           Clear

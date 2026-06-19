@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
 
 const cls = 'bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition cursor-pointer';
 
@@ -18,13 +19,16 @@ export default function ReviewQueueFilters({
   availableProficiencies,
 }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   function push(domain: string, proficiency: string) {
     const params = new URLSearchParams();
     if (domain)      params.set('domain', domain);
     if (proficiency) params.set('proficiency', proficiency);
     const qs = params.toString();
-    router.push(qs ? `/?${qs}` : '/');
+    startTransition(() => {
+      router.replace(qs ? `/?${qs}` : '/', { scroll: false } as never);
+    });
   }
 
   const hasFilter = !!currentDomain || !!currentProficiency;
@@ -32,7 +36,7 @@ export default function ReviewQueueFilters({
   if (availableDomains.length === 0) return null;
 
   return (
-    <div className="hidden md:flex flex-wrap gap-2 mb-5 items-center">
+    <div className={`hidden md:flex flex-wrap gap-2 mb-5 items-center transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
       {availableDomains.length > 1 && (
         <select
           value={currentDomain}
@@ -61,7 +65,7 @@ export default function ReviewQueueFilters({
 
       {hasFilter && (
         <button
-          onClick={() => router.push('/')}
+          onClick={() => startTransition(() => router.replace('/', { scroll: false } as never))}
           className="px-3 py-2 text-sm text-muted hover:text-fg transition-colors cursor-pointer"
         >
           Clear
