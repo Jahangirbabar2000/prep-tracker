@@ -26,7 +26,7 @@ const SORT_OPTIONS = [
 export default function DomainFilters({ selects, currentSort, onFilterChange, hasFilter, onClear }: Props) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap mb-6 items-center">
-      {selects.map(s => s.options.length > 0 && (
+      {selects.map(s => s.options.length >= 3 && (
         <select
           key={s.key}
           value={s.current}

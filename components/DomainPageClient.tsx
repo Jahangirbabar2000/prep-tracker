@@ -60,16 +60,14 @@ export default function DomainPageClient({
   });
 
   function updateFilter(key: string, value: string) {
-    setFilters(prev => {
-      const next = { ...prev, [key]: value };
-      const params = new URLSearchParams();
-      for (const [k, v] of Object.entries(next)) {
-        if (v && !(k === 'sort' && v === 'newest')) params.set(k, v);
-      }
-      const qs = params.toString();
-      window.history.replaceState(null, '', qs ? `${basePath}?${qs}` : basePath);
-      return next;
-    });
+    setFilters(prev => ({ ...prev, [key]: value }));
+    const next = { ...filters, [key]: value };
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(next)) {
+      if (v && !(k === 'sort' && v === 'newest')) params.set(k, v);
+    }
+    const qs = params.toString();
+    window.history.replaceState(null, '', qs ? `${basePath}?${qs}` : basePath);
   }
 
   function clearFilters() {
