@@ -49,7 +49,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   const DOMAIN_LABELS: Record<string, string> = {
     dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Python', ai: 'AI',
   };
-  const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];
+  const QUEUE_DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];
   const PROFICIENCY_ORDER = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
   function levelLabel(l: number) {
     if (l === 0) return 'Struggling';
@@ -58,7 +58,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
     if (l === 3) return 'Confident';
     return 'Mastered';
   }
-  const availableDomains = DOMAIN_ORDER
+  const availableDomains = QUEUE_DOMAIN_ORDER
     .filter(d => queueMetaRows.some(r => r.domain === d))
     .map(d => ({ value: d, label: DOMAIN_LABELS[d] }));
   const availableProficiencies = PROFICIENCY_ORDER
