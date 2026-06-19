@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { queryAll, queryOne, localToday } from '@/lib/db';
 import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
@@ -13,12 +13,12 @@ export const dynamic = 'force-dynamic';
 function sortClause(sort: string) {
   if (sort === 'next_review') return 'ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
   if (sort === 'oldest') return 'ORDER BY created_at ASC';
-  return 'ORDER BY created_at DESC'; // default: newest first
+  return 'ORDER BY created_at DESC';
 }
 
 export default async function SystemDesignPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
-  const db = getDb();
+  const today = localToday();
 
   let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'system_design'";
   const params: string[] = [];
@@ -27,20 +27,25 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
   if (sp.proficiency) query += proficiencyClause(sp.proficiency);
   query += ' ' + sortClause(sp.sort ?? '');
 
-  const problems = db.prepare(query).all(...params) as Problem[];
+  const [problems, todayRow, sdCategories, sdTopics] = await Promise.all([
+    queryAll<Problem>(query, params),
+    queryOne<{ n: number }>(`
+      SELECT COUNT(DISTINCT a.problem_id) as n
+      FROM attempts a
+      JOIN problems p ON p.id = a.problem_id
+      WHERE p.domain = 'system_design'
+        AND substr(a.attempted_at, 1, 10) = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM attempts prev
+          WHERE prev.problem_id = a.problem_id
+            AND substr(prev.attempted_at, 1, 10) < ?
+        )
+    `, [today, today]),
+    getConfigOptions('system_design', 'sd_category'),
+    getConfigOptions('system_design', 'sd_topic'),
+  ]);
 
-  const todayCount = (db.prepare(`
-    SELECT COUNT(DISTINCT a.problem_id) as n
-    FROM attempts a
-    JOIN problems p ON p.id = a.problem_id
-    WHERE p.domain = 'system_design'
-      AND substr(a.attempted_at, 1, 10) = date('now', 'localtime')
-      AND NOT EXISTS (
-        SELECT 1 FROM attempts prev
-        WHERE prev.problem_id = a.problem_id
-          AND substr(prev.attempted_at, 1, 10) < date('now', 'localtime')
-      )
-  `).get() as { n: number }).n;
+  const todayCount = todayRow?.n ?? 0;
 
   return (
     <div>
@@ -66,8 +71,8 @@ export default async function SystemDesignPage({ searchParams }: { searchParams:
         basePath="/system-design"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'bucket',      placeholder: 'All buckets', current: sp.bucket      ?? '', options: getConfigOptions('system_design', 'sd_category') },
-          { key: 'topic',       placeholder: 'All topics',  current: sp.topic       ?? '', options: getConfigOptions('system_design', 'sd_topic') },
+          { key: 'bucket',      placeholder: 'All buckets', current: sp.bucket      ?? '', options: sdCategories },
+          { key: 'topic',       placeholder: 'All topics',  current: sp.topic       ?? '', options: sdTopics },
           { key: 'proficiency', placeholder: 'All levels',  current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
         ]}
       />

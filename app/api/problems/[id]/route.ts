@@ -1,56 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { queryOne, queryAll, execute } from '@/lib/db';
 import { Attempt, Link, Note, Problem } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const db = getDb();
   const { id } = await params;
 
-  const problem = db.prepare('SELECT * FROM problems WHERE id = ?').get(id) as Problem | undefined;
+  const problem = await queryOne<Problem>('SELECT * FROM problems WHERE id = ?', [id]);
   if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const attempts = db.prepare(
-    'SELECT * FROM attempts WHERE problem_id = ? ORDER BY attempted_at DESC'
-  ).all(id) as Attempt[];
-
-  const notes = db.prepare(
-    'SELECT * FROM notes WHERE problem_id = ? ORDER BY created_at ASC'
-  ).all(id) as Note[];
-
-  const links = db.prepare(
-    'SELECT * FROM links WHERE problem_id = ? ORDER BY created_at ASC'
-  ).all(id) as Link[];
+  const [attempts, notes, links, prevRow, nextRow, totalRow, newerRow] = await Promise.all([
+    queryAll<Attempt>('SELECT * FROM attempts WHERE problem_id = ? ORDER BY attempted_at DESC', [id]),
+    queryAll<Note>('SELECT * FROM notes WHERE problem_id = ? ORDER BY created_at ASC', [id]),
+    queryAll<Link>('SELECT * FROM links WHERE problem_id = ? ORDER BY created_at ASC', [id]),
+    queryOne<{ id: number }>('SELECT id FROM problems WHERE domain = ? AND id < ? ORDER BY id DESC LIMIT 1', [problem.domain, id]),
+    queryOne<{ id: number }>('SELECT id FROM problems WHERE domain = ? AND id > ? ORDER BY id ASC LIMIT 1', [problem.domain, id]),
+    queryOne<{ total: number }>('SELECT COUNT(*) AS total FROM problems WHERE domain = ?', [problem.domain]),
+    queryOne<{ newer_count: number }>('SELECT COUNT(*) AS newer_count FROM problems WHERE domain = ? AND id > ?', [problem.domain, id]),
+  ]);
 
   const avgTime = attempts.length
     ? attempts.reduce((s, a) => s + a.time_taken_mins, 0) / attempts.length
     : null;
 
-  const prevId = (db.prepare(
-    'SELECT id FROM problems WHERE domain = ? AND id < ? ORDER BY id DESC LIMIT 1'
-  ).get(problem.domain, id) as { id: number } | undefined)?.id ?? null;
-
-  const nextId = (db.prepare(
-    'SELECT id FROM problems WHERE domain = ? AND id > ? ORDER BY id ASC LIMIT 1'
-  ).get(problem.domain, id) as { id: number } | undefined)?.id ?? null;
-
-  // position: 1 = newest (highest id), N = oldest. Count how many in same domain have id > this one.
-  const { total } = db.prepare(
-    'SELECT COUNT(*) AS total FROM problems WHERE domain = ?'
-  ).get(problem.domain) as { total: number };
-
-  const { newer_count } = db.prepare(
-    'SELECT COUNT(*) AS newer_count FROM problems WHERE domain = ? AND id > ?'
-  ).get(problem.domain, id) as { newer_count: number };
-
-  const position = newer_count + 1;
-
-  return NextResponse.json({ ...problem, attempts, notes, links, avg_time: avgTime, prev_id: prevId, next_id: nextId, position, total });
+  return NextResponse.json({
+    ...problem,
+    attempts,
+    notes,
+    links,
+    avg_time: avgTime,
+    prev_id: prevRow?.id ?? null,
+    next_id: nextRow?.id ?? null,
+    position: (newerRow?.newer_count ?? 0) + 1,
+    total: totalRow?.total ?? 0,
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const db = getDb();
   const { id } = await params;
   const body = await req.json();
 
@@ -69,14 +56,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const setClause = fields.map(f => `${f} = ?`).join(', ');
   const values = fields.map(f => body[f]);
 
-  db.prepare(`UPDATE problems SET ${setClause} WHERE id = ?`).run(...values, id);
-  const updated = db.prepare('SELECT * FROM problems WHERE id = ?').get(id) as Problem;
+  await execute(`UPDATE problems SET ${setClause} WHERE id = ?`, [...values, id]);
+  const updated = await queryOne<Problem>('SELECT * FROM problems WHERE id = ?', [id]);
   return NextResponse.json(updated);
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const db = getDb();
   const { id } = await params;
-  db.prepare('DELETE FROM problems WHERE id = ?').run(id);
+  await execute('DELETE FROM problems WHERE id = ?', [id]);
   return NextResponse.json({ ok: true });
 }

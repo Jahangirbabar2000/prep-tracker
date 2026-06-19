@@ -1,57 +1,57 @@
-import { getDb } from '@/lib/db';
+import { queryAll, queryOne, execute } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
 type ConfigRow = { id: number; domain: string; field: string; value: string; sort_order: number };
 
-export function GET(req: NextRequest) {
-  const db = getDb();
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const domain = searchParams.get('domain');
   const field  = searchParams.get('field');
 
-  let rows: ConfigRow[];
   if (domain && field) {
-    rows = db.prepare(
-      'SELECT id, domain, field, value, sort_order FROM config_options WHERE domain = ? AND field = ? ORDER BY sort_order ASC, id ASC'
-    ).all(domain, field) as ConfigRow[];
+    const rows = await queryAll<ConfigRow>(
+      'SELECT id, domain, field, value, sort_order FROM config_options WHERE domain = ? AND field = ? ORDER BY sort_order ASC, id ASC',
+      [domain, field],
+    );
+    return NextResponse.json(rows);
   } else if (domain) {
-    rows = db.prepare(
-      'SELECT id, domain, field, value, sort_order FROM config_options WHERE domain = ? ORDER BY field ASC, sort_order ASC, id ASC'
-    ).all(domain) as ConfigRow[];
+    const rows = await queryAll<ConfigRow>(
+      'SELECT id, domain, field, value, sort_order FROM config_options WHERE domain = ? ORDER BY field ASC, sort_order ASC, id ASC',
+      [domain],
+    );
+    return NextResponse.json(rows);
   } else {
-    rows = db.prepare(
-      'SELECT id, domain, field, value, sort_order FROM config_options ORDER BY domain ASC, field ASC, sort_order ASC, id ASC'
-    ).all() as ConfigRow[];
+    const rows = await queryAll<ConfigRow>(
+      'SELECT id, domain, field, value, sort_order FROM config_options ORDER BY domain ASC, field ASC, sort_order ASC, id ASC',
+    );
+    return NextResponse.json(rows);
   }
-
-  return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {
-  const db = getDb();
   const body = await req.json() as { domain: string; field: string; value: string };
   const { domain, field, value } = body;
   if (!domain || !field || !value?.trim()) {
     return NextResponse.json({ error: 'domain, field, and value are required' }, { status: 400 });
   }
 
-  // Use the next available sort_order for this domain+field
-  const maxRow = db.prepare(
-    'SELECT MAX(sort_order) as m FROM config_options WHERE domain = ? AND field = ?'
-  ).get(domain, field) as { m: number | null };
-  const sort_order = (maxRow.m ?? -1) + 1;
+  const maxRow = await queryOne<{ m: number | null }>(
+    'SELECT MAX(sort_order) as m FROM config_options WHERE domain = ? AND field = ?',
+    [domain, field],
+  );
+  const sort_order = (maxRow?.m ?? -1) + 1;
 
   try {
-    const result = db.prepare(
-      'INSERT INTO config_options (domain, field, value, sort_order) VALUES (?, ?, ?, ?)'
-    ).run(domain, field, value.trim(), sort_order);
-
-    const row = db.prepare(
-      'SELECT id, domain, field, value, sort_order FROM config_options WHERE id = ?'
-    ).get(result.lastInsertRowid) as ConfigRow;
-
+    const result = await execute(
+      'INSERT INTO config_options (domain, field, value, sort_order) VALUES (?, ?, ?, ?)',
+      [domain, field, value.trim(), sort_order],
+    );
+    const row = await queryOne<ConfigRow>(
+      'SELECT id, domain, field, value, sort_order FROM config_options WHERE id = ?',
+      [result.lastInsertRowid],
+    );
     return NextResponse.json(row, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Value already exists for this domain/field' }, { status: 409 });

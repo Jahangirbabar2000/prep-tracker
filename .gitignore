@@ -1,9 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# SQLite database
+# SQLite databases
 prep.db
 prep.db-shm
 prep.db-wal
+local-replica.db
+local-replica.db-info
+local-replica.db-shm
+local-replica.db-wal
 
 # dependencies
 /node_modules

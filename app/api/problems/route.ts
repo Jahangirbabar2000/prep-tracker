@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { queryAll, queryOne, localNow } from '@/lib/db';
 import { Problem } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  const db = getDb();
   const { searchParams } = new URL(req.url);
   const domain = searchParams.get('domain');
   const pattern = searchParams.get('pattern');
@@ -24,12 +23,11 @@ export async function GET(req: NextRequest) {
 
   query += ' ORDER BY next_due_date ASC NULLS LAST, created_at DESC';
 
-  const problems = db.prepare(query).all(...params) as Problem[];
+  const problems = await queryAll<Problem>(query, params);
   return NextResponse.json(problems);
 }
 
 export async function POST(req: NextRequest) {
-  const db = getDb();
   const body = await req.json();
   const { name, domain } = body;
 
@@ -37,9 +35,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'name and domain are required' }, { status: 400 });
   }
 
-  const result = db.prepare(
-    "INSERT INTO problems (name, domain, created_at) VALUES (?, ?, datetime('now', 'localtime')) RETURNING *"
-  ).get(name.trim(), domain) as Problem;
+  const result = await queryOne<Problem>(
+    'INSERT INTO problems (name, domain, created_at) VALUES (?, ?, ?) RETURNING *',
+    [name.trim(), domain, localNow()],
+  );
 
   return NextResponse.json(result, { status: 201 });
 }

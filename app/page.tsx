@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { queryOne, queryAll, localToday, localDaysFromNow } from '@/lib/db';
 import { ReviewQueueItem as RQI } from '@/lib/types';
 import ReviewQueueItemCard from '@/components/ReviewQueueItem';
 import UpcomingForecast from '@/components/UpcomingForecast';
@@ -13,37 +13,9 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default async function ReviewQueuePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
-  const db = getDb();
+  const today = localToday();
   const filterDomain      = sp.domain      ?? '';
   const filterProficiency = sp.proficiency ?? '';
-
-  // Only count reviews (problems attempted on a prior day), not first-time logs added today
-  const { cnt: todayCount } = db.prepare(`
-    SELECT COUNT(*) AS cnt
-    FROM attempts a
-    WHERE substr(a.attempted_at, 1, 10) = date('now', 'localtime')
-      AND EXISTS (
-        SELECT 1 FROM attempts prev
-        WHERE prev.problem_id = a.problem_id
-          AND substr(prev.attempted_at, 1, 10) < date('now', 'localtime')
-      )
-  `).get() as { cnt: number };
-
-  // Per-domain reviewed count today (reviews only, not new logs)
-  const todayByDomainRows = db.prepare(`
-    SELECT p.domain, COUNT(*) AS cnt
-    FROM attempts a
-    JOIN problems p ON p.id = a.problem_id
-    WHERE substr(a.attempted_at, 1, 10) = date('now', 'localtime')
-      AND EXISTS (
-        SELECT 1 FROM attempts prev
-        WHERE prev.problem_id = a.problem_id
-          AND substr(prev.attempted_at, 1, 10) < date('now', 'localtime')
-      )
-    GROUP BY p.domain
-  `).all() as { domain: string; cnt: number }[];
-  const todayByDomain: Record<string, number> = {};
-  for (const r of todayByDomainRows) todayByDomain[r.domain] = r.cnt;
 
   let queueQuery = `
     SELECT
@@ -51,7 +23,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
       (SELECT COUNT(*) FROM attempts WHERE problem_id = p.id) AS attempt_count,
       a.attempted_at   AS last_attempted_at,
       a.struggled      AS last_struggled,
-      CAST(julianday('now') - julianday(p.next_due_date) AS INTEGER) AS days_overdue
+      CAST(julianday(?) - julianday(p.next_due_date) AS INTEGER) AS days_overdue
     FROM problems p
     JOIN attempts a ON a.id = (
       SELECT id FROM attempts
@@ -59,14 +31,54 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
       ORDER BY attempted_at DESC
       LIMIT 1
     )
-    WHERE p.next_due_date <= date('now', 'localtime')`;
+    WHERE p.next_due_date <= ?`;
   if (filterDomain)      queueQuery += ` AND p.domain = '${filterDomain}'`;
   if (filterProficiency) queueQuery += proficiencyClause(filterProficiency);
   queueQuery += ' ORDER BY p.next_due_date ASC';
 
-  const items = db.prepare(queueQuery).all() as RQI[];
+  const [todayCountRow, todayByDomainRows, items, upcomingRows] = await Promise.all([
+    queryOne<{ cnt: number }>(`
+      SELECT COUNT(*) AS cnt
+      FROM attempts a
+      WHERE substr(a.attempted_at, 1, 10) = ?
+        AND EXISTS (
+          SELECT 1 FROM attempts prev
+          WHERE prev.problem_id = a.problem_id
+            AND substr(prev.attempted_at, 1, 10) < ?
+        )
+    `, [today, today]),
 
-  const conceptDue = items.length; // all domains now supported in session
+    queryAll<{ domain: string; cnt: number }>(`
+      SELECT p.domain, COUNT(*) AS cnt
+      FROM attempts a
+      JOIN problems p ON p.id = a.problem_id
+      WHERE substr(a.attempted_at, 1, 10) = ?
+        AND EXISTS (
+          SELECT 1 FROM attempts prev
+          WHERE prev.problem_id = a.problem_id
+            AND substr(prev.attempted_at, 1, 10) < ?
+        )
+      GROUP BY p.domain
+    `, [today, today]),
+
+    queryAll<RQI>(queueQuery, [today, today]),
+
+    queryAll<{ date: string; domain: string; count: number }>(`
+      SELECT p.next_due_date AS date, p.domain, COUNT(*) AS count
+      FROM problems p
+      WHERE p.next_due_date > ?
+        AND p.next_due_date <= ?
+      GROUP BY p.next_due_date, p.domain
+      ORDER BY p.next_due_date ASC
+    `, [today, localDaysFromNow(7)]),
+  ]);
+
+  const todayCount = todayCountRow?.cnt ?? 0;
+
+  const todayByDomain: Record<string, number> = {};
+  for (const r of todayByDomainRows) todayByDomain[r.domain] = r.cnt;
+
+  const conceptDue = items.length;
 
   // Today's progress summary
   const totalToday  = todayCount + items.length;
@@ -90,16 +102,6 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   const activeDomains = DOMAIN_ORDER.filter(
     d => (todayByDomain[d] ?? 0) + (pendingByDomain[d] ?? 0) > 0
   );
-
-  // ── Upcoming 7-day forecast ───────────────────────────────────────────
-  const upcomingRows = db.prepare(`
-    SELECT p.next_due_date AS date, p.domain, COUNT(*) AS count
-    FROM problems p
-    WHERE p.next_due_date > date('now', 'localtime')
-      AND p.next_due_date <= date('now', '+7 days', 'localtime')
-    GROUP BY p.next_due_date, p.domain
-    ORDER BY p.next_due_date ASC
-  `).all() as { date: string; domain: string; count: number }[];
 
   // Per-date totals + per-date domain breakdown
   const byDate: Record<string, number> = {};

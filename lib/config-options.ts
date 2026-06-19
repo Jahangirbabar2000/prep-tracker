@@ -1,9 +1,9 @@
-import { getDb } from './db';
+import { queryAll } from './db';
 
-export function getConfigOptions(domain: string, field: string): string[] {
-  const db = getDb();
-  const rows = db.prepare(
-    'SELECT value FROM config_options WHERE domain = ? AND field = ? ORDER BY sort_order ASC, id ASC'
-  ).all(domain, field) as { value: string }[];
+export async function getConfigOptions(domain: string, field: string): Promise<string[]> {
+  const rows = await queryAll<{ value: string }>(
+    'SELECT value FROM config_options WHERE domain = ? AND field = ? ORDER BY sort_order ASC, id ASC',
+    [domain, field],
+  );
   return rows.map(r => r.value);
 }

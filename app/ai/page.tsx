@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { queryAll, queryOne, localToday } from '@/lib/db';
 import { getConfigOptions } from '@/lib/config-options';
 import { Problem } from '@/lib/types';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ function sortClause(sort: string) {
 
 export default async function AIPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
   const sp = await searchParams;
-  const db = getDb();
+  const today = localToday();
 
   let query = "SELECT *, (SELECT COUNT(*) FROM attempts WHERE problem_id = problems.id) AS attempt_count FROM problems WHERE domain = 'ai'";
   const params: string[] = [];
@@ -27,20 +27,25 @@ export default async function AIPage({ searchParams }: { searchParams: Promise<R
   if (sp.proficiency) query += proficiencyClause(sp.proficiency);
   query += ' ' + sortClause(sp.sort ?? '');
 
-  const problems = db.prepare(query).all(...params) as Problem[];
+  const [problems, todayRow, aiLists, aiCategories] = await Promise.all([
+    queryAll<Problem>(query, params),
+    queryOne<{ n: number }>(`
+      SELECT COUNT(DISTINCT a.problem_id) as n
+      FROM attempts a
+      JOIN problems p ON p.id = a.problem_id
+      WHERE p.domain = 'ai'
+        AND substr(a.attempted_at, 1, 10) = ?
+        AND NOT EXISTS (
+          SELECT 1 FROM attempts prev
+          WHERE prev.problem_id = a.problem_id
+            AND substr(prev.attempted_at, 1, 10) < ?
+        )
+    `, [today, today]),
+    getConfigOptions('ai', 'question_list'),
+    getConfigOptions('ai', 'ai_category'),
+  ]);
 
-  const todayCount = (db.prepare(`
-    SELECT COUNT(DISTINCT a.problem_id) as n
-    FROM attempts a
-    JOIN problems p ON p.id = a.problem_id
-    WHERE p.domain = 'ai'
-      AND substr(a.attempted_at, 1, 10) = date('now', 'localtime')
-      AND NOT EXISTS (
-        SELECT 1 FROM attempts prev
-        WHERE prev.problem_id = a.problem_id
-          AND substr(prev.attempted_at, 1, 10) < date('now', 'localtime')
-      )
-  `).get() as { n: number }).n;
+  const todayCount = todayRow?.n ?? 0;
 
   return (
     <div>
@@ -66,8 +71,8 @@ export default async function AIPage({ searchParams }: { searchParams: Promise<R
         basePath="/ai"
         currentSort={sp.sort ?? ''}
         selects={[
-          { key: 'list',        placeholder: 'All lists',       current: sp.list        ?? '', options: getConfigOptions('ai', 'question_list') },
-          { key: 'category',    placeholder: 'All categories',  current: sp.category    ?? '', options: getConfigOptions('ai', 'ai_category') },
+          { key: 'list',        placeholder: 'All lists',       current: sp.list        ?? '', options: aiLists },
+          { key: 'category',    placeholder: 'All categories',  current: sp.category    ?? '', options: aiCategories },
           { key: 'proficiency', placeholder: 'All levels',      current: sp.proficiency ?? '', options: PROFICIENCY_OPTIONS },
         ]}
       />

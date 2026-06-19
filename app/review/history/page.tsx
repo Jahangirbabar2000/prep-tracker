@@ -1,4 +1,4 @@
-import { getDb } from '@/lib/db';
+import { queryAll, localToday } from '@/lib/db';
 import { fmtDate } from '@/lib/fmt';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -13,33 +13,26 @@ const DOMAIN_LABEL: Record<Domain, string> = {
   dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Python', ai: 'AI',
 };
 
-const BASE_SELECT = `
-  SELECT
-    a.id          AS attempt_id,
-    a.attempted_at,
-    a.struggled,
-    a.time_taken_mins,
-    a.practice_type,
-    p.id,
-    p.name,
-    p.domain,
-    p.interval_level,
-    p.next_due_date,
-    p.difficulty,
-    p.pattern_tag,
-    p.sd_category,
-    p.sd_topic,
-    p.fe_bucket,
-    p.py_category,
-    p.ai_category,
-    (SELECT COUNT(*) FROM attempts WHERE problem_id = p.id) AS attempt_count
-  FROM attempts a
-  JOIN problems p ON p.id = a.problem_id
-  WHERE substr(a.attempted_at, 1, 10) = date('now', 'localtime')
+const BASE_COLS = `
+  a.id          AS attempt_id,
+  a.attempted_at,
+  a.struggled,
+  a.time_taken_mins,
+  a.practice_type,
+  p.id,
+  p.name,
+  p.domain,
+  p.interval_level,
+  p.next_due_date,
+  p.difficulty,
+  p.pattern_tag,
+  p.sd_category,
+  p.sd_topic,
+  p.fe_bucket,
+  p.py_category,
+  p.ai_category,
+  (SELECT COUNT(*) FROM attempts WHERE problem_id = p.id) AS attempt_count
 `;
-
-const PRIOR_EXISTS  = `AND EXISTS     (SELECT 1 FROM attempts prev WHERE prev.problem_id = a.problem_id AND substr(prev.attempted_at,1,10) < date('now','localtime'))`;
-const PRIOR_MISSING = `AND NOT EXISTS (SELECT 1 FROM attempts prev WHERE prev.problem_id = a.problem_id AND substr(prev.attempted_at,1,10) < date('now','localtime'))`;
 
 export default async function TodayHistoryPage({
   searchParams,
@@ -49,16 +42,29 @@ export default async function TodayHistoryPage({
   const sp = await searchParams;
   const filterDomain = sp.domain ?? '';
   const domainClause = filterDomain ? ` AND p.domain = '${filterDomain}'` : '';
+  const today = localToday();
 
-  const db = getDb();
+  const [reviewed, added] = await Promise.all([
+    queryAll<TodayAttempt>(`
+      SELECT ${BASE_COLS}
+      FROM attempts a
+      JOIN problems p ON p.id = a.problem_id
+      WHERE substr(a.attempted_at, 1, 10) = ?
+        AND EXISTS (SELECT 1 FROM attempts prev WHERE prev.problem_id = a.problem_id AND substr(prev.attempted_at,1,10) < ?)
+        ${domainClause}
+      ORDER BY a.attempted_at DESC
+    `, [today, today]),
 
-  const reviewed = db.prepare(
-    `${BASE_SELECT} ${PRIOR_EXISTS} ${domainClause} ORDER BY a.attempted_at DESC`
-  ).all() as TodayAttempt[];
-
-  const added = db.prepare(
-    `${BASE_SELECT} ${PRIOR_MISSING} ${domainClause} ORDER BY a.attempted_at DESC`
-  ).all() as TodayAttempt[];
+    queryAll<TodayAttempt>(`
+      SELECT ${BASE_COLS}
+      FROM attempts a
+      JOIN problems p ON p.id = a.problem_id
+      WHERE substr(a.attempted_at, 1, 10) = ?
+        AND NOT EXISTS (SELECT 1 FROM attempts prev WHERE prev.problem_id = a.problem_id AND substr(prev.attempted_at,1,10) < ?)
+        ${domainClause}
+      ORDER BY a.attempted_at DESC
+    `, [today, today]),
+  ]);
 
   const totalReviewed = reviewed.length;
   const struggled     = reviewed.filter(a => a.struggled).length;
@@ -67,7 +73,6 @@ export default async function TodayHistoryPage({
   const byDomain: Partial<Record<Domain, number>> = {};
   for (const a of reviewed) byDomain[a.domain] = (byDomain[a.domain] ?? 0) + 1;
 
-  const today   = new Date().toLocaleDateString('en-CA');
   const isEmpty = reviewed.length === 0 && added.length === 0;
 
   return (
