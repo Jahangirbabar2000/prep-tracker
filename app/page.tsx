@@ -36,6 +36,34 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   if (filterProficiency) queueQuery += proficiencyClause(filterProficiency);
   queueQuery += ' ORDER BY p.next_due_date ASC';
 
+  // Unfiltered distinct (domain, interval_level) for building filter options
+  const queueMetaRows = await queryAll<{ domain: string; interval_level: number }>(`
+    SELECT DISTINCT p.domain, p.interval_level
+    FROM problems p
+    JOIN attempts a ON a.id = (
+      SELECT id FROM attempts WHERE problem_id = p.id ORDER BY attempted_at DESC LIMIT 1
+    )
+    WHERE p.next_due_date <= ?
+  `, [today]);
+
+  const DOMAIN_LABELS: Record<string, string> = {
+    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Python', ai: 'AI',
+  };
+  const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];
+  const PROFICIENCY_ORDER = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
+  function levelLabel(l: number) {
+    if (l === 0) return 'Struggling';
+    if (l === 1) return 'Learning';
+    if (l === 2) return 'Familiar';
+    if (l === 3) return 'Confident';
+    return 'Mastered';
+  }
+  const availableDomains = DOMAIN_ORDER
+    .filter(d => queueMetaRows.some(r => r.domain === d))
+    .map(d => ({ value: d, label: DOMAIN_LABELS[d] }));
+  const availableProficiencies = PROFICIENCY_ORDER
+    .filter(p => queueMetaRows.some(r => levelLabel(r.interval_level) === p));
+
   const [todayCountRow, todayByDomainRows, items, upcomingRows] = await Promise.all([
     queryOne<{ cnt: number }>(`
       SELECT COUNT(*) AS cnt
@@ -228,7 +256,12 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
         </div>
       )}
 
-      <ReviewQueueFilters currentDomain={filterDomain} currentProficiency={filterProficiency} />
+      <ReviewQueueFilters
+        currentDomain={filterDomain}
+        currentProficiency={filterProficiency}
+        availableDomains={availableDomains}
+        availableProficiencies={availableProficiencies}
+      />
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
