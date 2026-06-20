@@ -54,25 +54,29 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
             </span>
           )}
         </div>
-        {/* Row 2: tags + proficiency badge + due */}
-        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-          {tag && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${tagStyle(p.domain, tag)}`}>{tag}</span>}
-          {qset && <span className="text-xs text-muted">{qset}</span>}
-          <ProficiencyBadge
-            level={p.interval_level}
-            nextDueDate={p.next_due_date ? fmtDate(p.next_due_date) : null}
-            attemptCount={p.attempt_count}
-          />
-          {isDue && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-danger/10 text-danger">
-              due
-            </span>
-          )}
-          {p.avg_time != null && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-xs text-muted">
-              <Clock size={11} /> {p.avg_time}m
-            </span>
-          )}
+        {/* Row 2: category tag left · proficiency + due right */}
+        <div className="flex items-center justify-between gap-2 mt-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {tag && <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${tagStyle(p.domain, tag)}`}>{tag}</span>}
+            {qset && <span className="text-xs text-muted truncate">{qset}</span>}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <ProficiencyBadge
+              level={p.interval_level}
+              nextDueDate={p.next_due_date ? fmtDate(p.next_due_date) : null}
+              attemptCount={p.attempt_count}
+            />
+            {isDue && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-danger/10 text-danger">
+                due
+              </span>
+            )}
+            {p.avg_time != null && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-xs text-muted">
+                <Clock size={11} /> {p.avg_time}m
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <ChevronRight size={16} className="text-muted group-hover:translate-x-0.5 transition-transform shrink-0" />
