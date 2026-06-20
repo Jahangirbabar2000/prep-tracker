@@ -17,13 +17,21 @@ const DIFFICULTY_STYLE: Record<string, string> = {
   Hard:   'text-red-500    dark:text-red-400',
 };
 
-const DOMAIN_TAG_STYLE: Record<string, string> = {
-  dsa:           'bg-blue-500/10 text-blue-500 dark:text-blue-400',
-  system_design: 'bg-orange-500/10 text-orange-500 dark:text-orange-400',
-  frontend:      'bg-violet-500/10 text-violet-500 dark:text-violet-400',
-  python:        'bg-emerald-500/10 text-emerald-500 dark:text-emerald-400',
-  ai:            'bg-rose-500/10 text-rose-500 dark:text-rose-400',
+const DOMAIN_TAG_SHADES: Record<string, string[]> = {
+  dsa:           ['bg-blue-500/10 text-blue-500',   'bg-blue-400/10 text-blue-400',   'bg-blue-600/10 text-blue-600',   'bg-blue-300/10 text-blue-300',   'bg-blue-700/10 text-blue-700',   'bg-blue-200/10 text-blue-200'],
+  system_design: ['bg-orange-500/10 text-orange-500','bg-orange-400/10 text-orange-400','bg-orange-600/10 text-orange-600','bg-orange-300/10 text-orange-300','bg-orange-700/10 text-orange-700','bg-orange-200/10 text-orange-200'],
+  frontend:      ['bg-violet-500/10 text-violet-500','bg-violet-400/10 text-violet-400','bg-violet-600/10 text-violet-600','bg-violet-300/10 text-violet-300','bg-violet-700/10 text-violet-700','bg-violet-200/10 text-violet-200'],
+  python:        ['bg-emerald-500/10 text-emerald-500','bg-emerald-400/10 text-emerald-400','bg-emerald-600/10 text-emerald-600','bg-emerald-300/10 text-emerald-300','bg-emerald-700/10 text-emerald-700','bg-emerald-200/10 text-emerald-200'],
+  ai:            ['bg-rose-500/10 text-rose-500',   'bg-rose-400/10 text-rose-400',   'bg-rose-600/10 text-rose-600',   'bg-rose-300/10 text-rose-300',   'bg-rose-700/10 text-rose-700',   'bg-rose-200/10 text-rose-200'],
 };
+
+function tagStyle(domain: string, tag: string): string {
+  const shades = DOMAIN_TAG_SHADES[domain];
+  if (!shades) return 'bg-surface-2 text-muted';
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  return shades[h % shades.length];
+}
 
 export default function ProblemListRow({ problem: p, basePath }: Props) {
   const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category;
@@ -48,7 +56,7 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
         </div>
         {/* Row 2: tags + proficiency badge + due */}
         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-          {tag && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${DOMAIN_TAG_STYLE[p.domain] ?? 'bg-surface-2 text-muted'}`}>{tag}</span>}
+          {tag && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${tagStyle(p.domain, tag)}`}>{tag}</span>}
           {qset && <span className="text-xs text-muted">{qset}</span>}
           {(tag || qset) && <span className="text-border-strong text-xs">·</span>}
           <ProficiencyBadge
