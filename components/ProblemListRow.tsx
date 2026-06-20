@@ -58,7 +58,6 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
           {tag && <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${tagStyle(p.domain, tag)}`}>{tag}</span>}
           {qset && <span className="text-xs text-muted">{qset}</span>}
-          {(tag || qset) && <span className="text-border-strong text-xs">·</span>}
           <ProficiencyBadge
             level={p.interval_level}
             nextDueDate={p.next_due_date ? fmtDate(p.next_due_date) : null}
