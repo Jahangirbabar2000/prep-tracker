@@ -39,21 +39,27 @@ export async function execute(
   return { lastInsertRowid: result.lastInsertRowid ?? BigInt(0), changes: result.rowsAffected };
 }
 
-/** YYYY-MM-DD string for today in the local timezone — pass this into SQL instead of date('now','localtime') */
+const TZ = 'America/New_York';
+
+/** YYYY-MM-DD string for today in Eastern time */
 export function localToday(): string {
-  return new Date().toLocaleDateString('en-CA');
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
 
-/** YYYY-MM-DD string for N days from now in local timezone */
+/** YYYY-MM-DD string for N days from now in Eastern time */
 export function localDaysFromNow(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toLocaleDateString('en-CA');
+  const d = new Date(Date.now() + n * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d);
 }
 
-/** "YYYY-MM-DD HH:MM:SS" in the local timezone — use instead of datetime('now','localtime') in INSERT */
+/** "YYYY-MM-DD HH:MM:SS" in Eastern time */
 export function localNow(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+  const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
