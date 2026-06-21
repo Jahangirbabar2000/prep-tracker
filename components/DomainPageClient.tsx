@@ -44,40 +44,56 @@ function sortedProblems(problems: Problem[], sort: string): Problem[] {
   return arr.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
 }
 
-function trigrams(s: string): Set<string> {
-  const t = new Set<string>();
-  const n = s.toLowerCase().replace(/\s+/g, ' ');
-  for (let i = 0; i <= n.length - 3; i++) t.add(n.slice(i, i + 3));
-  return t;
+function levenshtein(a: string, b: string): number {
+  if (Math.abs(a.length - b.length) > 3) return 99;
+  const dp: number[] = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = dp[0]; dp[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const temp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = temp;
+    }
+  }
+  return dp[b.length];
 }
 
-function trigramSimilarity(a: string, b: string): number {
-  const ta = trigrams(a), tb = trigrams(b);
-  if (ta.size === 0 || tb.size === 0) return 0;
-  let shared = 0;
-  for (const t of ta) if (tb.has(t)) shared++;
-  return shared / (ta.size + tb.size - shared); // Jaccard
+function fuzzyWordScore(titleWords: string[], queryWord: string): number {
+  const maxDist = queryWord.length <= 4 ? 1 : queryWord.length <= 7 ? 2 : 3;
+  let best = Infinity;
+  for (const w of titleWords) {
+    const d = levenshtein(queryWord, w);
+    if (d < best) best = d;
+  }
+  return best <= maxDist ? best : -1;
 }
 
 // Score a problem against a search query — lower is better, -1 means no match.
-// Pass 1: exact substring (scores 0-2). Pass 2: trigram fuzzy (scores 3-4).
+// Pass 1: exact substring (scores 0-2). Pass 2: word-level Levenshtein (scores 3-4).
 function searchScore(p: Problem, q: string): number {
   const name = p.name.toLowerCase();
 
   // Exact pass
   const idx = name.indexOf(q);
-  if (idx === 0) return 0;                     // starts with query
-  if (idx > 0 && name[idx - 1] === ' ') return 1; // word boundary
-  if (idx > 0) return 2;                       // substring anywhere
+  if (idx === 0) return 0;
+  if (idx > 0 && name[idx - 1] === ' ') return 1;
+  if (idx > 0) return 2;
 
-  // Fuzzy pass — only for queries ≥ 3 chars (need at least one trigram)
+  // Fuzzy pass — each query word must match a title word within edit distance
   if (q.length >= 3) {
-    const sim = trigramSimilarity(name, q);
-    if (sim >= 0.5) return 3;                  // strong fuzzy match
-    if (sim >= 0.25) return 4;                 // weak fuzzy match
+    const titleWords = name.split(/\W+/).filter(w => w.length >= 2);
+    const queryWords = q.split(/\s+/).filter(w => w.length >= 3);
+    if (queryWords.length === 0) return -1;
+    let totalDist = 0;
+    for (const qw of queryWords) {
+      const s = fuzzyWordScore(titleWords, qw);
+      if (s === -1) return -1;
+      totalDist += s;
+    }
+    return totalDist === 0 ? 3 : 4;
   }
 
-  return -1; // no match
+  return -1;
 }
 
 export default function DomainPageClient({
