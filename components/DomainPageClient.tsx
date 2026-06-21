@@ -44,14 +44,40 @@ function sortedProblems(problems: Problem[], sort: string): Problem[] {
   return arr.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
 }
 
-// Score a problem against a search query — lower is better, -1 means no match
+function trigrams(s: string): Set<string> {
+  const t = new Set<string>();
+  const n = s.toLowerCase().replace(/\s+/g, ' ');
+  for (let i = 0; i <= n.length - 3; i++) t.add(n.slice(i, i + 3));
+  return t;
+}
+
+function trigramSimilarity(a: string, b: string): number {
+  const ta = trigrams(a), tb = trigrams(b);
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let shared = 0;
+  for (const t of ta) if (tb.has(t)) shared++;
+  return shared / (ta.size + tb.size - shared); // Jaccard
+}
+
+// Score a problem against a search query — lower is better, -1 means no match.
+// Pass 1: exact substring (scores 0-2). Pass 2: trigram fuzzy (scores 3-4).
 function searchScore(p: Problem, q: string): number {
   const name = p.name.toLowerCase();
+
+  // Exact pass
   const idx = name.indexOf(q);
-  if (idx === -1) return -1;
-  if (idx === 0) return 0;                          // starts with query
-  if (name[idx - 1] === ' ') return 1;              // word boundary match
-  return 2;                                         // substring match
+  if (idx === 0) return 0;                     // starts with query
+  if (idx > 0 && name[idx - 1] === ' ') return 1; // word boundary
+  if (idx > 0) return 2;                       // substring anywhere
+
+  // Fuzzy pass — only for queries ≥ 3 chars (need at least one trigram)
+  if (q.length >= 3) {
+    const sim = trigramSimilarity(name, q);
+    if (sim >= 0.5) return 3;                  // strong fuzzy match
+    if (sim >= 0.25) return 4;                 // weak fuzzy match
+  }
+
+  return -1; // no match
 }
 
 export default function DomainPageClient({
