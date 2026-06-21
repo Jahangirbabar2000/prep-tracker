@@ -35,8 +35,7 @@ function tagStyle(domain: string, tag: string): string {
 
 export default function ProblemListRow({ problem: p, basePath }: Props) {
   const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category;
-  // Only show the secondary bucket label for system design (sd_topic = "In a Hurry" etc.)
-  const qset = p.domain === 'system_design' ? (p.sd_topic ?? null) : null;
+  const qset = p.domain === 'system_design' ? (p.sd_topic ?? null) : (p.question_list ?? null);
   const isDue = p.next_due_date && p.next_due_date <= new Date().toLocaleDateString('en-CA');
 
   return (
@@ -58,7 +57,7 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
         <div className="flex items-center justify-between gap-2 mt-1.5">
           <div className="flex items-center gap-1.5 min-w-0">
             {tag && <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${tagStyle(p.domain, tag)}`}>{tag}</span>}
-            {qset && <span className="text-xs text-muted truncate">{qset}</span>}
+            {qset && <span className="hidden sm:inline text-xs text-muted truncate">{qset}</span>}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <ProficiencyBadge
