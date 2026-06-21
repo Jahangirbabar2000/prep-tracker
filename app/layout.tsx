@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import Nav from '@/components/Nav';
+import ScrollToTop from '@/components/ScrollToTop';
 
 export const metadata: Metadata = {
   title: 'Prep Tracker',
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="min-h-dvh md:h-dvh md:flex">
           <Nav />
           <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-32 md:pb-10 md:overflow-y-auto">
+            <ScrollToTop />
             {children}
           </main>
         </div>
