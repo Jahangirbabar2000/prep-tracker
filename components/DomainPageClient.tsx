@@ -44,6 +44,16 @@ function sortedProblems(problems: Problem[], sort: string): Problem[] {
   return arr.sort((a, b) => (a.created_at > b.created_at ? -1 : 1));
 }
 
+// Score a problem against a search query — lower is better, -1 means no match
+function searchScore(p: Problem, q: string): number {
+  const name = p.name.toLowerCase();
+  const idx = name.indexOf(q);
+  if (idx === -1) return -1;
+  if (idx === 0) return 0;                          // starts with query
+  if (name[idx - 1] === ' ') return 1;              // word boundary match
+  return 2;                                         // substring match
+}
+
 export default function DomainPageClient({
   allProblems,
   basePath,
@@ -58,14 +68,25 @@ export default function DomainPageClient({
     init.sort = initialParams.sort ?? '';
     return init;
   });
+  const [search, setSearch] = useState(initialParams.q ?? '');
 
   function updateFilter(key: string, value: string) {
     setFilters(prev => ({ ...prev, [key]: value }));
     const next = { ...filters, [key]: value };
+    syncUrl(next, search);
+  }
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    syncUrl(filters, value);
+  }
+
+  function syncUrl(f: Record<string, string>, s: string) {
     const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(next)) {
+    for (const [k, v] of Object.entries(f)) {
       if (v && !(k === 'sort' && v === 'newest')) params.set(k, v);
     }
+    if (s.trim()) params.set('q', s.trim());
     const qs = params.toString();
     window.history.replaceState(null, '', qs ? `${basePath}?${qs}` : basePath);
   }
@@ -74,6 +95,7 @@ export default function DomainPageClient({
     const cleared: Record<string, string> = { proficiency: '', sort: '' };
     for (const fc of filterConfigs) cleared[fc.key] = '';
     setFilters(cleared);
+    setSearch('');
     window.history.replaceState(null, '', basePath);
   }
 
@@ -93,9 +115,11 @@ export default function DomainPageClient({
     return opts;
   }, [allProblems, filterConfigs]);
 
-  // Apply all filters + sort in memory — instant, no DB round-trip
+  // Apply filters + search + sort in memory
   const visible = useMemo(() => {
     let result = allProblems;
+
+    // Dropdown filters
     for (const fc of filterConfigs) {
       const val = filters[fc.key];
       if (val) result = result.filter(p => String(p[fc.field] ?? '') === val);
@@ -103,8 +127,20 @@ export default function DomainPageClient({
     if (filters.proficiency) {
       result = result.filter(p => proficiencyLabel(p) === filters.proficiency);
     }
+
+    // Search: filter then sort by match quality
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const scored = result
+        .map(p => ({ p, score: searchScore(p, q) }))
+        .filter(({ score }) => score !== -1);
+      scored.sort((a, b) => a.score - b.score);
+      result = scored.map(({ p }) => p);
+      return result; // skip date sort when searching — relevance order is more useful
+    }
+
     return sortedProblems(result, filters.sort || 'newest');
-  }, [allProblems, filters, filterConfigs]);
+  }, [allProblems, filters, filterConfigs, search]);
 
   const selects = [
     ...filterConfigs.map(fc => ({
@@ -121,7 +157,8 @@ export default function DomainPageClient({
     },
   ];
 
-  const hasFilter = Object.entries(filters).some(([k, v]) => v !== '' && !(k === 'sort' && v === 'newest'));
+  const hasFilter = search.trim() !== '' ||
+    Object.entries(filters).some(([k, v]) => v !== '' && !(k === 'sort' && v === 'newest'));
 
   return (
     <>
@@ -129,18 +166,20 @@ export default function DomainPageClient({
         selects={selects}
         currentSort={filters.sort || ''}
         onFilterChange={updateFilter}
+        search={search}
+        onSearchChange={updateSearch}
         hasFilter={hasFilter}
         onClear={clearFilters}
       />
       {visible.length === 0 ? (
         <p className="text-sm text-muted py-8 text-center">
-          {hasFilter ? 'No questions match the current filters.' : emptyMessage}
+          {hasFilter ? 'No questions match.' : emptyMessage}
         </p>
       ) : (
         <ProblemList
           problems={visible}
           basePath={basePath}
-          groupByDate={(filters.sort || '') !== 'next_review'}
+          groupByDate={!search.trim() && (filters.sort || '') !== 'next_review'}
         />
       )}
     </>
