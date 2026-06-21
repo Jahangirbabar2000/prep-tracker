@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Problem } from '@/lib/types';
 import MarkdownRenderer from './MarkdownRenderer';
 import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
@@ -21,6 +21,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
   const [data, setData] = useState(problem);
   const [notesPreview, setNotesPreview] = useState(true);
   const [opts, setOpts] = useState<Record<string, string[]>>({});
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const domain = problem.domain;
@@ -43,6 +44,14 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
       setOpts(Object.fromEntries(results));
     });
   }, [problem.domain]);
+
+  // Auto-resize textarea to fit content whenever text changes or write mode activates
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta || notesPreview) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${ta.scrollHeight}px`;
+  }, [data.notes_text, notesPreview]);
 
   async function save(field: string, value: string) {
     const res = await fetch(`/api/problems/${problem.id}`, {
@@ -159,6 +168,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
           </div>
         ) : (
           <textarea
+            ref={textareaRef}
             value={data.notes_text ?? ''}
             onChange={e => setData(d => ({ ...d, notes_text: e.target.value }))}
             onBlur={e => save('notes_text', e.target.value)}
@@ -167,7 +177,7 @@ export default function ProblemMetaForm({ problem, onUpdated }: Props) {
               if (md !== null) setData(d => ({ ...d, notes_text: md }));
             }}
             placeholder={notesPlaceholder}
-            className={`${inputCls} resize-none h-28`}
+            className={`${inputCls} resize-none min-h-28 overflow-hidden`}
           />
         )}
       </div>
