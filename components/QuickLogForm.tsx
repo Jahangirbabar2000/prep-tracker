@@ -69,6 +69,14 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
   }, []);
 
   useEffect(() => {
+    if (!effectiveDomain) return;
+    fetch(`/api/config/options?domain=${effectiveDomain}&field=default_link`)
+      .then(r => r.json())
+      .then((rows: { value: string }[]) => { if (rows.length > 0) setLinkUrl(rows[0].value); })
+      .catch(() => {});
+  }, [effectiveDomain]);
+
+  useEffect(() => {
     if (inline && inputRef.current) inputRef.current.focus();
   }, [inline]);
 

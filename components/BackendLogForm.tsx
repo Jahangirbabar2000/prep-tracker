@@ -42,6 +42,10 @@ export default function BackendLogForm() {
         if (vals.length > 0) setCategory(vals[0]);
       })
       .catch(() => {});
+    fetch('/api/config/options?domain=python&field=default_link')
+      .then(r => r.json())
+      .then((rows: { value: string }[]) => { if (rows.length > 0) setLinkUrl(rows[0].value); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

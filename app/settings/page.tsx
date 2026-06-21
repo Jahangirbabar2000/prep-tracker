@@ -3,6 +3,80 @@
 import { useEffect, useRef, useState } from 'react';
 import { GripVertical } from 'lucide-react';
 
+function DefaultLinkCard({ domain }: { domain: string }) {
+  const [value, setValue]     = useState('');
+  const [savedId, setSavedId] = useState<number | null>(null);
+  const [saved, setSaved]     = useState('');
+  const [saving, setSaving]   = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/config/options?domain=${domain}&field=default_link`)
+      .then(r => r.json())
+      .then((rows: ConfigRow[]) => {
+        if (rows.length > 0) { setValue(rows[0].value); setSaved(rows[0].value); setSavedId(rows[0].id); }
+      })
+      .catch(() => {});
+  }, [domain]);
+
+  async function save() {
+    setSaving(true);
+    if (savedId) await fetch(`/api/config/options/${savedId}`, { method: 'DELETE' });
+    if (value.trim()) {
+      const res = await fetch('/api/config/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, field: 'default_link', value: value.trim() }),
+      });
+      const row: ConfigRow = await res.json();
+      setSavedId(row.id); setSaved(value.trim());
+    } else {
+      setSavedId(null); setSaved('');
+    }
+    setSaving(false);
+  }
+
+  async function clear() {
+    if (savedId) await fetch(`/api/config/options/${savedId}`, { method: 'DELETE' });
+    setSavedId(null); setSaved(''); setValue('');
+  }
+
+  const dirty = value.trim() !== saved;
+
+  return (
+    <div className="bg-surface border border-border rounded-xl p-4 flex flex-col gap-3 sm:col-span-2">
+      <h3 className="text-xs font-semibold text-muted uppercase tracking-widest">Default Link</h3>
+      <div className="flex gap-2">
+        <input
+          type="url"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+          placeholder="https://…"
+          className="flex-1 bg-background border border-border rounded-lg px-3 py-1.5 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition"
+        />
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving || !dirty}
+          className="px-3 py-1.5 text-xs font-semibold bg-accent text-accent-fg rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+        >
+          {saving ? '…' : 'Save'}
+        </button>
+        {saved && (
+          <button
+            type="button"
+            onClick={clear}
+            className="px-3 py-1.5 text-xs font-semibold text-muted hover:text-danger border border-border rounded-lg transition-colors cursor-pointer shrink-0"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {saved && <p className="text-xs text-muted/60 truncate">{saved}</p>}
+    </div>
+  );
+}
+
 type ConfigRow = { id: number; domain: string; field: string; value: string; sort_order: number };
 
 const SECTIONS = [
@@ -262,6 +336,7 @@ export default function SettingsPage() {
                     onReorder={handleReorder}
                   />
                 ))}
+                <DefaultLinkCard domain={section.domain} />
               </div>
             </section>
           ))}
