@@ -33,8 +33,13 @@ function nodeToMd(node: Node, listType?: 'ul' | 'ol', listIdx?: { n: number }): 
     }
 
     case 'pre': {
-      const text = el.textContent ?? '';
-      return `\`\`\`\n${text.trim()}\n\`\`\`\n\n`;
+      const codeEl = el.querySelector('code');
+      const cls = codeEl?.className ?? el.className ?? '';
+      // Sites use class="language-python", "lang-js", "python", "hljs python", etc.
+      const lang = cls.match(/(?:language-|lang-)(\w+)/)?.[1]
+        ?? cls.match(/(?:^|\s)(python|javascript|typescript|js|ts|jsx|tsx|sql|bash|sh|css|html|json|yaml|java|go|rust|cpp|c)\b/i)?.[1]?.toLowerCase()
+        ?? '';
+      return `\`\`\`${lang}\n${(el.textContent ?? '').trim()}\n\`\`\`\n\n`;
     }
 
     case 'ul': {
