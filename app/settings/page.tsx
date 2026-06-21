@@ -28,7 +28,7 @@ const SECTIONS = [
     ],
   },
   {
-    domain: 'python', label: 'Python',
+    domain: 'python', label: 'Backend',
     fields: [
       { field: 'question_list', label: 'Question List' },
       { field: 'py_category',   label: 'Category' },

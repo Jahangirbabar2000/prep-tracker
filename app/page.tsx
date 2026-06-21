@@ -47,7 +47,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   `, [today]);
 
   const DOMAIN_LABELS: Record<string, string> = {
-    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Python', ai: 'AI',
+    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
   };
   const QUEUE_DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];
   const PROFICIENCY_ORDER = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
@@ -123,7 +123,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
     dsa:           { label: 'DSA',           bar: 'bg-blue-500',   dot: 'bg-blue-500' },
     system_design: { label: 'System Design', bar: 'bg-orange-500', dot: 'bg-orange-500' },
     frontend:      { label: 'Frontend',      bar: 'bg-violet-500', dot: 'bg-violet-500' },
-    python:        { label: 'Python',        bar: 'bg-emerald-500',dot: 'bg-emerald-500' },
+    python:        { label: 'Backend',        bar: 'bg-emerald-500',dot: 'bg-emerald-500' },
     ai:            { label: 'AI',            bar: 'bg-rose-500',   dot: 'bg-rose-500' },
   };
   const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];

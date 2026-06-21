@@ -7,7 +7,7 @@ const DOMAINS = [
   { value: 'dsa',         label: 'DSA' },
   { value: 'system_design', label: 'System Design' },
   { value: 'frontend',    label: 'Frontend' },
-  { value: 'python',      label: 'Python' },
+  { value: 'python',      label: 'Backend' },
   { value: 'ai',          label: 'AI' },
 ];
 

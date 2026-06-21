@@ -161,7 +161,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
             <option value="dsa">DSA</option>
             <option value="system_design">System Design</option>
             <option value="frontend">Frontend</option>
-            <option value="python">Python</option>
+            <option value="python">Backend</option>
           </select>
         </div>
       )}

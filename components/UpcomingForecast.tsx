@@ -20,7 +20,7 @@ const DOMAIN_LABEL: Record<string, string> = {
   dsa:           'DSA',
   system_design: 'System Design',
   frontend:      'Frontend',
-  python:        'Python',
+  python:        'Backend',
   ai:            'AI',
 };
 

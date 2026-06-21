@@ -5,7 +5,8 @@
       "name": "prep-tracker",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 3007
+      "port": 3007,
+      "autoPort": false
     }
   ]
 }

@@ -8,7 +8,7 @@ import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
-export default function PythonLogForm() {
+export default function BackendLogForm() {
   const router = useRouter();
   const [query, setQuery]                     = useState('');
   const [suggestions, setSuggestions]         = useState<Problem[]>([]);
@@ -106,7 +106,7 @@ export default function PythonLogForm() {
     }
 
     setSubmitting(false);
-    router.push(`/python/${pid}`);
+    router.push(`/backend/${pid}`);
   }
 
   function addNote() {

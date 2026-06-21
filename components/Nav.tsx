@@ -11,7 +11,7 @@ const links = [
   { href: '/dsa',           label: 'DSA',          short: 'DSA',   Icon: Binary,  domain: 'dsa' },
   { href: '/system-design', label: 'System Design',short: 'SysD',  Icon: Network, domain: 'system_design' },
   { href: '/frontend',      label: 'Frontend',     short: 'FE',    Icon: Layout,  domain: 'frontend' },
-  { href: '/python',        label: 'Python',       short: 'Py',    Icon: Code2,   domain: 'python' },
+  { href: '/backend',        label: 'Backend',       short: 'BE',    Icon: Code2,   domain: 'python' },
   { href: '/ai',            label: 'AI',           short: 'AI',    Icon: Brain,   domain: 'ai' },
 ];
 

@@ -39,7 +39,7 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
     <div>
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-fg tracking-tight">Python</h1>
+          <h1 className="text-2xl font-semibold text-fg tracking-tight">Backend</h1>
           <span className="text-sm text-muted">
             <span className="font-semibold text-fg tabular">{problems.length}</span> total
           </span>
@@ -49,15 +49,15 @@ export default async function PythonPage({ searchParams }: { searchParams: Promi
             </span>
           )}
         </div>
-        <LogShortcut href="/python/log" />
-        <Link href="/python/log" className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
+        <LogShortcut href="/backend/log" />
+        <Link href="/backend/log" className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
           <Plus size={16} /> Log Question <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
         </Link>
       </div>
 
       <DomainPageClient
         allProblems={problems}
-        basePath="/python"
+        basePath="/backend"
         filterConfigs={FILTER_CONFIGS}
         initialParams={sp}
         emptyMessage="No concepts yet. Log your first attempt to get started."
