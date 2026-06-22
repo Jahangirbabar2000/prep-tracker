@@ -300,6 +300,15 @@ export default function SessionPage() {
             {DOMAIN_LABEL[card!.domain]}
           </span>
           {t && <span className="text-xs text-muted">{t}</span>}
+          {card!.difficulty && (
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              card!.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
+              card!.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
+                                             'bg-red-500/10     text-red-400'
+            }`}>
+              {card!.difficulty}
+            </span>
+          )}
           <ProficiencyBadge
             level={card!.interval_level}
             nextDueDate={card!.next_due_date ?? null}
