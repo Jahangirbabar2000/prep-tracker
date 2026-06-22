@@ -183,10 +183,14 @@ export default function SessionPage() {
     setNoteInput('');
   }
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (covers both ready and done states)
   useEffect(() => {
-    if (status !== 'ready') return;
+    if (status !== 'ready' && status !== 'done') return;
     function onKey(e: KeyboardEvent) {
+      if (status === 'done') {
+        if (e.key === 'Enter') { e.preventDefault(); window.location.href = '/'; }
+        return;
+      }
       const tag = (e.target as HTMLElement)?.tagName;
       const inField = tag === 'INPUT' || tag === 'TEXTAREA';
 
@@ -235,16 +239,6 @@ export default function SessionPage() {
       </div>
     );
   }
-
-  // Done-screen: Enter → back to queue
-  useEffect(() => {
-    if (status !== 'done') return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Enter') { e.preventDefault(); window.location.href = '/'; }
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [status]);
 
   if (status === 'done') {
     const struggledCount = results.filter(r => r.struggled).length;
