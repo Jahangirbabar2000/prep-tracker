@@ -3,6 +3,15 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
+const NAV_SHORTCUTS: Record<string, string> = {
+  '1': '/',
+  '2': '/dsa',
+  '3': '/system-design',
+  '4': '/frontend',
+  '5': '/backend',
+  '6': '/ai',
+};
+
 export default function GlobalShortcuts() {
   const router   = useRouter();
   const pathname = usePathname();
@@ -22,6 +31,12 @@ export default function GlobalShortcuts() {
       if (pathname === '/') {
         if (e.key === 'Enter') { e.preventDefault(); router.push('/review/session'); return; }
         if (e.key === 'h' || e.key === 'H') { router.push('/review/history'); return; }
+      }
+
+      // Number shortcuts for nav — disabled during active session to avoid accidental navigation
+      if (pathname !== '/review/session' && NAV_SHORTCUTS[e.key]) {
+        router.push(NAV_SHORTCUTS[e.key]);
+        return;
       }
     }
 
