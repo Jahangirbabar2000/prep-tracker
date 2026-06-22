@@ -236,6 +236,16 @@ export default function SessionPage() {
     );
   }
 
+  // Done-screen: Enter → back to queue
+  useEffect(() => {
+    if (status !== 'done') return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Enter') { e.preventDefault(); window.location.href = '/'; }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [status]);
+
   if (status === 'done') {
     const struggledCount = results.filter(r => r.struggled).length;
     const gotCount       = results.length - struggledCount;
@@ -258,7 +268,7 @@ export default function SessionPage() {
           href="/"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors"
         >
-          Back to Review Queue
+          Back to Review Queue <span className="opacity-50 text-xs font-normal ml-0.5">Enter</span>
         </Link>
       </div>
     );
@@ -275,7 +285,7 @@ export default function SessionPage() {
       {/* Header row */}
       <div className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
-          <ArrowLeft size={13} /> Exit session
+          <ArrowLeft size={13} /> Exit session <span className="opacity-40 ml-0.5">Esc</span>
         </Link>
         <span className="text-xs text-muted tabular">{activeCount} remaining</span>
       </div>

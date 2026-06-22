@@ -173,6 +173,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
             >
               <History size={13} /> Today&apos;s History
               {todayCount > 0 && <span className="opacity-50 font-normal">({todayCount})</span>}
+              <span className="opacity-30 text-xs font-normal ml-0.5">H</span>
             </Link>
             {conceptDue > 0 && (
               <Link
@@ -181,6 +182,7 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
               >
                 <Play size={13} /> Start Session
                 <span className="opacity-70 font-normal">({conceptDue})</span>
+                <span className="opacity-40 text-xs font-normal ml-0.5">Enter</span>
               </Link>
             )}
           </div>

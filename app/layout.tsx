@@ -3,6 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 import Nav from '@/components/Nav';
 import ScrollToTop from '@/components/ScrollToTop';
+import GlobalShortcuts from '@/components/GlobalShortcuts';
 
 export const metadata: Metadata = {
   title: 'Prep Tracker',
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Nav />
           <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-32 md:pb-10 md:overflow-y-auto">
             <ScrollToTop />
+            <GlobalShortcuts />
             {children}
           </main>
         </div>

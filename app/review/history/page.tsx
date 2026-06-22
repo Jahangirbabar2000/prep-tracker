@@ -81,7 +81,7 @@ export default async function TodayHistoryPage({
       <div className="flex items-start justify-between mb-6">
         <div>
           <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors mb-2">
-            <ArrowLeft size={13} /> Review Queue
+            <ArrowLeft size={13} /> Review Queue <span className="opacity-40 ml-0.5">Esc</span>
           </Link>
           <h1 className="text-2xl font-semibold text-fg tracking-tight">Today&apos;s History</h1>
           <p className="text-sm text-muted mt-0.5">{fmtDate(today)}</p>
