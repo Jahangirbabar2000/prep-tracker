@@ -317,9 +317,14 @@ export default function SessionPage() {
         </div>
 
         {/* Question title */}
-        <p className="px-6 pt-4 pb-6 text-lg font-semibold text-fg leading-snug">
-          {card!.name}
-        </p>
+        <div className="px-6 pt-4 pb-6">
+          <p className="text-lg font-semibold text-fg leading-snug">{card!.name}</p>
+          {(card!.attempt_count ?? 0) > 0 && (
+            <p className="text-xs text-muted mt-1">
+              {card!.attempt_count} attempt{card!.attempt_count === 1 ? '' : 's'} before
+            </p>
+          )}
+        </div>
 
         {/* ── DSA: practice link + log form ── */}
         {isDSA ? (
