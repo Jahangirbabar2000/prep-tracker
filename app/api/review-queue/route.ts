@@ -10,6 +10,7 @@ export async function GET() {
   const items = await queryAll<ReviewQueueItem>(`
     SELECT
       p.*,
+      (SELECT COUNT(*) FROM attempts WHERE problem_id = p.id) AS attempt_count,
       a.attempted_at   AS last_attempted_at,
       a.struggled      AS last_struggled,
       CAST(julianday(?) - julianday(p.next_due_date) AS INTEGER) AS days_overdue
