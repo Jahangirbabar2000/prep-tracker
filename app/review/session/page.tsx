@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import ProficiencyBadge from '@/components/ProficiencyBadge';
 
 const DOMAIN_LABEL: Record<string, string> = {
   dsa:           'DSA',
@@ -33,23 +34,28 @@ function cardTag(item: ReviewQueueItem): string | null {
 }
 
 function domainPath(domain: string) {
-  return domain === 'system_design' ? '/system-design' : `/${domain}`;
+  return domain === 'system_design' ? '/system-design' : domain === 'python' ? '/backend' : `/${domain}`;
 }
 
 export default function SessionPage() {
-  const [status, setStatus]           = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
-  const [queue, setQueue]             = useState<ReviewQueueItem[]>([]);
-  const [totalCards, setTotalCards]   = useState(0);
-  const [revealed, setRevealed]       = useState(false);
-  const [links, setLinks]             = useState<LinkType[] | null>(null);
-  const [submitting, setSubmitting]   = useState(false);
-  const [results, setResults]         = useState<{ struggled: boolean }[]>([]);
-  const [skippedIds, setSkippedIds]   = useState<Set<number>>(new Set());
+  const [status, setStatus]             = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
+  const [queue, setQueue]               = useState<ReviewQueueItem[]>([]);
+  const [totalCards, setTotalCards]     = useState(0);
+  const [revealed, setRevealed]         = useState(false);
+  const [links, setLinks]               = useState<LinkType[] | null>(null);
+  const [submitting, setSubmitting]     = useState(false);
+  const [results, setResults]           = useState<{ struggled: boolean }[]>([]);
+  const [skippedIds, setSkippedIds]     = useState<Set<number>>(new Set());
   const [skippedCount, setSkippedCount] = useState(0);
 
   // DSA log form state
   const [dsaTime, setDsaTime]           = useState('');
   const [dsaStruggled, setDsaStruggled] = useState(true);
+
+  // Notes state
+  const [noteOpen, setNoteOpen]         = useState(false);
+  const [noteInput, setNoteInput]       = useState('');
+  const [noteSaving, setNoteSaving]     = useState(false);
 
   useEffect(() => {
     fetch('/api/review-queue')
@@ -62,8 +68,8 @@ export default function SessionPage() {
       });
   }, []);
 
-  const card   = queue[0] ?? null;
-  const isDSA  = card?.domain === 'dsa';
+  const card      = queue[0] ?? null;
+  const isDSA     = card?.domain === 'dsa';
   const isRevisit = card ? skippedIds.has(card.id) : false;
 
   // Fetch links: eagerly for DSA, lazily on reveal for concept domains
@@ -82,29 +88,26 @@ export default function SessionPage() {
     setLinks(null);
     setDsaTime('');
     setDsaStruggled(true);
+    setNoteOpen(false);
+    setNoteInput('');
   }, []);
 
-  // Skip this card → push to end of queue
   const skip = useCallback(() => {
     if (!card || submitting) return;
     const [head, ...rest] = queue;
     const newQueue = [...rest, head];
     const newSkipped = new Set(skippedIds);
     newSkipped.add(head.id);
-
-    // If every remaining card has already been skipped, end the session
     if (newQueue.every(c => newSkipped.has(c.id))) {
       setSkippedCount(sc => sc + newQueue.length);
       setStatus('done');
       return;
     }
-
     setQueue(newQueue);
     setSkippedIds(newSkipped);
     resetCardState();
   }, [card, queue, skippedIds, submitting, resetCardState]);
 
-  // Skip all cards of the current domain → push them to end
   const skipSection = useCallback(() => {
     if (!card) return;
     const domain = card.domain;
@@ -113,13 +116,11 @@ export default function SessionPage() {
     const newQueue = [...keep, ...move];
     const newSkipped = new Set(skippedIds);
     move.forEach(c => newSkipped.add(c.id));
-
     if (keep.length === 0 || keep.every(c => newSkipped.has(c.id))) {
       setSkippedCount(sc => sc + newQueue.filter(c => newSkipped.has(c.id)).length);
       setStatus('done');
       return;
     }
-
     setQueue(newQueue);
     setSkippedIds(newSkipped);
     resetCardState();
@@ -158,6 +159,19 @@ export default function SessionPage() {
   const advanceDsa = useCallback(() => {
     advance(dsaStruggled, parseInt(dsaTime) || 0);
   }, [advance, dsaStruggled, dsaTime]);
+
+  async function saveNote() {
+    if (!card || !noteInput.trim()) return;
+    setNoteSaving(true);
+    await fetch(`/api/problems/${card.id}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: noteInput.trim() }),
+    });
+    setNoteSaving(false);
+    setNoteOpen(false);
+    setNoteInput('');
+  }
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -233,7 +247,7 @@ export default function SessionPage() {
   const t = cardTag(card!);
 
   return (
-    <div className="flex flex-col gap-5 max-w-xl mx-auto">
+    <div className="flex flex-col gap-4 max-w-xl mx-auto">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
@@ -252,25 +266,23 @@ export default function SessionPage() {
 
       {/* Card */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-        {/* Domain + tag + skip-section */}
-        <div className="flex items-center gap-2 px-6 pt-5">
+        {/* Domain + tag + proficiency badge + revisit indicator */}
+        <div className="flex items-center gap-2 flex-wrap px-6 pt-5">
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
             {DOMAIN_LABEL[card!.domain]}
           </span>
           {t && <span className="text-xs text-muted">{t}</span>}
+          <ProficiencyBadge
+            level={card!.interval_level}
+            nextDueDate={card!.next_due_date ?? null}
+            attemptCount={card!.attempt_count ?? 0}
+          />
           {isRevisit && (
-            <span className="text-xs text-muted/50 italic">revisiting</span>
+            <span className="text-xs text-muted/50 italic ml-auto">revisiting</span>
           )}
-          <button
-            type="button"
-            onClick={skipSection}
-            className="ml-auto text-xs text-muted/50 hover:text-muted transition-colors cursor-pointer whitespace-nowrap"
-          >
-            Skip all {DOMAIN_LABEL[card!.domain]} ›
-          </button>
         </div>
 
-        {/* Question */}
+        {/* Question title */}
         <p className="px-6 pt-4 pb-6 text-lg font-semibold text-fg leading-snug">
           {card!.name}
         </p>
@@ -336,14 +348,6 @@ export default function SessionPage() {
               >
                 {submitting ? 'Saving…' : 'Log & Next →'}
               </button>
-              <button
-                type="button"
-                onClick={skip}
-                disabled={submitting}
-                className="inline-flex items-center justify-center gap-1.5 text-xs text-muted/60 hover:text-muted transition-colors cursor-pointer py-1"
-              >
-                <SkipForward size={12} /> Skip this question
-              </button>
             </div>
 
             <div className="flex justify-end">
@@ -368,13 +372,6 @@ export default function SessionPage() {
                   Reveal answer
                 </button>
                 <span className="text-xs text-muted/40">Space to reveal · S to skip</span>
-                <button
-                  type="button"
-                  onClick={skip}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted/50 hover:text-muted transition-colors cursor-pointer"
-                >
-                  <SkipForward size={12} /> Skip this question
-                </button>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-6 py-5">
@@ -427,19 +424,75 @@ export default function SessionPage() {
                     ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={skip}
-                  disabled={submitting}
-                  className="inline-flex items-center justify-center gap-1.5 text-xs text-muted/50 hover:text-muted transition-colors cursor-pointer py-1"
-                >
-                  <SkipForward size={12} /> Skip this question <span className="opacity-40 ml-0.5">S</span>
-                </button>
               </div>
             )}
           </div>
         )}
+
+        {/* ── Notes section — always visible at card bottom ── */}
+        <div className="border-t border-border px-6 py-3">
+          {!noteOpen ? (
+            <button
+              type="button"
+              onClick={() => setNoteOpen(true)}
+              className="text-xs text-muted/60 hover:text-muted transition-colors cursor-pointer"
+            >
+              + Add note
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2 py-1">
+              <textarea
+                autoFocus
+                rows={2}
+                value={noteInput}
+                onChange={e => setNoteInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNote(); }}
+                placeholder="Quick note…"
+                className={`${inputCls} resize-none w-full`}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={saveNote}
+                  disabled={!noteInput.trim() || noteSaving}
+                  className="px-3 py-1.5 text-xs font-semibold bg-accent text-accent-fg rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+                >
+                  {noteSaving ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setNoteOpen(false); setNoteInput(''); }}
+                  className="px-3 py-1.5 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <span className="ml-auto text-[11px] text-muted/40 self-center">⌘↵ to save</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Skip actions — outside the card as proper buttons ── */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={skip}
+          disabled={submitting}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-40"
+        >
+          <SkipForward size={14} />
+          Skip question
+          <span className="opacity-40 text-xs">S</span>
+        </button>
+        <button
+          type="button"
+          onClick={skipSection}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer"
+        >
+          <SkipForward size={14} />
+          Skip all {DOMAIN_LABEL[card!.domain]}
+        </button>
       </div>
     </div>
   );

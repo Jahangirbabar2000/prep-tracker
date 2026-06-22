@@ -133,7 +133,7 @@ export default function Nav() {
             <Binary size={16} />
           </span>
           {!collapsed && (
-            <span className="font-semibold text-fg text-sm whitespace-nowrap flex-1 ml-2.5">Prep Tracker</span>
+            <span className="font-semibold text-fg text-sm whitespace-nowrap flex-1 ml-2.5">Jahangir's Prep</span>
           )}
           <button
             onClick={toggleCollapse}
@@ -202,7 +202,7 @@ export default function Nav() {
           <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg">
             <Binary size={16} />
           </span>
-          Prep Tracker
+          Jahangir's Prep Tracker
         </span>
         <div className="flex items-center gap-1">
           <ThemeToggle />
