@@ -198,10 +198,12 @@ export default function SessionPage() {
         // DSA: arrow keys skip
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); skip(); }
       }
+      // S skips the entire section across all card types
+      if (e.key === 's' || e.key === 'S') skipSection();
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [status, revealed, submitting, advance, skip, isDSA]);
+  }, [status, revealed, submitting, advance, skip, skipSection, isDSA]);
 
   if (status === 'loading') {
     return (
@@ -503,6 +505,7 @@ export default function SessionPage() {
         >
           <SkipForward size={14} />
           Skip all {DOMAIN_LABEL[card!.domain]}
+          <span className="opacity-40 text-xs">S</span>
         </button>
       </div>
     </div>
