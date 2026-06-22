@@ -188,13 +188,23 @@ export default function SessionPage() {
     if (status !== 'ready') return;
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const inField = tag === 'INPUT' || tag === 'TEXTAREA';
 
-      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); return; }
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); goPrev(); return; }
-      if (e.key === 's' || e.key === 'S') { skipSection(); return; }
+      // Navigation — always active (except inside text fields)
+      if (!inField) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); return; }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); goPrev(); return; }
+        if (e.key === 's' || e.key === 'S') { skipSection(); return; }
+      }
 
-      if (!isDSA) {
+      if (isDSA) {
+        // Y/N set the Solved/Struggled toggle (outside text fields)
+        if (!inField && (e.key === 'y' || e.key === 'Y')) { setDsaStruggled(false); return; }
+        if (!inField && (e.key === 'n' || e.key === 'N')) { setDsaStruggled(true);  return; }
+        // Enter submits — works both outside fields and from inside the minutes input
+        if (e.key === 'Enter' && !submitting) { e.preventDefault(); advanceDsa(); return; }
+      } else {
+        if (inField) return;
         if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); setRevealed(r => !r); }
         if (revealed && !submitting) {
           if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') advance(false);
@@ -204,7 +214,7 @@ export default function SessionPage() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [status, revealed, submitting, advance, goNext, goPrev, skipSection, isDSA]);
+  }, [status, revealed, submitting, advance, advanceDsa, goNext, goPrev, skipSection, isDSA]);
 
   if (status === 'loading') {
     return (
@@ -341,14 +351,14 @@ export default function SessionPage() {
                     onClick={() => setDsaStruggled(false)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!dsaStruggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}
                   >
-                    Solved it
+                    Solved it <span className="opacity-50 font-normal">Y</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDsaStruggled(true)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${dsaStruggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}
                   >
-                    Struggled
+                    Struggled <span className="opacity-50 font-normal">N</span>
                   </button>
                 </div>
               </div>
@@ -357,7 +367,7 @@ export default function SessionPage() {
                 disabled={submitting || !dsaTime.trim()}
                 className="py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                {submitting ? 'Saving…' : 'Log & Next →'}
+                {submitting ? 'Saving…' : <span>Log & Next → <span className="opacity-50 font-normal text-xs">Enter</span></span>}
               </button>
             </div>
 
@@ -380,9 +390,9 @@ export default function SessionPage() {
                   onClick={() => setRevealed(true)}
                   className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
                 >
-                  Reveal answer
+                  Reveal answer <span className="text-xs font-normal opacity-50">Space</span>
                 </button>
-                <span className="text-xs text-muted/40">Space to reveal · ← → to navigate</span>
+                <span className="text-xs text-muted/40">← → to navigate</span>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-6 py-5">
@@ -493,7 +503,7 @@ export default function SessionPage() {
           className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           title="Previous question"
         >
-          <ArrowLeft size={14} /> Prev
+          <ArrowLeft size={14} /> Prev <span className="opacity-40 text-xs">←</span>
         </button>
         <button
           type="button"
@@ -511,7 +521,7 @@ export default function SessionPage() {
           className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           title="Next question"
         >
-          Next <ArrowRight size={14} />
+          <span className="opacity-40 text-xs">→</span> Next <ArrowRight size={14} />
         </button>
       </div>
     </div>
