@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, SkipForward } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
@@ -37,40 +37,55 @@ function domainPath(domain: string) {
   return domain === 'system_design' ? '/system-design' : domain === 'python' ? '/backend' : `/${domain}`;
 }
 
+// Find nearest unlogged card index in a given direction, wrapping around.
+// Returns `from` if no other unlogged card exists.
+function findAdjacentUnlogged(
+  cards: ReviewQueueItem[],
+  from: number,
+  dir: 'next' | 'prev',
+  logged: Set<number>,
+): number {
+  const len = cards.length;
+  const step = dir === 'next' ? 1 : -1;
+  for (let offset = 1; offset < len; offset++) {
+    const i = ((from + step * offset) % len + len) % len;
+    if (!logged.has(cards[i].id)) return i;
+  }
+  return from;
+}
+
 export default function SessionPage() {
-  const [status, setStatus]             = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
-  const [queue, setQueue]               = useState<ReviewQueueItem[]>([]);
-  const [totalCards, setTotalCards]     = useState(0);
-  const [revealed, setRevealed]         = useState(false);
-  const [links, setLinks]               = useState<LinkType[] | null>(null);
-  const [submitting, setSubmitting]     = useState(false);
-  const [results, setResults]           = useState<{ struggled: boolean }[]>([]);
-  const [skippedIds, setSkippedIds]     = useState<Set<number>>(new Set());
-  const [skippedCount, setSkippedCount] = useState(0);
+  const [status, setStatus]       = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
+  const [allCards, setAllCards]   = useState<ReviewQueueItem[]>([]);
+  const [index, setIndex]         = useState(0);
+  const [loggedIds, setLoggedIds] = useState<Set<number>>(new Set());
+  const [results, setResults]     = useState<{ struggled: boolean }[]>([]);
+
+  const [revealed, setRevealed]   = useState(false);
+  const [links, setLinks]         = useState<LinkType[] | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   // DSA log form state
   const [dsaTime, setDsaTime]           = useState('');
   const [dsaStruggled, setDsaStruggled] = useState(true);
 
   // Notes state
-  const [noteOpen, setNoteOpen]         = useState(false);
-  const [noteInput, setNoteInput]       = useState('');
-  const [noteSaving, setNoteSaving]     = useState(false);
+  const [noteOpen, setNoteOpen]   = useState(false);
+  const [noteInput, setNoteInput] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/review-queue')
       .then(r => r.json())
-      .then((all: ReviewQueueItem[]) => {
-        if (all.length === 0) { setStatus('empty'); return; }
-        setQueue(all);
-        setTotalCards(all.length);
+      .then((items: ReviewQueueItem[]) => {
+        if (items.length === 0) { setStatus('empty'); return; }
+        setAllCards(items);
         setStatus('ready');
       });
   }, []);
 
-  const card      = queue[0] ?? null;
-  const isDSA     = card?.domain === 'dsa';
-  const isRevisit = card ? skippedIds.has(card.id) : false;
+  const card  = allCards[index] ?? null;
+  const isDSA = card?.domain === 'dsa';
 
   // Fetch links: eagerly for DSA, lazily on reveal for concept domains
   useEffect(() => {
@@ -92,39 +107,34 @@ export default function SessionPage() {
     setNoteInput('');
   }, []);
 
-  const skip = useCallback(() => {
-    if (!card || submitting) return;
-    const [head, ...rest] = queue;
-    const newQueue = [...rest, head];
-    const newSkipped = new Set(skippedIds);
-    newSkipped.add(head.id);
-    if (newQueue.every(c => newSkipped.has(c.id))) {
-      setSkippedCount(sc => sc + newQueue.length);
-      setStatus('done');
-      return;
-    }
-    setQueue(newQueue);
-    setSkippedIds(newSkipped);
-    resetCardState();
-  }, [card, queue, skippedIds, submitting, resetCardState]);
+  const goNext = useCallback(() => {
+    if (!card || allCards.length < 2) return;
+    const next = findAdjacentUnlogged(allCards, index, 'next', loggedIds);
+    if (next !== index) { setIndex(next); resetCardState(); }
+  }, [card, allCards, index, loggedIds, resetCardState]);
+
+  const goPrev = useCallback(() => {
+    if (!card || allCards.length < 2) return;
+    const prev = findAdjacentUnlogged(allCards, index, 'prev', loggedIds);
+    if (prev !== index) { setIndex(prev); resetCardState(); }
+  }, [card, allCards, index, loggedIds, resetCardState]);
 
   const skipSection = useCallback(() => {
     if (!card) return;
     const domain = card.domain;
-    const keep = queue.filter(c => c.domain !== domain);
-    const move = queue.filter(c => c.domain === domain);
-    const newQueue = [...keep, ...move];
-    const newSkipped = new Set(skippedIds);
-    move.forEach(c => newSkipped.add(c.id));
-    if (keep.length === 0 || keep.every(c => newSkipped.has(c.id))) {
-      setSkippedCount(sc => sc + newQueue.filter(c => newSkipped.has(c.id)).length);
+    // Find the first card not of this domain that is also unlogged
+    const newLogged = new Set(loggedIds);
+    // Mark all unlogged cards of this domain as navigated-past (don't log them, just move)
+    // Just jump to the first unlogged card outside this domain
+    const target = allCards.findIndex((c, i) => i !== index && c.domain !== domain && !newLogged.has(c.id));
+    if (target === -1) {
+      // Everything else is logged or same domain — end session
       setStatus('done');
-      return;
+    } else {
+      setIndex(target);
+      resetCardState();
     }
-    setQueue(newQueue);
-    setSkippedIds(newSkipped);
-    resetCardState();
-  }, [card, queue, skippedIds, resetCardState]);
+  }, [card, allCards, index, loggedIds, resetCardState]);
 
   const advance = useCallback(async (struggled: boolean, timeTakenMins = 0) => {
     if (!card || submitting) return;
@@ -140,21 +150,19 @@ export default function SessionPage() {
       }),
     });
 
-    const newSkipped = new Set(skippedIds);
-    newSkipped.delete(card.id);
-    setSkippedIds(newSkipped);
+    const newLoggedIds = new Set([...loggedIds, card.id]);
+    setLoggedIds(newLoggedIds);
     setResults(prev => [...prev, { struggled }]);
     setSubmitting(false);
 
-    const remaining = queue.slice(1);
-    if (remaining.length === 0 || remaining.every(c => newSkipped.has(c.id))) {
-      setSkippedCount(remaining.filter(c => newSkipped.has(c.id)).length);
+    if (newLoggedIds.size === allCards.length) {
       setStatus('done');
     } else {
-      setQueue(remaining);
+      const next = findAdjacentUnlogged(allCards, index, 'next', newLoggedIds);
+      setIndex(next);
       resetCardState();
     }
-  }, [card, queue, skippedIds, submitting, resetCardState]);
+  }, [card, allCards, index, loggedIds, submitting, resetCardState]);
 
   const advanceDsa = useCallback(() => {
     advance(dsaStruggled, parseInt(dsaTime) || 0);
@@ -180,30 +188,21 @@ export default function SessionPage() {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
+      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); return; }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); goPrev(); return; }
+      if (e.key === 's' || e.key === 'S') { skipSection(); return; }
+
       if (!isDSA) {
         if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); setRevealed(r => !r); }
         if (revealed && !submitting) {
-          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter' || e.key === 'ArrowRight') {
-            e.preventDefault(); advance(false);
-          }
-          if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowLeft') {
-            e.preventDefault(); advance(true);
-          }
+          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') advance(false);
+          if (e.key === 'n' || e.key === 'N') advance(true);
         }
-        // Arrow keys before reveal: skip
-        if (!revealed) {
-          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); skip(); }
-        }
-      } else {
-        // DSA: arrow keys skip
-        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); skip(); }
       }
-      // S skips the entire section across all card types
-      if (e.key === 's' || e.key === 'S') skipSection();
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [status, revealed, submitting, advance, skip, skipSection, isDSA]);
+  }, [status, revealed, submitting, advance, goNext, goPrev, skipSection, isDSA]);
 
   if (status === 'loading') {
     return (
@@ -239,11 +238,6 @@ export default function SessionPage() {
             <span className="mx-2 opacity-40">·</span>
             {results.length} reviewed
           </p>
-          {skippedCount > 0 && (
-            <p className="text-xs text-muted mt-1">
-              {skippedCount} skipped — they&apos;ll appear in your next session
-            </p>
-          )}
         </div>
         <Link
           href="/"
@@ -255,9 +249,11 @@ export default function SessionPage() {
     );
   }
 
-  const reviewed = results.length;
-  const progress = (reviewed / totalCards) * 100;
+  const remaining = allCards.length - loggedIds.size;
+  const progress  = (loggedIds.size / allCards.length) * 100;
   const t = cardTag(card!);
+  const canGoPrev = findAdjacentUnlogged(allCards, index, 'prev', loggedIds) !== index;
+  const canGoNext = findAdjacentUnlogged(allCards, index, 'next', loggedIds) !== index;
 
   return (
     <div className="flex flex-col gap-4 max-w-xl mx-auto">
@@ -266,7 +262,7 @@ export default function SessionPage() {
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
           <ArrowLeft size={13} /> Exit session
         </Link>
-        <span className="text-xs text-muted tabular">{reviewed + 1} / {totalCards}</span>
+        <span className="text-xs text-muted tabular">{remaining} remaining</span>
       </div>
 
       {/* Progress bar */}
@@ -279,7 +275,7 @@ export default function SessionPage() {
 
       {/* Card */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-        {/* Domain + tag + proficiency badge + revisit indicator */}
+        {/* Domain + tag + proficiency badge */}
         <div className="flex items-center gap-2 flex-wrap px-6 pt-5">
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
             {DOMAIN_LABEL[card!.domain]}
@@ -290,9 +286,6 @@ export default function SessionPage() {
             nextDueDate={card!.next_due_date ?? null}
             attemptCount={card!.attempt_count ?? 0}
           />
-          {isRevisit && (
-            <span className="text-xs text-muted/50 italic ml-auto">revisiting</span>
-          )}
         </div>
 
         {/* Question title */}
@@ -384,7 +377,7 @@ export default function SessionPage() {
                 >
                   Reveal answer
                 </button>
-                <span className="text-xs text-muted/40">Space to reveal · ← → to skip</span>
+                <span className="text-xs text-muted/40">Space to reveal · ← → to navigate</span>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-6 py-5">
@@ -423,18 +416,18 @@ export default function SessionPage() {
 
                 <div className="flex gap-3 pt-1">
                   <button
-                    onClick={() => advance(false)}
-                    disabled={submitting}
-                    className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
-                  >
-                    ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">→</span>
-                  </button>
-                  <button
                     onClick={() => advance(true)}
                     disabled={submitting}
                     className="flex-1 py-2.5 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-lg hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
                   >
-                    ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">←</span>
+                    ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
+                  </button>
+                  <button
+                    onClick={() => advance(false)}
+                    disabled={submitting}
+                    className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
+                  >
+                    ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">Y</span>
                   </button>
                 </div>
               </div>
@@ -442,7 +435,7 @@ export default function SessionPage() {
           </div>
         )}
 
-        {/* ── Notes section — always visible at card bottom ── */}
+        {/* ── Notes section ── */}
         <div className="border-t border-border px-6 py-3">
           {!noteOpen ? (
             <button
@@ -486,17 +479,16 @@ export default function SessionPage() {
         </div>
       </div>
 
-      {/* ── Skip actions — outside the card as proper buttons ── */}
+      {/* ── Navigation + skip section ── */}
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={skip}
-          disabled={submitting}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-40"
+          onClick={goPrev}
+          disabled={!canGoPrev}
+          className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Previous question"
         >
-          <SkipForward size={14} />
-          Skip question
-          <span className="opacity-40 text-xs">← →</span>
+          <ArrowLeft size={14} /> Prev
         </button>
         <button
           type="button"
@@ -506,6 +498,15 @@ export default function SessionPage() {
           <SkipForward size={14} />
           Skip all {DOMAIN_LABEL[card!.domain]}
           <span className="opacity-40 text-xs">S</span>
+        </button>
+        <button
+          type="button"
+          onClick={goNext}
+          disabled={!canGoNext}
+          className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          title="Next question"
+        >
+          Next <ArrowRight size={14} />
         </button>
       </div>
     </div>
