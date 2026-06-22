@@ -179,14 +179,25 @@ export default function SessionPage() {
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       if (!isDSA) {
         if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); setRevealed(r => !r); }
         if (revealed && !submitting) {
-          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') advance(false);
-          if (e.key === 'n' || e.key === 'N') advance(true);
+          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter' || e.key === 'ArrowRight') {
+            e.preventDefault(); advance(false);
+          }
+          if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowLeft') {
+            e.preventDefault(); advance(true);
+          }
         }
+        // Arrow keys before reveal: skip
+        if (!revealed) {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); skip(); }
+        }
+      } else {
+        // DSA: arrow keys skip
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); skip(); }
       }
-      if (e.key === 's' || e.key === 'S') skip();
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -343,8 +354,8 @@ export default function SessionPage() {
               </div>
               <button
                 onClick={advanceDsa}
-                disabled={submitting}
-                className="py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 transition-colors cursor-pointer"
+                disabled={submitting || !dsaTime.trim()}
+                className="py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 {submitting ? 'Saving…' : 'Log & Next →'}
               </button>
@@ -371,7 +382,7 @@ export default function SessionPage() {
                 >
                   Reveal answer
                 </button>
-                <span className="text-xs text-muted/40">Space to reveal · S to skip</span>
+                <span className="text-xs text-muted/40">Space to reveal · ← → to skip</span>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-6 py-5">
@@ -414,14 +425,14 @@ export default function SessionPage() {
                     disabled={submitting}
                     className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
                   >
-                    ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">Y</span>
+                    ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">→</span>
                   </button>
                   <button
                     onClick={() => advance(true)}
                     disabled={submitting}
                     className="flex-1 py-2.5 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-lg hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
                   >
-                    ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
+                    ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">←</span>
                   </button>
                 </div>
               </div>
@@ -483,7 +494,7 @@ export default function SessionPage() {
         >
           <SkipForward size={14} />
           Skip question
-          <span className="opacity-40 text-xs">S</span>
+          <span className="opacity-40 text-xs">← →</span>
         </button>
         <button
           type="button"
