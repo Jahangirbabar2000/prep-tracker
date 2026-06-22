@@ -37,29 +37,31 @@ function domainPath(domain: string) {
   return domain === 'system_design' ? '/system-design' : domain === 'python' ? '/backend' : `/${domain}`;
 }
 
-// Find nearest unlogged card index in a given direction, wrapping around.
-// Returns `from` if no other unlogged card exists.
-function findAdjacentUnlogged(
+// Find nearest active (not logged, not skipped) card in a given direction, wrapping around.
+// Returns `from` if no other active card exists.
+function findAdjacent(
   cards: ReviewQueueItem[],
   from: number,
   dir: 'next' | 'prev',
   logged: Set<number>,
+  skipped: Set<number>,
 ): number {
   const len = cards.length;
   const step = dir === 'next' ? 1 : -1;
   for (let offset = 1; offset < len; offset++) {
     const i = ((from + step * offset) % len + len) % len;
-    if (!logged.has(cards[i].id)) return i;
+    if (!logged.has(cards[i].id) && !skipped.has(cards[i].id)) return i;
   }
   return from;
 }
 
 export default function SessionPage() {
-  const [status, setStatus]       = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
-  const [allCards, setAllCards]   = useState<ReviewQueueItem[]>([]);
-  const [index, setIndex]         = useState(0);
-  const [loggedIds, setLoggedIds] = useState<Set<number>>(new Set());
-  const [results, setResults]     = useState<{ struggled: boolean }[]>([]);
+  const [status, setStatus]         = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
+  const [allCards, setAllCards]     = useState<ReviewQueueItem[]>([]);
+  const [index, setIndex]           = useState(0);
+  const [loggedIds, setLoggedIds]   = useState<Set<number>>(new Set());
+  const [skippedIds, setSkippedIds] = useState<Set<number>>(new Set());
+  const [results, setResults]       = useState<{ struggled: boolean }[]>([]);
 
   const [revealed, setRevealed]   = useState(false);
   const [links, setLinks]         = useState<LinkType[] | null>(null);
@@ -107,34 +109,36 @@ export default function SessionPage() {
     setNoteInput('');
   }, []);
 
+  const isActive = useCallback((id: number, logged: Set<number>, skipped: Set<number>) =>
+    !logged.has(id) && !skipped.has(id),
+  []);
+
   const goNext = useCallback(() => {
     if (!card || allCards.length < 2) return;
-    const next = findAdjacentUnlogged(allCards, index, 'next', loggedIds);
+    const next = findAdjacent(allCards, index, 'next', loggedIds, skippedIds);
     if (next !== index) { setIndex(next); resetCardState(); }
-  }, [card, allCards, index, loggedIds, resetCardState]);
+  }, [card, allCards, index, loggedIds, skippedIds, resetCardState]);
 
   const goPrev = useCallback(() => {
     if (!card || allCards.length < 2) return;
-    const prev = findAdjacentUnlogged(allCards, index, 'prev', loggedIds);
+    const prev = findAdjacent(allCards, index, 'prev', loggedIds, skippedIds);
     if (prev !== index) { setIndex(prev); resetCardState(); }
-  }, [card, allCards, index, loggedIds, resetCardState]);
+  }, [card, allCards, index, loggedIds, skippedIds, resetCardState]);
 
   const skipSection = useCallback(() => {
     if (!card) return;
     const domain = card.domain;
-    // Find the first card not of this domain that is also unlogged
-    const newLogged = new Set(loggedIds);
-    // Mark all unlogged cards of this domain as navigated-past (don't log them, just move)
-    // Just jump to the first unlogged card outside this domain
-    const target = allCards.findIndex((c, i) => i !== index && c.domain !== domain && !newLogged.has(c.id));
-    if (target === -1) {
-      // Everything else is logged or same domain — end session
-      setStatus('done');
-    } else {
-      setIndex(target);
-      resetCardState();
-    }
-  }, [card, allCards, index, loggedIds, resetCardState]);
+    // Mark every unlogged card of this domain as skipped for this session
+    const newSkipped = new Set(skippedIds);
+    allCards.forEach(c => { if (c.domain === domain && !loggedIds.has(c.id)) newSkipped.add(c.id); });
+    setSkippedIds(newSkipped);
+    // Check if anything remains active
+    const hasActive = allCards.some(c => isActive(c.id, loggedIds, newSkipped));
+    if (!hasActive) { setStatus('done'); return; }
+    const next = findAdjacent(allCards, index, 'next', loggedIds, newSkipped);
+    setIndex(next);
+    resetCardState();
+  }, [card, allCards, index, loggedIds, skippedIds, isActive, resetCardState]);
 
   const advance = useCallback(async (struggled: boolean, timeTakenMins = 0) => {
     if (!card || submitting) return;
@@ -155,14 +159,12 @@ export default function SessionPage() {
     setResults(prev => [...prev, { struggled }]);
     setSubmitting(false);
 
-    if (newLoggedIds.size === allCards.length) {
-      setStatus('done');
-    } else {
-      const next = findAdjacentUnlogged(allCards, index, 'next', newLoggedIds);
-      setIndex(next);
-      resetCardState();
-    }
-  }, [card, allCards, index, loggedIds, submitting, resetCardState]);
+    const hasActive = allCards.some(c => isActive(c.id, newLoggedIds, skippedIds));
+    if (!hasActive) { setStatus('done'); return; }
+    const next = findAdjacent(allCards, index, 'next', newLoggedIds, skippedIds);
+    setIndex(next);
+    resetCardState();
+  }, [card, allCards, index, loggedIds, skippedIds, submitting, isActive, resetCardState]);
 
   const advanceDsa = useCallback(() => {
     advance(dsaStruggled, parseInt(dsaTime) || 0);
@@ -238,6 +240,9 @@ export default function SessionPage() {
             <span className="mx-2 opacity-40">·</span>
             {results.length} reviewed
           </p>
+          {skippedIds.size > 0 && (
+            <p className="text-xs text-muted mt-1">{skippedIds.size} skipped — they&apos;ll stay in your queue</p>
+          )}
         </div>
         <Link
           href="/"
@@ -249,11 +254,11 @@ export default function SessionPage() {
     );
   }
 
-  const remaining = allCards.length - loggedIds.size;
-  const progress  = (loggedIds.size / allCards.length) * 100;
+  const activeCount = allCards.filter(c => isActive(c.id, loggedIds, skippedIds)).length;
+  const progress    = ((allCards.length - activeCount) / (allCards.length || 1)) * 100;
   const t = cardTag(card!);
-  const canGoPrev = findAdjacentUnlogged(allCards, index, 'prev', loggedIds) !== index;
-  const canGoNext = findAdjacentUnlogged(allCards, index, 'next', loggedIds) !== index;
+  const canGoPrev = findAdjacent(allCards, index, 'prev', loggedIds, skippedIds) !== index;
+  const canGoNext = findAdjacent(allCards, index, 'next', loggedIds, skippedIds) !== index;
 
   return (
     <div className="flex flex-col gap-4 max-w-xl mx-auto">
@@ -262,7 +267,7 @@ export default function SessionPage() {
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
           <ArrowLeft size={13} /> Exit session
         </Link>
-        <span className="text-xs text-muted tabular">{remaining} remaining</span>
+        <span className="text-xs text-muted tabular">{activeCount} remaining</span>
       </div>
 
       {/* Progress bar */}
