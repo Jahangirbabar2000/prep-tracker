@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import DomainPageClient, { DomainFilterConfig } from '@/components/DomainPageClient';
 import LogShortcut from '@/components/LogShortcut';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 const FILTER_CONFIGS: DomainFilterConfig[] = [
   { key: 'category', placeholder: 'All categories', field: 'ai_category' },

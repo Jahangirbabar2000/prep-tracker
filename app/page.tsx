@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Check, History, Play } from 'lucide-react';
 import { proficiencyClause } from '@/lib/filters';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

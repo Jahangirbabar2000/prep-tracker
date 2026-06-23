@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
@@ -65,6 +65,7 @@ export default function SessionPage() {
 
   const [revealed, setRevealed]   = useState(false);
   const [links, setLinks]         = useState<LinkType[] | null>(null);
+  const linksCache = useRef<Map<number, LinkType[]>>(new Map());
   const [submitting, setSubmitting] = useState(false);
 
   // DSA log form state
@@ -89,15 +90,17 @@ export default function SessionPage() {
   const card  = allCards[index] ?? null;
   const isDSA = card?.domain === 'dsa';
 
-  // Fetch links: eagerly for DSA, lazily on reveal for concept domains
+  // Fetch links: eagerly for DSA, lazily on reveal for concept domains. Cached per card.
   useEffect(() => {
     if (!card) return;
     if (!isDSA && !revealed) return;
+    const cached = linksCache.current.get(card.id);
+    if (cached) { setLinks(cached); return; }
     setLinks(null);
     fetch(`/api/problems/${card.id}/links`)
       .then(r => r.json())
-      .then(setLinks)
-      .catch(() => setLinks([]));
+      .then((data: LinkType[]) => { linksCache.current.set(card.id, data); setLinks(data); })
+      .catch(() => { linksCache.current.set(card.id, []); setLinks([]); });
   }, [revealed, card?.id, isDSA]);
 
   const resetCardState = useCallback(() => {

@@ -25,5 +25,7 @@ export async function GET() {
     ORDER BY p.next_due_date ASC
   `, [today, today]);
 
-  return NextResponse.json(items);
+  return NextResponse.json(items, {
+    headers: { 'Cache-Control': 's-maxage=30, stale-while-revalidate=60' },
+  });
 }

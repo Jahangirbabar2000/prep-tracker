@@ -6,7 +6,7 @@ import HistoryFilters from '@/components/HistoryFilters';
 import HistoryList, { TodayAttempt } from '@/components/HistoryList';
 import { Domain } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 30;
 
 const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai'];
 const DOMAIN_LABEL: Record<Domain, string> = {
