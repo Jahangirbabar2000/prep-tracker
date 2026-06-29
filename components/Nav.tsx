@@ -7,6 +7,7 @@ import { Inbox, Binary, Network, Layout, Code2, Brain, Settings, ChevronLeft, Ch
 import ThemeToggle from './ThemeToggle';
 import { useStore } from '@/lib/store/store';
 import { todayStats, clientToday } from '@/lib/store/queries';
+import SyncStatus from './SyncStatus';
 
 const links = [
   { href: '/',              label: 'Review Queue', short: 'Queue', Icon: Inbox,   domain: null },
@@ -184,6 +185,11 @@ export default function Nav() {
           ) : (
             <ThemeToggle collapsed={false} />
           )}
+          {!collapsed && (
+            <div className="px-3 pt-1">
+              <SyncStatus />
+            </div>
+          )}
         </div>
       </aside>
 
@@ -195,7 +201,8 @@ export default function Nav() {
           </span>
           Jahangir's Prep Tracker
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <SyncStatus compact />
           <ThemeToggle />
         </div>
       </div>
