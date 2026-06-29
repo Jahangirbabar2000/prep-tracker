@@ -11,6 +11,10 @@ import AttemptHistory from './AttemptHistory';
 import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
 import MarkdownRenderer from './MarkdownRenderer';
+import { getData } from '@/lib/store/store';
+import { problemDetail } from '@/lib/store/queries';
+import { logAttempt as logQueued } from '@/lib/store/writeQueue';
+import { syncNow } from '@/lib/store/sync';
 
 interface ProblemDetail extends Problem {
   attempts: Attempt[];
@@ -75,11 +79,19 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  function reload() {
-    fetch(`/api/problems/${id}`).then(r => r.json()).then(setData);
-  }
+  const reload = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/problems/${id}`);
+      if (!r.ok) throw new Error(String(r.status));
+      setData(await r.json());
+    } catch {
+      // Offline (or server unreachable) — build the detail from the local store.
+      const d = problemDetail(getData(), Number(id));
+      if (d) setData(d as ProblemDetail);
+    }
+  }, [id]);
 
-  useEffect(() => { reload(); }, [id]);
+  useEffect(() => { reload(); }, [reload]);
 
   // Fetch links: eagerly for DSA, lazily on reveal for others
   useEffect(() => {
@@ -89,47 +101,44 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     fetch(`/api/problems/${data.id}/links`)
       .then(r => r.json())
       .then(setLinks)
-      .catch(() => setLinks([]));
+      .catch(() => setLinks(getData().links.filter(l => l.problem_id === data.id)));
   }, [revealed, data?.id, isDSA]);
+
+  // Record an attempt: offline-first via the local write queue (recomputes SR
+  // locally + persists + queues for replay), then refresh the view from the store.
+  const recordAttempt = useCallback(async (struggled: boolean, time_taken_mins: number) => {
+    if (!data) return;
+    await logQueued({
+      problemId: data.id,
+      struggled,
+      time_taken_mins,
+      attempted_at: new Date().toLocaleDateString('en-CA'),
+    });
+    const d = problemDetail(getData(), data.id);
+    if (d) setData(d as ProblemDetail);
+    if (typeof navigator !== 'undefined' && navigator.onLine) void syncNow();
+  }, [data]);
 
   // Log attempt — non-DSA (no time)
   const logAttempt = useCallback(async (struggled: boolean) => {
     if (!data || submitting) return;
     setSubmitting(true);
-    await fetch(`/api/problems/${data.id}/attempts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        time_taken_mins: 0,
-        struggled,
-        attempted_at: new Date().toLocaleDateString('en-CA'),
-      }),
-    });
+    await recordAttempt(struggled, 0);
     setSubmitting(false);
     setLastResult(!struggled);
-    reload();
     setTimeout(() => setLastResult(null), 2000);
-  }, [data, submitting]);
+  }, [data, submitting, recordAttempt]);
 
   // Log attempt — DSA (with time)
   const logDsaAttempt = useCallback(async () => {
     if (!data || submitting) return;
     setSubmitting(true);
-    await fetch(`/api/problems/${data.id}/attempts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        time_taken_mins: parseInt(dsaTime) || 0,
-        struggled: dsaStruggled,
-        attempted_at: new Date().toLocaleDateString('en-CA'),
-      }),
-    });
+    await recordAttempt(dsaStruggled, parseInt(dsaTime) || 0);
     setSubmitting(false);
     setLastResult(!dsaStruggled);
     setDsaTime('');
-    reload();
     setTimeout(() => setLastResult(null), 2000);
-  }, [data, submitting, dsaTime, dsaStruggled]);
+  }, [data, submitting, dsaTime, dsaStruggled, recordAttempt]);
 
   // Keyboard shortcuts (desktop only — touch handled separately)
   useEffect(() => {

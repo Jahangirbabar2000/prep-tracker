@@ -6,6 +6,9 @@ import { ArrowLeft, ArrowRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
+import { useStore, getData } from '@/lib/store/store';
+import { reviewQueue, clientToday } from '@/lib/store/queries';
+import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 
 const DOMAIN_LABEL: Record<string, string> = {
   dsa:           'DSA',
@@ -77,15 +80,19 @@ export default function SessionPage() {
   const [noteInput, setNoteInput] = useState('');
   const [noteSaving, setNoteSaving] = useState(false);
 
+  const { data, ready } = useStore();
+  const initialized = useRef(false);
+
+  // Snapshot the queue once the store is hydrated. The session works on a frozen
+  // copy so the queue doesn't reshuffle mid-session if a background sync lands.
   useEffect(() => {
-    fetch('/api/review-queue')
-      .then(r => r.json())
-      .then((items: ReviewQueueItem[]) => {
-        if (items.length === 0) { setStatus('empty'); return; }
-        setAllCards(items);
-        setStatus('ready');
-      });
-  }, []);
+    if (!ready || initialized.current) return;
+    initialized.current = true;
+    const items = reviewQueue(data, clientToday());
+    if (items.length === 0) { setStatus('empty'); return; }
+    setAllCards(items);
+    setStatus('ready');
+  }, [ready, data]);
 
   const card  = allCards[index] ?? null;
   const isDSA = card?.domain === 'dsa';
@@ -96,11 +103,9 @@ export default function SessionPage() {
     if (!isDSA && !revealed) return;
     const cached = linksCache.current.get(card.id);
     if (cached) { setLinks(cached); return; }
-    setLinks(null);
-    fetch(`/api/problems/${card.id}/links`)
-      .then(r => r.json())
-      .then((data: LinkType[]) => { linksCache.current.set(card.id, data); setLinks(data); })
-      .catch(() => { linksCache.current.set(card.id, []); setLinks([]); });
+    const ls = getData().links.filter(l => l.problem_id === card.id) as LinkType[];
+    linksCache.current.set(card.id, ls);
+    setLinks(ls);
   }, [revealed, card?.id, isDSA]);
 
   const resetCardState = useCallback(() => {
@@ -147,15 +152,14 @@ export default function SessionPage() {
     if (!card || submitting) return;
     setSubmitting(true);
 
-    await fetch(`/api/problems/${card.id}/attempts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        time_taken_mins: timeTakenMins,
-        struggled,
-        attempted_at: new Date().toLocaleDateString('en-CA'),
-      }),
+    // Offline-first: record locally + queue for replay; push to server now if online.
+    await logQueued({
+      problemId: card.id,
+      struggled,
+      time_taken_mins: timeTakenMins,
+      attempted_at: new Date().toLocaleDateString('en-CA'),
     });
+    if (typeof navigator !== 'undefined' && navigator.onLine) void flushQueue();
 
     const newLoggedIds = new Set([...loggedIds, card.id]);
     setLoggedIds(newLoggedIds);
@@ -176,14 +180,19 @@ export default function SessionPage() {
   async function saveNote() {
     if (!card || !noteInput.trim()) return;
     setNoteSaving(true);
-    await fetch(`/api/problems/${card.id}/notes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: noteInput.trim() }),
-    });
-    setNoteSaving(false);
-    setNoteOpen(false);
-    setNoteInput('');
+    try {
+      await fetch(`/api/problems/${card.id}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: noteInput.trim() }),
+      });
+    } catch {
+      // notes are online-only; ignore failure offline
+    } finally {
+      setNoteSaving(false);
+      setNoteOpen(false);
+      setNoteInput('');
+    }
   }
 
   // Keyboard shortcuts (covers both ready and done states)

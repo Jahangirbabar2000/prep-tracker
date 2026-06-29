@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Inbox, Binary, Network, Layout, Code2, Brain, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { useStore } from '@/lib/store/store';
+import { todayStats, clientToday } from '@/lib/store/queries';
 
 const links = [
   { href: '/',              label: 'Review Queue', short: 'Queue', Icon: Inbox,   domain: null },
@@ -17,8 +19,8 @@ const links = [
 
 export default function Nav() {
   const pathname = usePathname();
-  const [todayCounts, setTodayCounts] = useState<Record<string, number>>({});
-  const [dueCounts,   setDueCounts]   = useState<Record<string, number>>({});
+  const { data } = useStore();
+  const { counts: todayCounts, due: dueCounts } = todayStats(data, clientToday());
   const [collapsed,   setCollapsed]   = useState(false);
 
   // Read saved collapse state on mount (after hydration to avoid mismatch)
@@ -36,17 +38,6 @@ export default function Nav() {
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
-
-  // Re-fetch badge counts on every navigation
-  useEffect(() => {
-    fetch('/api/stats/today')
-      .then(r => r.json())
-      .then((data: { counts: Record<string, number>; due: Record<string, number> }) => {
-        setTodayCounts(data.counts ?? {});
-        setDueCounts(data.due ?? {});
-      })
-      .catch(() => {});
-  }, [pathname]);
 
   const totalDue = Object.values(dueCounts).reduce((s, n) => s + n, 0);
 

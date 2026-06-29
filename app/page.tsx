@@ -1,50 +1,25 @@
-import { queryOne, queryAll, localToday, localDaysFromNow } from '@/lib/db';
-import { ReviewQueueItem as RQI } from '@/lib/types';
+'use client';
+
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ReviewQueueItemCard from '@/components/ReviewQueueItem';
 import UpcomingForecast from '@/components/UpcomingForecast';
 import ReviewQueueFilters from '@/components/ReviewQueueFilters';
 import Link from 'next/link';
 import { Check, History, Play } from 'lucide-react';
-import { proficiencyClause } from '@/lib/filters';
-
-export const revalidate = 30;
+import { useStore } from '@/lib/store/store';
+import {
+  reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
+} from '@/lib/store/queries';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export default async function ReviewQueuePage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
-  const sp = await searchParams;
-  const today = localToday();
-  const filterDomain      = sp.domain      ?? '';
-  const filterProficiency = sp.proficiency ?? '';
-
-  let queueQuery = `
-    SELECT
-      p.*,
-      (SELECT COUNT(*) FROM attempts WHERE problem_id = p.id) AS attempt_count,
-      a.attempted_at   AS last_attempted_at,
-      a.struggled      AS last_struggled,
-      CAST(julianday(?) - julianday(p.next_due_date) AS INTEGER) AS days_overdue
-    FROM problems p
-    JOIN attempts a ON a.id = (
-      SELECT id FROM attempts
-      WHERE problem_id = p.id
-      ORDER BY attempted_at DESC
-      LIMIT 1
-    )
-    WHERE p.next_due_date <= ?`;
-  if (filterDomain)      queueQuery += ` AND p.domain = '${filterDomain}'`;
-  if (filterProficiency) queueQuery += proficiencyClause(filterProficiency);
-  queueQuery += ' ORDER BY p.next_due_date ASC';
-
-  // Unfiltered distinct (domain, interval_level) for building filter options
-  const queueMetaRows = await queryAll<{ domain: string; interval_level: number }>(`
-    SELECT DISTINCT p.domain, p.interval_level
-    FROM problems p
-    JOIN attempts a ON a.id = (
-      SELECT id FROM attempts WHERE problem_id = p.id ORDER BY attempted_at DESC LIMIT 1
-    )
-    WHERE p.next_due_date <= ?
-  `, [today]);
+function ReviewQueueInner() {
+  const sp = useSearchParams();
+  const { data, ready } = useStore();
+  const today = clientToday();
+  const filterDomain      = sp.get('domain')      ?? '';
+  const filterProficiency = sp.get('proficiency') ?? '';
 
   const DOMAIN_LABELS: Record<string, string> = {
     dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
@@ -58,67 +33,37 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
     if (l === 3) return 'Confident';
     return 'Mastered';
   }
+
+  const allQueue = reviewQueue(data, today);
+  const items = allQueue.filter(it =>
+    (!filterDomain || it.domain === filterDomain) &&
+    (!filterProficiency || matchesProficiency(it, filterProficiency)),
+  );
+
   const availableDomains = QUEUE_DOMAIN_ORDER
-    .filter(d => queueMetaRows.some(r => r.domain === d))
+    .filter(d => allQueue.some(it => it.domain === d))
     .map(d => ({ value: d, label: DOMAIN_LABELS[d] }));
   const availableProficiencies = PROFICIENCY_ORDER
-    .filter(p => queueMetaRows.some(r => levelLabel(r.interval_level) === p));
+    .filter(p => allQueue.some(it => levelLabel(it.interval_level) === p));
 
-  const [todayCountRow, todayByDomainRows, items, upcomingRows] = await Promise.all([
-    queryOne<{ cnt: number }>(`
-      SELECT COUNT(*) AS cnt
-      FROM attempts a
-      WHERE substr(a.attempted_at, 1, 10) = ?
-        AND EXISTS (
-          SELECT 1 FROM attempts prev
-          WHERE prev.problem_id = a.problem_id
-            AND substr(prev.attempted_at, 1, 10) < ?
-        )
-    `, [today, today]),
-
-    queryAll<{ domain: string; cnt: number }>(`
-      SELECT p.domain, COUNT(*) AS cnt
-      FROM attempts a
-      JOIN problems p ON p.id = a.problem_id
-      WHERE substr(a.attempted_at, 1, 10) = ?
-        AND EXISTS (
-          SELECT 1 FROM attempts prev
-          WHERE prev.problem_id = a.problem_id
-            AND substr(prev.attempted_at, 1, 10) < ?
-        )
-      GROUP BY p.domain
-    `, [today, today]),
-
-    queryAll<RQI>(queueQuery, [today, today]),
-
-    queryAll<{ date: string; domain: string; count: number }>(`
-      SELECT p.next_due_date AS date, p.domain, COUNT(*) AS count
-      FROM problems p
-      WHERE p.next_due_date > ?
-        AND p.next_due_date <= ?
-      GROUP BY p.next_due_date, p.domain
-      ORDER BY p.next_due_date ASC
-    `, [today, localDaysFromNow(7)]),
-  ]);
-
-  const todayCount = todayCountRow?.cnt ?? 0;
-
+  // Reviewed (re-attempts) today — matches the server's todayCount / todayByDomain.
+  const { reviewed } = historyBuckets(data, today);
+  const todayCount = reviewed.length;
   const todayByDomain: Record<string, number> = {};
-  for (const r of todayByDomainRows) todayByDomain[r.domain] = r.cnt;
+  for (const r of reviewed) todayByDomain[r.domain] = (todayByDomain[r.domain] ?? 0) + 1;
+
+  const upcomingRows = forecast(data, today, clientDaysFromNow(7));
 
   const conceptDue = items.length;
 
-  // Today's progress summary
   const totalToday  = todayCount + items.length;
   const progressPct = totalToday > 0 ? Math.round((todayCount / totalToday) * 100) : 0;
 
-  // Per-domain pending counts (from queue items)
   const pendingByDomain: Record<string, number> = {};
   for (const item of items) {
     pendingByDomain[item.domain] = (pendingByDomain[item.domain] ?? 0) + 1;
   }
 
-  // All domains that have any activity today or are pending
   const DOMAIN_META: Record<string, { label: string; bar: string; dot: string }> = {
     dsa:           { label: 'DSA',           bar: 'bg-blue-500',   dot: 'bg-blue-500' },
     system_design: { label: 'System Design', bar: 'bg-orange-500', dot: 'bg-orange-500' },
@@ -128,10 +73,9 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   };
   const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];
   const activeDomains = DOMAIN_ORDER.filter(
-    d => (todayByDomain[d] ?? 0) + (pendingByDomain[d] ?? 0) > 0
+    d => (todayByDomain[d] ?? 0) + (pendingByDomain[d] ?? 0) > 0,
   );
 
-  // Per-date totals + per-date domain breakdown
   const byDate: Record<string, number> = {};
   const byDateDomain: Record<string, Record<string, number>> = {};
   const domainTotals: Record<string, number> = {};
@@ -143,7 +87,6 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
   }
   const totalUpcoming = Object.values(domainTotals).reduce((s, n) => s + n, 0);
 
-  // Build 7 day slots (+1 … +7 from today)
   const slots = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i + 1);
@@ -156,6 +99,8 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
       domains:    byDateDomain[dateKey] ?? {},
     };
   });
+
+  if (!ready) return <ReviewQueueSkeleton />;
 
   return (
     <div>
@@ -287,5 +232,29 @@ export default async function ReviewQueuePage({ searchParams }: { searchParams: 
         totalUpcoming={totalUpcoming}
       />
     </div>
+  );
+}
+
+function ReviewQueueSkeleton() {
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-fg tracking-tight">Review Queue</h1>
+        <p className="text-sm text-muted mt-1">Everything due across all domains, most overdue first.</p>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-20 bg-surface border border-border rounded-xl animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function ReviewQueuePage() {
+  return (
+    <Suspense fallback={<ReviewQueueSkeleton />}>
+      <ReviewQueueInner />
+    </Suspense>
   );
 }

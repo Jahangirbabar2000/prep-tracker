@@ -1,70 +1,28 @@
-import { queryAll, localToday } from '@/lib/db';
+'use client';
+
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { fmtDate } from '@/lib/fmt';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import HistoryFilters from '@/components/HistoryFilters';
-import HistoryList, { TodayAttempt } from '@/components/HistoryList';
+import HistoryList from '@/components/HistoryList';
 import { Domain } from '@/lib/types';
-
-export const revalidate = 30;
+import { useStore } from '@/lib/store/store';
+import { historyBuckets, clientToday } from '@/lib/store/queries';
 
 const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai'];
 const DOMAIN_LABEL: Record<Domain, string> = {
   dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
 };
 
-const BASE_COLS = `
-  a.id          AS attempt_id,
-  a.attempted_at,
-  a.struggled,
-  a.time_taken_mins,
-  a.practice_type,
-  p.id,
-  p.name,
-  p.domain,
-  p.interval_level,
-  p.next_due_date,
-  p.difficulty,
-  p.pattern_tag,
-  p.sd_category,
-  p.sd_topic,
-  p.fe_bucket,
-  p.py_category,
-  p.ai_category,
-  (SELECT COUNT(*) FROM attempts WHERE problem_id = p.id) AS attempt_count
-`;
+function HistoryInner() {
+  const sp = useSearchParams();
+  const { data, ready } = useStore();
+  const filterDomain = sp.get('domain') ?? '';
+  const today = clientToday();
 
-export default async function TodayHistoryPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string>>;
-}) {
-  const sp = await searchParams;
-  const filterDomain = sp.domain ?? '';
-  const domainClause = filterDomain ? ` AND p.domain = '${filterDomain}'` : '';
-  const today = localToday();
-
-  const [reviewed, added] = await Promise.all([
-    queryAll<TodayAttempt>(`
-      SELECT ${BASE_COLS}
-      FROM attempts a
-      JOIN problems p ON p.id = a.problem_id
-      WHERE substr(a.attempted_at, 1, 10) = ?
-        AND EXISTS (SELECT 1 FROM attempts prev WHERE prev.problem_id = a.problem_id AND substr(prev.attempted_at,1,10) < ?)
-        ${domainClause}
-      ORDER BY a.attempted_at DESC
-    `, [today, today]),
-
-    queryAll<TodayAttempt>(`
-      SELECT ${BASE_COLS}
-      FROM attempts a
-      JOIN problems p ON p.id = a.problem_id
-      WHERE substr(a.attempted_at, 1, 10) = ?
-        AND NOT EXISTS (SELECT 1 FROM attempts prev WHERE prev.problem_id = a.problem_id AND substr(prev.attempted_at,1,10) < ?)
-        ${domainClause}
-      ORDER BY a.attempted_at DESC
-    `, [today, today]),
-  ]);
+  const { reviewed, added } = historyBuckets(data, today, filterDomain || undefined);
 
   const totalReviewed = reviewed.length;
   const struggled     = reviewed.filter(a => a.struggled).length;
@@ -90,7 +48,13 @@ export default async function TodayHistoryPage({
 
       <HistoryFilters currentDomain={filterDomain} />
 
-      {isEmpty ? (
+      {!ready ? (
+        <div className="flex flex-col gap-2.5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-16 bg-surface border border-border rounded-xl animate-pulse" />
+          ))}
+        </div>
+      ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <p className="text-fg font-medium">No activity yet today.</p>
           <p className="text-sm text-muted mt-1 mb-5">Start a session or log a question to see it here.</p>
@@ -136,5 +100,13 @@ export default async function TodayHistoryPage({
         </>
       )}
     </div>
+  );
+}
+
+export default function TodayHistoryPage() {
+  return (
+    <Suspense fallback={null}>
+      <HistoryInner />
+    </Suspense>
   );
 }
