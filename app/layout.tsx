@@ -4,6 +4,7 @@ import './globals.css';
 import Nav from '@/components/Nav';
 import ScrollToTop from '@/components/ScrollToTop';
 import GlobalShortcuts from '@/components/GlobalShortcuts';
+import StoreProvider from '@/components/StoreProvider';
 
 export const metadata: Metadata = {
   title: 'Prep Tracker',
@@ -34,15 +35,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="antialiased">
-        {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
-        <div className="min-h-dvh md:h-dvh md:flex">
-          <Nav />
-          <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-32 md:pb-10 md:overflow-y-auto">
-            <ScrollToTop />
-            <GlobalShortcuts />
-            {children}
-          </main>
-        </div>
+        <StoreProvider>
+          {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
+          <div className="min-h-dvh md:h-dvh md:flex">
+            <Nav />
+            <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-32 md:pb-10 md:overflow-y-auto">
+              <ScrollToTop />
+              <GlobalShortcuts />
+              {children}
+            </main>
+          </div>
+        </StoreProvider>
       </body>
     </html>
   );
