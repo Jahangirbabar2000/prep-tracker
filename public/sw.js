@@ -1,13 +1,14 @@
-// Throwaway offline-PWA spike service worker. Distinct filename so it never
-// clashes with anything next-pwa might emit. Runtime caching only — one online
-// load + one reload primes everything the /offline-test page needs.
-const VER = 'spike-v1';
+// Service worker for offline support. Static asset (no build plugin), so it
+// works regardless of Turbopack. The app is local-first: pages are static
+// client shells that hydrate from IndexedDB, so caching the shell + the JS/CSS
+// chunks + the /api/sync dump is enough to run fully offline.
+const VER = 'v1';
 const CACHES = {
-  pages:  `spike-pages-${VER}`,
-  assets: `spike-assets-${VER}`,
-  api:    `spike-api-${VER}`,
+  pages:  `pages-${VER}`,
+  assets: `assets-${VER}`,
+  api:    `api-${VER}`,
 };
-const TIMEOUT_MS = 6000;
+const TIMEOUT_MS = 8000;
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -15,9 +16,7 @@ self.addEventListener('activate', event => {
   const keep = new Set(Object.values(CACHES));
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k.startsWith('spike-') && !keep.has(k)).map(k => caches.delete(k)),
-      ))
+      .then(keys => Promise.all(keys.filter(k => !keep.has(k)).map(k => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -28,19 +27,19 @@ self.addEventListener('fetch', event => {
   try { url = new URL(request.url); } catch { return; }
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  // Review-queue API — NetworkFirst
-  if (url.pathname === '/api/review-queue') {
+  // Full dataset dump — NetworkFirst (fresh when online, cached when offline).
+  if (url.pathname === '/api/sync') {
     event.respondWith(networkFirst(request, CACHES.api));
     return;
   }
 
-  // Page navigations — NetworkFirst, fall back to the cached /offline-test shell
+  // Page navigations — NetworkFirst, fall back to any cached shell (or home).
   if (request.mode === 'navigate') {
     event.respondWith(navHandler(request));
     return;
   }
 
-  // Hashed Next.js bundles — CacheFirst (immutable)
+  // Hashed Next.js bundles — CacheFirst (immutable).
   if (url.pathname.startsWith('/_next/static/')) {
     event.respondWith(cacheFirst(request, CACHES.assets));
     return;
@@ -55,7 +54,7 @@ async function navHandler(request) {
     return res;
   } catch {
     return (await cache.match(request))
-      ?? (await cache.match('/offline-test'))
+      ?? (await cache.match('/'))
       ?? new Response('offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
   }
 }
@@ -84,10 +83,8 @@ async function cacheFirst(request, cacheName) {
 }
 
 function withTimeout(promise) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   return Promise.race([
     promise,
     new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), TIMEOUT_MS)),
-  ]).finally(() => clearTimeout(id));
+  ]);
 }

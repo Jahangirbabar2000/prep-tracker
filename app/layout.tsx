@@ -5,6 +5,7 @@ import Nav from '@/components/Nav';
 import ScrollToTop from '@/components/ScrollToTop';
 import GlobalShortcuts from '@/components/GlobalShortcuts';
 import StoreProvider from '@/components/StoreProvider';
+import RegisterSW from '@/components/RegisterSW';
 
 export const metadata: Metadata = {
   title: 'Prep Tracker',
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="antialiased">
         <StoreProvider>
+          <RegisterSW />
           {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
           <div className="min-h-dvh md:h-dvh md:flex">
             <Nav />
