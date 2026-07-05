@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Inbox, Binary, Network, Layout, Code2, Brain, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Inbox, Binary, Network, Layout, Code2, Brain, Settings, ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useStore } from '@/lib/store/store';
 import { todayStats, clientToday } from '@/lib/store/queries';
@@ -146,8 +146,32 @@ export default function Nav() {
           ))}
         </nav>
 
-        {/* Bottom: settings, theme toggle, collapse */}
+        {/* Bottom: stats, settings, theme toggle, collapse */}
         <div className="flex flex-col gap-0.5 py-3 px-2 border-t border-border shrink-0">
+          {/* Stats link */}
+          <div className="relative group">
+            <Link
+              href="/stats"
+              className={[
+                'flex items-center rounded-lg text-sm font-medium transition-colors cursor-pointer',
+                collapsed ? 'justify-center py-3 px-3' : 'gap-3 px-3 py-2.5',
+                pathname === '/stats'
+                  ? 'bg-surface-2 text-fg'
+                  : 'text-muted hover:bg-surface-2 hover:text-fg',
+              ].join(' ')}
+            >
+              <BarChart3 size={18} className={pathname === '/stats' ? 'text-accent' : ''} />
+              {!collapsed && <span className="whitespace-nowrap">Stats</span>}
+            </Link>
+            {collapsed && (
+              <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none hidden group-hover:block">
+                <div className="bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 shadow-lg whitespace-nowrap">
+                  <span className="text-xs font-medium text-fg">Stats</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Settings link */}
           <div className="relative group">
             <Link
@@ -201,8 +225,20 @@ export default function Nav() {
           </span>
           Jahangir's Prep Tracker
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <SyncStatus compact />
+          <Link
+            href="/stats"
+            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${pathname === '/stats' ? 'text-accent bg-surface-2' : 'text-muted hover:text-fg hover:bg-surface-2'}`}
+          >
+            <BarChart3 size={16} />
+          </Link>
+          <Link
+            href="/settings"
+            className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors ${pathname === '/settings' ? 'text-accent bg-surface-2' : 'text-muted hover:text-fg hover:bg-surface-2'}`}
+          >
+            <Settings size={16} />
+          </Link>
           <ThemeToggle />
         </div>
       </div>
