@@ -112,7 +112,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
       problemId: data.id,
       struggled,
       time_taken_mins,
-      attempted_at: new Date().toLocaleDateString('en-CA'),
     });
     const d = problemDetail(getData(), data.id);
     if (d) setData(d as ProblemDetail);

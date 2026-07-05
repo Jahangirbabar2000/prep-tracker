@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll, queryOne, execute, localToday } from '@/lib/db';
+import { queryAll, queryOne, execute, localToday, localNow } from '@/lib/db';
 import { computeNextDue } from '@/lib/sr';
 import { Attempt, Problem } from '@/lib/types';
 
@@ -26,9 +26,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const problem = await queryOne<Problem>('SELECT * FROM problems WHERE id = ?', [id]);
   if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const dateStr = attempted_at ? String(attempted_at).slice(0, 10) : localToday();
-  const attemptedAtStr = `${dateStr} 00:00:00`;
-  const attemptDate = new Date(`${dateStr}T12:00:00`);
+  // attempted_at may be a full "YYYY-MM-DD HH:MM:SS" (the write queue captures the
+  // exact moment an attempt was logged, even offline) or just "YYYY-MM-DD" (log
+  // forms, which default to today but also support backfilling a past date).
+  const raw = attempted_at ? String(attempted_at) : localNow();
+  const hasTime = raw.length > 10;
+  const dateStr = raw.slice(0, 10);
+
+  let attemptedAtStr: string;
+  if (hasTime) {
+    attemptedAtStr = raw;
+  } else if (dateStr === localToday()) {
+    attemptedAtStr = localNow(); // logged just now — record the real time
+  } else {
+    attemptedAtStr = `${dateStr} 00:00:00`; // backfilled past date — no time info available
+  }
+  const attemptDate = new Date(attemptedAtStr.replace(' ', 'T'));
 
   const attempt = await queryOne<Attempt>(
     `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled, practice_type)

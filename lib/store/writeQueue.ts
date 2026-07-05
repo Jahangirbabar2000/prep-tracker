@@ -3,12 +3,13 @@
 import { computeNextDue } from '@/lib/sr';
 import { idbGet, idbSet } from './idb';
 import { mutate, getData } from './store';
+import { clientNow } from './queries';
 
 interface QueuedAttempt {
   problemId: number;
   struggled: boolean;
   time_taken_mins: number;
-  attempted_at: string; // YYYY-MM-DD captured at log time
+  attempted_at: string; // "YYYY-MM-DD HH:MM:SS" — the real moment the attempt was logged
 }
 
 const QUEUE_KEY = 'writeQueue';
@@ -22,15 +23,19 @@ async function readQueue(): Promise<QueuedAttempt[]> {
  * Log a review attempt offline-first: optimistically insert the attempt into the
  * local store, recompute the problem's SR state locally (identical to the server),
  * and enqueue the write for replay. Returns immediately — no network required.
+ *
+ * Always represents "logged right now" (never a backfill to a past date — those
+ * go through the online-only log forms), so the real clock time is captured here
+ * and carried through to the server on replay, even if that replay happens later.
  */
 export async function logAttempt(input: {
   problemId: number;
   struggled: boolean;
   time_taken_mins: number;
-  attempted_at: string;
 }): Promise<void> {
-  const { problemId, struggled, time_taken_mins, attempted_at } = input;
-  const attemptDate = new Date(`${attempted_at}T12:00:00`);
+  const { problemId, struggled, time_taken_mins } = input;
+  const attemptedAt = clientNow();
+  const attemptDate = new Date(attemptedAt.replace(' ', 'T'));
 
   mutate(d => {
     const problem = d.problems.find(p => p.id === problemId);
@@ -39,7 +44,7 @@ export async function logAttempt(input: {
       {
         id: tempId--,
         problem_id: problemId,
-        attempted_at: `${attempted_at} 00:00:00`,
+        attempted_at: attemptedAt,
         time_taken_mins,
         struggled: struggled ? 1 : 0,
         practice_type: null,
@@ -54,7 +59,7 @@ export async function logAttempt(input: {
   });
 
   const queue = await readQueue();
-  queue.push({ problemId, struggled, time_taken_mins, attempted_at });
+  queue.push({ problemId, struggled, time_taken_mins, attempted_at: attemptedAt });
   await idbSet(QUEUE_KEY, queue);
 }
 

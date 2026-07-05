@@ -157,7 +157,6 @@ export default function SessionPage() {
       problemId: card.id,
       struggled,
       time_taken_mins: timeTakenMins,
-      attempted_at: new Date().toLocaleDateString('en-CA'),
     });
     if (typeof navigator !== 'undefined' && navigator.onLine) void flushQueue();
 
