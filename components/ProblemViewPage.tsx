@@ -12,7 +12,7 @@ import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
 import MarkdownRenderer from './MarkdownRenderer';
 import { getData } from '@/lib/store/store';
-import { problemDetail } from '@/lib/store/queries';
+import { problemDetail, clientToday } from '@/lib/store/queries';
 import { logAttempt as logQueued } from '@/lib/store/writeQueue';
 import { syncNow } from '@/lib/store/sync';
 
@@ -281,7 +281,9 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
               attemptCount={data.attempts.length}
             />
             {data.next_due_date && (
-              <span className="text-[11px] text-muted tabular">Next review {fmtDate(data.next_due_date)}</span>
+              <span className={`text-[11px] tabular ${data.next_due_date < clientToday() ? 'text-danger font-medium' : 'text-muted'}`}>
+                Next review {fmtDate(data.next_due_date)}
+              </span>
             )}
           </div>
         </div>
