@@ -274,11 +274,16 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
             </span>
             {tag && <span className="text-xs text-muted truncate">{tag}</span>}
           </div>
-          <ProficiencyBadge
-            level={data.interval_level}
-            nextDueDate={data.next_due_date ? fmtDate(data.next_due_date) : null}
-            attemptCount={data.attempts.length}
-          />
+          <div className="flex flex-col items-end gap-0.5 shrink-0">
+            <ProficiencyBadge
+              level={data.interval_level}
+              nextDueDate={data.next_due_date ? fmtDate(data.next_due_date) : null}
+              attemptCount={data.attempts.length}
+            />
+            {data.next_due_date && (
+              <span className="text-[11px] text-muted tabular">Next review {fmtDate(data.next_due_date)}</span>
+            )}
+          </div>
         </div>
 
         {/* Question */}
