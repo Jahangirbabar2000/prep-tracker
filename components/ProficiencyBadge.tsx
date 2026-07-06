@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Level {
   label: string;
@@ -62,22 +63,71 @@ interface Props {
   attemptCount?: number;
 }
 
+const TOOLTIP_WIDTH = 256; // w-64
+const VIEWPORT_MARGIN = 8;
+const GAP = 8;
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(Math.max(n, min), max);
+}
+
 export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: Props) {
   const [visible, setVisible] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number; arrowLeft: number; placement: 'top' | 'bottom' } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
   const isStruggling = level === 0 && !!nextDueDate && (attemptCount ?? 0) >= 2;
   const cfg = isStruggling ? STRUGGLING : LEVELS[Math.min(Math.max(level, 0), 4)];
 
   const struggleResult = isStruggling ? 'stays at Struggling' : level <= 1 ? 'stays at Learning' : `drops to ${LEVELS[level - 1]?.label}`;
   const successResult  = isStruggling ? 'advances to Learning' : level >= 4 ? 'stays at Mastered' : `advances to ${LEVELS[level + 1]?.label}`;
 
+  function show() {
+    const el = btnRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+
+    // Prefer above the badge; flip below if there isn't roughly enough room.
+    const placement: 'top' | 'bottom' = rect.top > 200 ? 'top' : 'bottom';
+
+    // Right-align to the badge by default, then clamp so it never runs off either edge.
+    const idealLeft = rect.right - TOOLTIP_WIDTH;
+    const left = clamp(idealLeft, VIEWPORT_MARGIN, window.innerWidth - TOOLTIP_WIDTH - VIEWPORT_MARGIN);
+
+    // Arrow stays aligned under/over the badge's center regardless of clamping.
+    const badgeCenter = rect.left + rect.width / 2;
+    const arrowLeft = clamp(badgeCenter - left, 16, TOOLTIP_WIDTH - 16);
+
+    const top = placement === 'top' ? rect.top - GAP : rect.bottom + GAP;
+
+    setPos({ top, left, arrowLeft, placement });
+    setVisible(true);
+  }
+
+  function hide() {
+    setVisible(false);
+  }
+
+  // Hide on scroll/resize instead of tracking — avoids a stale tooltip position.
+  useEffect(() => {
+    if (!visible) return;
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('scroll', hide, true);
+      window.removeEventListener('resize', hide);
+    };
+  }, [visible]);
+
   return (
     <span className="relative inline-flex items-center">
       <button
+        ref={btnRef}
         type="button"
-        onMouseEnter={() => setVisible(true)}
-        onMouseLeave={() => setVisible(false)}
-        onFocus={() => setVisible(true)}
-        onBlur={() => setVisible(false)}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold cursor-default select-none ${cfg.pill}`}
         aria-label={`Proficiency: ${cfg.label}. ${cfg.description} ${cfg.interval}.`}
       >
@@ -85,9 +135,24 @@ export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: P
         {cfg.label}
       </button>
 
-      {/* Tooltip — right-aligned so it never clips the viewport edge */}
-      {visible && (
-        <div className="absolute bottom-full right-0 mb-2 z-50 w-64 pointer-events-none">
+      {/* Portal to <body> so the tooltip escapes any overflow-hidden ancestor
+          (card containers, scroll areas) and viewport-edge clamping above is honored. */}
+      {visible && pos && createPortal(
+        <div
+          className="fixed z-[100] w-64 pointer-events-none"
+          style={{
+            left: pos.left,
+            ...(pos.placement === 'top'
+              ? { bottom: window.innerHeight - pos.top }
+              : { top: pos.top }),
+          }}
+        >
+          {pos.placement === 'bottom' && (
+            <div
+              className="absolute bottom-full w-2.5 h-2.5 bg-surface border-l border-t border-border-strong rotate-45 translate-y-[6px]"
+              style={{ left: pos.arrowLeft }}
+            />
+          )}
           <div className="bg-surface border border-border-strong rounded-xl shadow-lg px-3.5 py-3 flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
@@ -110,9 +175,14 @@ export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: P
               </p>
             </div>
           </div>
-          {/* Arrow — offset right to align with the badge */}
-          <div className="absolute top-full right-3 w-2.5 h-2.5 bg-surface border-r border-b border-border-strong rotate-45 -translate-y-[6px]" />
-        </div>
+          {pos.placement === 'top' && (
+            <div
+              className="absolute top-full w-2.5 h-2.5 bg-surface border-r border-b border-border-strong rotate-45 -translate-y-[6px]"
+              style={{ left: pos.arrowLeft }}
+            />
+          )}
+        </div>,
+        document.body,
       )}
     </span>
   );
