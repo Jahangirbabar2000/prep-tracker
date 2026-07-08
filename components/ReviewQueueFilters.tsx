@@ -36,7 +36,7 @@ export default function ReviewQueueFilters({
   if (availableDomains.length === 0) return null;
 
   return (
-    <div className={`hidden md:flex flex-wrap gap-2 mb-5 items-center transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div className={`flex flex-wrap gap-2 mb-5 items-center transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
       {availableDomains.length > 1 && (
         <select
           value={currentDomain}
