@@ -1,8 +1,11 @@
 'use client';
 
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { TrendingDown, TrendingUp, Minus, AlertCircle } from 'lucide-react';
 import DomainBadge from '@/components/DomainBadge';
+import HistoryFilters from '@/components/HistoryFilters';
 import { useStore } from '@/lib/store/store';
 import { overallStats } from '@/lib/store/queries';
 import { Domain } from '@/lib/types';
@@ -13,6 +16,10 @@ const DOMAIN_DOT: Record<Domain, string> = {
   frontend:      'bg-violet-500',
   python:        'bg-emerald-500',
   ai:            'bg-rose-500',
+};
+
+const DOMAIN_LABEL: Record<Domain, string> = {
+  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
 };
 
 const PROFICIENCY_COLOR: Record<string, string> = {
@@ -48,8 +55,10 @@ function TrendBadge({ recent, prior }: { recent: number; prior: number }) {
   );
 }
 
-export default function StatsPage() {
+function StatsInner() {
+  const sp = useSearchParams();
   const { data, ready } = useStore();
+  const filterDomain = (sp.get('domain') ?? '') as Domain | '';
 
   if (!ready) {
     return (
@@ -64,16 +73,20 @@ export default function StatsPage() {
     );
   }
 
-  const s = overallStats(data);
+  const s = overallStats(data, filterDomain || undefined);
   const proficiencyOrder: Array<keyof typeof s.proficiencyCounts> = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident'];
   const proficiencyTotal = Object.values(s.proficiencyCounts).reduce((a, b) => a + b, 0) || 1;
 
   return (
     <div className="max-w-4xl flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-fg tracking-tight">Stats</h1>
+        <h1 className="text-2xl font-semibold text-fg tracking-tight">
+          Stats {filterDomain && <span className="text-muted font-normal">· {DOMAIN_LABEL[filterDomain]}</span>}
+        </h1>
         <p className="text-sm text-muted mt-1">How much you&apos;ve done, and whether it&apos;s actually sticking.</p>
       </div>
+
+      <HistoryFilters currentDomain={filterDomain} basePath="/stats" />
 
       {/* Top-line numbers */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -129,31 +142,33 @@ export default function StatsPage() {
         </div>
       </section>
 
-      {/* Per-domain coverage */}
-      <section>
-        <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Coverage by Domain</h2>
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
-          {s.byDomain.map((d, i) => {
-            const pct = d.total > 0 ? Math.round((d.attempted / d.total) * 100) : 0;
-            return (
-              <div key={d.domain} className={`px-5 py-3.5 flex items-center gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
-                <div className="w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
-                <div className="flex-1 min-w-0">
-                  <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${DOMAIN_DOT[d.domain]}`} style={{ width: `${pct}%` }} />
+      {/* Per-domain coverage — only meaningful when not already scoped to one domain */}
+      {!filterDomain && (
+        <section>
+          <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Coverage by Domain</h2>
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            {s.byDomain.map((d, i) => {
+              const pct = d.total > 0 ? Math.round((d.attempted / d.total) * 100) : 0;
+              return (
+                <div key={d.domain} className={`px-5 py-3.5 flex items-center gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
+                  <div className="w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${DOMAIN_DOT[d.domain]}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
+                    <span className="text-fg font-medium">{d.attempted}</span>/{d.total} covered
+                  </div>
+                  <div className="text-xs text-muted tabular shrink-0 w-24 text-right">
+                    {d.attempts} attempts
                   </div>
                 </div>
-                <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
-                  <span className="text-fg font-medium">{d.attempted}</span>/{d.total} covered
-                </div>
-                <div className="text-xs text-muted tabular shrink-0 w-24 text-right">
-                  {d.attempts} attempts
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Chronic strugglers */}
       <section>
@@ -182,5 +197,13 @@ export default function StatsPage() {
         )}
       </section>
     </div>
+  );
+}
+
+export default function StatsPage() {
+  return (
+    <Suspense fallback={null}>
+      <StatsInner />
+    </Suspense>
   );
 }

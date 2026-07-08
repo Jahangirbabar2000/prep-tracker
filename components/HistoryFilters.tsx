@@ -13,7 +13,7 @@ const DOMAINS = [
 
 const selectCls = 'bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 transition cursor-pointer';
 
-export default function HistoryFilters({ currentDomain }: { currentDomain: string }) {
+export default function HistoryFilters({ currentDomain, basePath = '/review/history' }: { currentDomain: string; basePath?: string }) {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -21,7 +21,7 @@ export default function HistoryFilters({ currentDomain }: { currentDomain: strin
     const params = new URLSearchParams(sp.toString());
     if (value) params.set(key, value);
     else params.delete(key);
-    router.push(`/review/history?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   return (
