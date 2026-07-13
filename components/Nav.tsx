@@ -15,8 +15,8 @@ const links = [
   { href: '/system-design', label: 'System Design',short: 'SysD',  Icon: Network, domain: 'system_design' },
   { href: '/lld',           label: 'LLD',          short: 'LLD',   Icon: Blocks,  domain: 'lld' },
   { href: '/backend',        label: 'Backend',       short: 'BE',    Icon: Code2,   domain: 'python' },
-  { href: '/ai',            label: 'AI',           short: 'AI',    Icon: Brain,   domain: 'ai' },
   { href: '/frontend',      label: 'Frontend',     short: 'FE',    Icon: Layout,  domain: 'frontend' },
+  { href: '/ai',            label: 'AI',           short: 'AI',    Icon: Brain,   domain: 'ai' },
 ];
 
 export default function Nav() {
