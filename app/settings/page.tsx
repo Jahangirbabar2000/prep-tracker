@@ -115,6 +115,13 @@ const SECTIONS = [
       { field: 'ai_category',   label: 'Category' },
     ],
   },
+  {
+    domain: 'lld', label: 'LLD',
+    fields: [
+      { field: 'lld_category', label: 'Category' },
+      { field: 'lld_topic',    label: 'Topic' },
+    ],
+  },
 ];
 
 function FieldCard({

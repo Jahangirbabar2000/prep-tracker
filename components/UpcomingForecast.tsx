@@ -22,6 +22,7 @@ const DOMAIN_LABEL: Record<string, string> = {
   frontend:      'Frontend',
   python:        'Backend',
   ai:            'AI',
+  lld:           'LLD',
 };
 
 const DOMAIN_STYLE: Record<string, string> = {
@@ -30,6 +31,7 @@ const DOMAIN_STYLE: Record<string, string> = {
   frontend:      'text-violet-400',
   python:        'text-emerald-400',
   ai:            'text-rose-400',
+  lld:           'text-amber-400',
 };
 
 const DOMAIN_DOT: Record<string, string> = {
@@ -38,10 +40,11 @@ const DOMAIN_DOT: Record<string, string> = {
   frontend:      'bg-violet-400',
   python:        'bg-emerald-400',
   ai:            'bg-rose-400',
+  lld:           'bg-amber-400',
 };
 
 // Ordered so the domain row is always consistent left-to-right
-const DOMAIN_ORDER = ['python', 'dsa', 'frontend', 'system_design', 'ai'];
+const DOMAIN_ORDER = ['python', 'dsa', 'frontend', 'system_design', 'ai', 'lld'];
 
 export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }: Props) {
   if (totalUpcoming === 0) return null;

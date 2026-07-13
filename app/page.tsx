@@ -22,9 +22,9 @@ function ReviewQueueInner() {
   const filterProficiency = sp.get('proficiency') ?? '';
 
   const DOMAIN_LABELS: Record<string, string> = {
-    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
+    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
   };
-  const QUEUE_DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];
+  const QUEUE_DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld'];
   const PROFICIENCY_ORDER = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
   function levelLabel(l: number) {
     if (l === 0) return 'Struggling';
@@ -70,8 +70,9 @@ function ReviewQueueInner() {
     frontend:      { label: 'Frontend',      bar: 'bg-violet-500', dot: 'bg-violet-500' },
     python:        { label: 'Backend',        bar: 'bg-emerald-500',dot: 'bg-emerald-500' },
     ai:            { label: 'AI',            bar: 'bg-rose-500',   dot: 'bg-rose-500' },
+    lld:           { label: 'LLD',            bar: 'bg-amber-500',  dot: 'bg-amber-500' },
   };
-  const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai'];
+  const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld'];
   const activeDomains = DOMAIN_ORDER.filter(
     d => (todayByDomain[d] ?? 0) + (pendingByDomain[d] ?? 0) > 0,
   );

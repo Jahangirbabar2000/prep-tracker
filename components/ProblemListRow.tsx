@@ -23,6 +23,7 @@ const DOMAIN_TAG_SHADES: Record<string, string[]> = {
   frontend:      ['bg-violet-500/10 text-violet-500','bg-purple-500/10 text-purple-500', 'bg-fuchsia-500/10 text-fuchsia-500','bg-indigo-500/10 text-indigo-500','bg-violet-600/15 text-violet-600','bg-purple-400/10 text-purple-400'],
   python:        ['bg-emerald-500/10 text-emerald-500','bg-teal-500/10 text-teal-500',   'bg-green-500/10 text-green-500',  'bg-cyan-500/10 text-cyan-500',    'bg-emerald-600/15 text-emerald-600','bg-teal-400/10 text-teal-400'],
   ai:            ['bg-rose-500/10 text-rose-500',    'bg-pink-500/10 text-pink-500',     'bg-red-500/10 text-red-500',      'bg-fuchsia-500/10 text-fuchsia-500','bg-rose-600/15 text-rose-600',   'bg-pink-400/10 text-pink-400'],
+  lld:           ['bg-amber-500/10 text-amber-500',  'bg-yellow-500/10 text-yellow-500', 'bg-orange-500/10 text-orange-500', 'bg-lime-500/10 text-lime-500',    'bg-amber-600/15 text-amber-600',  'bg-yellow-400/10 text-yellow-400'],
 };
 
 function tagStyle(domain: string, tag: string): string {
@@ -34,8 +35,8 @@ function tagStyle(domain: string, tag: string): string {
 }
 
 export default function ProblemListRow({ problem: p, basePath }: Props) {
-  const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category;
-  const qset = p.domain === 'system_design' ? (p.sd_topic ?? null) : (p.question_list ?? null);
+  const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category ?? p.lld_category;
+  const qset = p.domain === 'system_design' ? (p.sd_topic ?? null) : p.domain === 'lld' ? (p.lld_topic ?? null) : (p.question_list ?? null);
   const isDue = p.next_due_date && p.next_due_date <= new Date().toLocaleDateString('en-CA');
 
   return (

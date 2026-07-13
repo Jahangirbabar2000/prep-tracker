@@ -16,10 +16,11 @@ const DOMAIN_DOT: Record<Domain, string> = {
   frontend:      'bg-violet-500',
   python:        'bg-emerald-500',
   ai:            'bg-rose-500',
+  lld:           'bg-amber-500',
 };
 
 const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
+  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
 };
 
 const PROFICIENCY_COLOR: Record<string, string> = {

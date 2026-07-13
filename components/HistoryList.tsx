@@ -27,11 +27,13 @@ export interface TodayAttempt {
   fe_bucket: string | null;
   py_category: string | null;
   ai_category: string | null;
+  lld_category: string | null;
+  lld_topic: string | null;
 }
 
-const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai'];
+const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld'];
 const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
+  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
 };
 
 function domainPath(d: string) {
@@ -47,7 +49,7 @@ function fmtMins(mins: number): string {
   return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
 }
 function cardTag(a: TodayAttempt) {
-  return a.pattern_tag ?? a.sd_topic ?? a.sd_category ?? a.fe_bucket ?? a.py_category ?? a.ai_category ?? null;
+  return a.pattern_tag ?? a.sd_topic ?? a.sd_category ?? a.fe_bucket ?? a.py_category ?? a.ai_category ?? a.lld_topic ?? a.lld_category ?? null;
 }
 
 const DIFFICULTY_STYLE: Record<string, string> = {
@@ -295,9 +297,9 @@ export default function HistoryList({ reviewed, added }: Props) {
   const [reviewOpenMap, setReviewOpenMap] = useState<Partial<Record<Domain, boolean>>>({});
   const anyReviewOpen = activeReviewDomains.some(d => reviewOpenMap[d]);
 
-  // Group added by domain — all 5 domains always shown
+  // Group added by domain — all domains always shown
   const addedByDomain: Record<Domain, TodayAttempt[]> = {
-    dsa: [], python: [], frontend: [], system_design: [], ai: [],
+    dsa: [], python: [], frontend: [], system_design: [], ai: [], lld: [],
   };
   for (const a of added) addedByDomain[a.domain].push(a);
 

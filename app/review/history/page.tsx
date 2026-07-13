@@ -11,9 +11,9 @@ import { Domain } from '@/lib/types';
 import { useStore } from '@/lib/store/store';
 import { historyBuckets, clientToday } from '@/lib/store/queries';
 
-const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai'];
+const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld'];
 const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI',
+  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
 };
 
 function HistoryInner() {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Inbox, Binary, Network, Layout, Code2, Brain, Settings, ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
+import { Inbox, Binary, Network, Layout, Code2, Brain, Blocks, Settings, ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useStore } from '@/lib/store/store';
 import { todayStats, clientToday } from '@/lib/store/queries';
@@ -16,6 +16,7 @@ const links = [
   { href: '/frontend',      label: 'Frontend',     short: 'FE',    Icon: Layout,  domain: 'frontend' },
   { href: '/backend',        label: 'Backend',       short: 'BE',    Icon: Code2,   domain: 'python' },
   { href: '/ai',            label: 'AI',           short: 'AI',    Icon: Brain,   domain: 'ai' },
+  { href: '/lld',           label: 'LLD',          short: 'LLD',   Icon: Blocks,  domain: 'lld' },
 ];
 
 export default function Nav() {
