@@ -13,10 +13,10 @@ const links = [
   { href: '/',              label: 'Review Queue', short: 'Queue', Icon: Inbox,   domain: null },
   { href: '/dsa',           label: 'DSA',          short: 'DSA',   Icon: Binary,  domain: 'dsa' },
   { href: '/system-design', label: 'System Design',short: 'SysD',  Icon: Network, domain: 'system_design' },
-  { href: '/frontend',      label: 'Frontend',     short: 'FE',    Icon: Layout,  domain: 'frontend' },
+  { href: '/lld',           label: 'LLD',          short: 'LLD',   Icon: Blocks,  domain: 'lld' },
   { href: '/backend',        label: 'Backend',       short: 'BE',    Icon: Code2,   domain: 'python' },
   { href: '/ai',            label: 'AI',           short: 'AI',    Icon: Brain,   domain: 'ai' },
-  { href: '/lld',           label: 'LLD',          short: 'LLD',   Icon: Blocks,  domain: 'lld' },
+  { href: '/frontend',      label: 'Frontend',     short: 'FE',    Icon: Layout,  domain: 'frontend' },
 ];
 
 export default function Nav() {
