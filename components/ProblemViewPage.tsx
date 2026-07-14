@@ -62,6 +62,44 @@ function cardTag(p: Problem): string | null {
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 const sectionTitle = 'text-xs font-semibold text-muted uppercase tracking-wide';
 
+function ProblemViewSkeleton() {
+  return (
+    <div className="max-w-5xl flex flex-col gap-6 animate-pulse">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-3 w-16 bg-surface-2 rounded" />
+          <div className="h-3 w-10 bg-surface-2 rounded" />
+        </div>
+        <div className="hidden md:flex items-center gap-2">
+          <div className="h-7 w-16 bg-surface-2 rounded-lg" />
+          <div className="h-7 w-28 bg-surface-2 rounded-lg" />
+        </div>
+      </div>
+
+      {/* Card */}
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between gap-2 px-6 pt-5">
+          <div className="h-5 w-20 bg-surface-2 rounded-full" />
+          <div className="h-4 w-24 bg-surface-2 rounded" />
+        </div>
+        <div className="px-6 pt-4 pb-5">
+          <div className="h-5 w-3/4 bg-surface-2 rounded" />
+        </div>
+        <div className="border-t border-border px-6 py-8 flex justify-center">
+          <div className="h-10 w-32 bg-surface-2 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Attempt history */}
+      <div className="hidden md:block">
+        <div className="h-3 w-28 bg-surface-2 rounded mb-3" />
+        <div className="h-16 w-full bg-surface-2 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
 export default function ProblemViewPage({ id, domain, basePath, backLabel }: Props) {
   const router = useRouter();
   const isDSA = domain === 'dsa';
@@ -92,6 +130,9 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     }
   }, [id]);
 
+  // Clear stale data on navigation so the skeleton shows instead of the
+  // previous question lingering while the new one loads.
+  useEffect(() => { setData(null); }, [id]);
   useEffect(() => { reload(); }, [reload]);
 
   // Fetch links: eagerly for DSA, lazily on reveal for others
@@ -208,7 +249,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     };
   }, [data, basePath, router]);
 
-  if (!data) return <div className="text-sm text-muted">Loading…</div>;
+  if (!data) return <ProblemViewSkeleton />;
 
   const tag = cardTag(data);
 
