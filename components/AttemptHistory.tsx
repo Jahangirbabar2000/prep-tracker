@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Attempt } from '@/lib/types';
 import { fmtDate } from '@/lib/fmt';
 import { Clock, Check, X, Pencil, Trash2 } from 'lucide-react';
+import { deleteAttemptRemote, editAttemptRemote } from '@/lib/store/writeQueue';
 
 interface Props {
   attempts: Attempt[];
@@ -30,18 +31,13 @@ export default function AttemptHistory({ attempts, showTime = true, showPractice
   }
 
   async function saveEdit(id: number) {
-    const res = await fetch(`/api/attempts/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fields),
-    });
-    const updated: Attempt = await res.json();
+    const updated = await editAttemptRemote(id, fields);
     onUpdated(updated);
     setEditing(null);
   }
 
   async function deleteAttempt(id: number) {
-    await fetch(`/api/attempts/${id}`, { method: 'DELETE' });
+    await deleteAttemptRemote(id);
     onDeleted(id);
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { computeNextDue } from '@/lib/sr';
+import { Attempt, Problem } from '@/lib/types';
 import { idbGet, idbSet } from './idb';
 import { mutate, getData } from './store';
 import { clientNow } from './queries';
@@ -89,4 +90,70 @@ export async function flushQueue(): Promise<void> {
 
 export async function hasQueued(): Promise<boolean> {
   return (await readQueue()).length > 0;
+}
+
+/** Recompute a problem's SR state from its latest remaining attempt — mirrors the
+ *  logic in app/api/attempts/[id]/route.ts exactly, so the shared store stays
+ *  consistent with what the server just computed, without waiting for a resync. */
+function recomputeProblemSR(problemId: number, attempts: Attempt[], problems: Problem[]): Problem[] {
+  const problem = problems.find(p => p.id === problemId);
+  if (!problem) return problems;
+
+  const latest = attempts
+    .filter(a => a.problem_id === problemId)
+    .sort((x, y) => (x.attempted_at < y.attempted_at ? 1 : x.attempted_at > y.attempted_at ? -1 : y.id - x.id))[0];
+
+  if (latest) {
+    const { newLevel, nextDueDate } = computeNextDue(
+      !!latest.struggled,
+      problem.interval_level,
+      new Date(`${String(latest.attempted_at).slice(0, 10)}T12:00:00`),
+    );
+    return problems.map(p => p.id === problemId ? { ...p, interval_level: newLevel, next_due_date: nextDueDate } : p);
+  }
+  return problems.map(p => p.id === problemId ? { ...p, interval_level: 0, next_due_date: null } : p);
+}
+
+/**
+ * Delete an attempt: hits the (online-only) API, then applies the exact same
+ * removal + SR recompute to the shared local store so the change is reflected
+ * everywhere immediately (Review Queue, History, Stats) instead of waiting on
+ * the next unrelated background sync.
+ */
+export async function deleteAttemptRemote(attemptId: number): Promise<void> {
+  const res = await fetch(`/api/attempts/${attemptId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete attempt');
+
+  mutate(d => {
+    const removed = d.attempts.find(a => a.id === attemptId);
+    if (!removed) return d;
+    const attempts = d.attempts.filter(a => a.id !== attemptId);
+    const problems = recomputeProblemSR(removed.problem_id, attempts, d.problems);
+    return { ...d, attempts, problems };
+  });
+}
+
+/**
+ * Edit an attempt: hits the (online-only) API, then applies the server's
+ * returned attempt + a matching SR recompute to the shared local store.
+ */
+export async function editAttemptRemote(
+  attemptId: number,
+  fields: Partial<Pick<Attempt, 'time_taken_mins' | 'struggled' | 'attempted_at' | 'practice_type'>>,
+): Promise<Attempt> {
+  const res = await fetch(`/api/attempts/${attemptId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields),
+  });
+  if (!res.ok) throw new Error('Failed to update attempt');
+  const updated: Attempt = await res.json();
+
+  mutate(d => {
+    const attempts = d.attempts.map(a => a.id === updated.id ? updated : a);
+    const problems = recomputeProblemSR(updated.problem_id, attempts, d.problems);
+    return { ...d, attempts, problems };
+  });
+
+  return updated;
 }

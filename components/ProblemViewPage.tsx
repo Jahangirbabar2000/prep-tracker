@@ -13,8 +13,7 @@ import NoteCard from './NoteCard';
 import MarkdownRenderer from './MarkdownRenderer';
 import { getData } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
-import { logAttempt as logQueued } from '@/lib/store/writeQueue';
-import { syncNow } from '@/lib/store/sync';
+import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 
 interface ProblemDetail extends Problem {
   attempts: Attempt[];
@@ -117,7 +116,10 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     });
     const d = problemDetail(getData(), data.id);
     if (d) setData(d as ProblemDetail);
-    if (typeof navigator !== 'undefined' && navigator.onLine) void syncNow();
+    // Push the queued write to the server without a full /api/sync re-pull —
+    // that immediate full resync raced the write and could revert the
+    // optimistic update if Turso's read lagged behind the write by even a moment.
+    if (typeof navigator !== 'undefined' && navigator.onLine) void flushQueue();
   }, [data]);
 
   // Log attempt — non-DSA (no time)
