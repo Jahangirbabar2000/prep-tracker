@@ -60,11 +60,21 @@ function ReviewQueueInner() {
     (!filterProficiency || matchesProficiency(it, filterProficiency)),
   );
 
+  // Each dropdown's options reflect the OTHER active filter, not itself — so
+  // picking DSA won't leave stale proficiency options on screen that have zero
+  // matches once combined with the domain you actually selected, and vice versa.
+  const queueForDomainOptions = allQueue.filter(it =>
+    !filterProficiency || matchesProficiency(it, filterProficiency),
+  );
+  const queueForProficiencyOptions = allQueue.filter(it =>
+    !filterDomain || it.domain === filterDomain,
+  );
+
   const availableDomains = QUEUE_DOMAIN_ORDER
-    .filter(d => allQueue.some(it => it.domain === d))
+    .filter(d => queueForDomainOptions.some(it => it.domain === d))
     .map(d => ({ value: d, label: DOMAIN_LABELS[d] }));
   const availableProficiencies = PROFICIENCY_ORDER
-    .filter(p => allQueue.some(it => levelLabel(it.interval_level) === p));
+    .filter(p => queueForProficiencyOptions.some(it => levelLabel(it.interval_level) === p));
 
   // Reviewed (re-attempts) today — matches the server's todayCount / todayByDomain.
   const { reviewed } = historyBuckets(data, today);
