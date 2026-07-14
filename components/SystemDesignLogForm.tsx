@@ -2,9 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Problem } from '@/lib/types';
+import { Problem, Attempt, Link as LinkType, Note } from '@/lib/types';
 import { Link2, X } from 'lucide-react';
 import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
+import { syncCreatedProblem } from '@/lib/store/createProblem';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
@@ -61,49 +62,56 @@ export default function SystemDesignLogForm() {
     setSubmitting(true);
 
     let pid = selectedProblem?.id ?? null;
+    let problem: Problem = selectedProblem as Problem;
     if (!pid) {
       const res = await fetch('/api/problems', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, domain: 'system_design' }),
       });
-      const p: Problem = await res.json();
-      pid = p.id;
+      problem = await res.json();
+      pid = problem.id;
     }
 
-    await fetch(`/api/problems/${pid}/attempts`, {
+    const attempt: Attempt = await fetch(`/api/problems/${pid}/attempts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ time_taken_mins: 0, struggled, attempted_at: new Date().toLocaleDateString('en-CA') }),
-    });
+    }).then(r => r.json());
 
     const meta: Record<string, string> = {};
     if (answer.trim()) meta.notes_text  = answer.trim();
     if (bucket)        meta.sd_category = bucket;
     if (topic)         meta.sd_topic    = topic;
     if (Object.keys(meta).length > 0) {
-      await fetch(`/api/problems/${pid}`, {
+      problem = await fetch(`/api/problems/${pid}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(meta),
-      });
+      }).then(r => r.json());
     }
 
+    const createdLinks: LinkType[] = [];
     if (linkUrl.trim()) {
-      await fetch(`/api/problems/${pid}/links`, {
+      const link: LinkType = await fetch(`/api/problems/${pid}/links`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: linkUrl.trim(), label: name }),
-      });
+      }).then(r => r.json());
+      createdLinks.push(link);
     }
 
+    const createdNotes: Note[] = [];
     for (const note of notes) {
-      await fetch(`/api/problems/${pid}/notes`, {
+      const created: Note = await fetch(`/api/problems/${pid}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: note }),
-      });
+      }).then(r => r.json());
+      createdNotes.push(created);
     }
+
+    syncCreatedProblem({ problem, attempt, links: createdLinks, notes: createdNotes });
 
     setSubmitting(false);
     router.push(`/system-design/${pid}`);

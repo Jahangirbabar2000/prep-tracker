@@ -2,8 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { Domain, Problem } from '@/lib/types';
+import { Domain, Problem, Attempt, Link as LinkType } from '@/lib/types';
 import { Link2 } from 'lucide-react';
+import { syncCreatedProblem } from '@/lib/store/createProblem';
+import { getData } from '@/lib/store/store';
 
 interface Props {
   defaultDomain?: Domain;
@@ -96,6 +98,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
     setSubmitting(true);
 
     let pid = problemId ?? selectedProblem?.id ?? null;
+    let problem: Problem | undefined = selectedProblem ?? undefined;
 
     if (!pid) {
       const res = await fetch('/api/problems', {
@@ -103,11 +106,15 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: query.trim(), domain: effectiveDomain }),
       });
-      const p: Problem = await res.json();
-      pid = p.id;
+      problem = await res.json();
+      pid = problem!.id;
+    } else if (!problem) {
+      // Re-logging an already-known problem (inline mode) — base state already
+      // lives in the shared store, no need to re-fetch it from the server.
+      problem = getData().problems.find(p => p.id === pid);
     }
 
-    await fetch(`/api/problems/${pid}/attempts`, {
+    const attempt: Attempt = await fetch(`/api/problems/${pid}/attempts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -115,7 +122,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
         struggled,
         attempted_at: attemptedAt,
       }),
-    });
+    }).then(r => r.json());
 
     // Patch optional metadata if any was filled in
     const meta: Record<string, string> = {};
@@ -131,21 +138,25 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
       if (pyCategory) meta.py_category = pyCategory;
     }
     if (Object.keys(meta).length > 0) {
-      await fetch(`/api/problems/${pid}`, {
+      problem = await fetch(`/api/problems/${pid}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(meta),
-      });
+      }).then(r => r.json());
     }
 
+    const createdLinks: LinkType[] = [];
     if (linkUrl.trim()) {
       const problemName = selectedProblem?.name ?? query.trim();
-      await fetch(`/api/problems/${pid}/links`, {
+      const link: LinkType = await fetch(`/api/problems/${pid}/links`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: linkUrl.trim(), label: problemName || null }),
-      });
+      }).then(r => r.json());
+      createdLinks.push(link);
     }
+
+    if (problem) syncCreatedProblem({ problem, attempt, links: createdLinks });
 
     setSubmitting(false);
     if (onLogged) {
