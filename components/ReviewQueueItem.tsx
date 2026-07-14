@@ -5,9 +5,18 @@ import { ReviewQueueItem as RQI } from '@/lib/types';
 import DomainBadge from './DomainBadge';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 
+const DOMAIN_PATH: Record<string, string> = {
+  system_design: '/system-design',
+  python:        '/backend',
+};
+
+function domainPath(domain: string) {
+  return DOMAIN_PATH[domain] ?? `/${domain}`;
+}
+
 export default function ReviewQueueItem({ item }: { item: RQI }) {
   const tag = item.pattern_tag ?? item.sd_category ?? item.fe_bucket ?? item.py_category;
-  const detailPath = `/${item.domain.replace('_', '-')}/${item.id}`;
+  const detailPath = `${domainPath(item.domain)}/${item.id}`;
   const overdue = item.days_overdue <= 0 ? 'due today' : `${item.days_overdue}d overdue`;
 
   return (
