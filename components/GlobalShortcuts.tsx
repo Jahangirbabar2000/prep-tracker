@@ -29,7 +29,7 @@ export default function GlobalShortcuts() {
       }
 
       if (pathname === '/') {
-        if (e.key === 'Enter') { e.preventDefault(); router.push('/review/session'); return; }
+        // Enter is handled on the page itself (needs the active domain/proficiency filter).
         if (e.key === 'h' || e.key === 'H') { router.push('/review/history'); return; }
       }
 

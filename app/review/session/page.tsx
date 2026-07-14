@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
 import { useStore, getData } from '@/lib/store/store';
-import { reviewQueue, clientToday } from '@/lib/store/queries';
+import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 
 const DOMAIN_LABEL: Record<string, string> = {
@@ -60,7 +61,11 @@ function findAdjacent(
   return from;
 }
 
-export default function SessionPage() {
+function SessionPageInner() {
+  const sp = useSearchParams();
+  const filterDomain      = sp.get('domain')      ?? '';
+  const filterProficiency = sp.get('proficiency') ?? '';
+
   const [status, setStatus]         = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
   const [allCards, setAllCards]     = useState<ReviewQueueItem[]>([]);
   const [index, setIndex]           = useState(0);
@@ -90,11 +95,14 @@ export default function SessionPage() {
   useEffect(() => {
     if (!ready || initialized.current) return;
     initialized.current = true;
-    const items = reviewQueue(data, clientToday());
+    const items = reviewQueue(data, clientToday()).filter(it =>
+      (!filterDomain || it.domain === filterDomain) &&
+      (!filterProficiency || matchesProficiency(it, filterProficiency)),
+    );
     if (items.length === 0) { setStatus('empty'); return; }
     setAllCards(items);
     setStatus('ready');
-  }, [ready, data]);
+  }, [ready, data, filterDomain, filterProficiency]);
 
   const card  = allCards[index] ?? null;
   const isDSA = card?.domain === 'dsa';
@@ -556,5 +564,13 @@ export default function SessionPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function SessionPage() {
+  return (
+    <Suspense fallback={null}>
+      <SessionPageInner />
+    </Suspense>
   );
 }

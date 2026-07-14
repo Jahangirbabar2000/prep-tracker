@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import ReviewQueueItemCard from '@/components/ReviewQueueItem';
 import UpcomingForecast from '@/components/UpcomingForecast';
 import ReviewQueueFilters from '@/components/ReviewQueueFilters';
@@ -16,10 +16,30 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function ReviewQueueInner() {
   const sp = useSearchParams();
+  const router = useRouter();
   const { data, ready } = useStore();
   const today = clientToday();
   const filterDomain      = sp.get('domain')      ?? '';
   const filterProficiency = sp.get('proficiency') ?? '';
+
+  const sessionParams = new URLSearchParams();
+  if (filterDomain)      sessionParams.set('domain', filterDomain);
+  if (filterProficiency) sessionParams.set('proficiency', filterProficiency);
+  const sessionQS = sessionParams.toString();
+  const sessionHref = sessionQS ? `/review/session?${sessionQS}` : '/review/session';
+
+  // Enter starts a session with the current filters applied (moved here from
+  // GlobalShortcuts so it has access to the active domain/proficiency filter).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Enter') { e.preventDefault(); router.push(sessionHref); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [router, sessionHref]);
 
   const DOMAIN_LABELS: Record<string, string> = {
     dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
@@ -123,7 +143,7 @@ function ReviewQueueInner() {
             </Link>
             {conceptDue > 0 && (
               <Link
-                href="/review/session"
+                href={sessionHref}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors"
               >
                 <Play size={13} /> Start Session
@@ -145,7 +165,7 @@ function ReviewQueueInner() {
           </Link>
           {conceptDue > 0 ? (
             <Link
-              href="/review/session"
+              href={sessionHref}
               className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-xl hover:bg-accent-hover transition-colors"
             >
               <Play size={14} /> Start Session
