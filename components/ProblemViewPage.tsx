@@ -1,30 +1,19 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pencil, Plus } from 'lucide-react';
 import { fmtDate } from '@/lib/fmt';
 import ProficiencyBadge from './ProficiencyBadge';
-import { Attempt, Domain, Link as LinkType, Note, Problem } from '@/lib/types';
+import { Domain, Problem } from '@/lib/types';
 import AttemptHistory from './AttemptHistory';
 import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
 import MarkdownRenderer from './MarkdownRenderer';
-import { getData } from '@/lib/store/store';
+import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
-
-interface ProblemDetail extends Problem {
-  attempts: Attempt[];
-  notes: Note[];
-  links: LinkType[];
-  avg_time: number | null;
-  prev_id: number | null;
-  next_id: number | null;
-  position: number;
-  total: number;
-}
 
 interface Props {
   id: string;
@@ -104,9 +93,14 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
   const router = useRouter();
   const isDSA = domain === 'dsa';
 
-  const [data, setData]             = useState<ProblemDetail | null>(null);
+  // Read straight from the already-synced local store — no per-navigation
+  // network round trip. `problemDetail()` mirrors GET /api/problems/[id]
+  // (attempts, notes, links, prev/next, position) entirely from local data.
+  const store = useStore();
+  const data = useMemo(() => problemDetail(store.data, Number(id)), [store.data, id]);
+  const links = data?.links ?? null;
+
   const [revealed, setRevealed]     = useState(false);
-  const [links, setLinks]           = useState<LinkType[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [lastResult, setLastResult] = useState<boolean | null>(null);
 
@@ -118,36 +112,18 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  const reload = useCallback(async () => {
-    try {
-      const r = await fetch(`/api/problems/${id}`);
-      if (!r.ok) throw new Error(String(r.status));
-      setData(await r.json());
-    } catch {
-      // Offline (or server unreachable) — build the detail from the local store.
-      const d = problemDetail(getData(), Number(id));
-      if (d) setData(d as ProblemDetail);
-    }
-  }, [id]);
-
-  // Clear stale data on navigation so the skeleton shows instead of the
-  // previous question lingering while the new one loads.
-  useEffect(() => { setData(null); }, [id]);
-  useEffect(() => { reload(); }, [reload]);
-
-  // Fetch links: eagerly for DSA, lazily on reveal for others
-  useEffect(() => {
-    if (!data) return;
-    if (!isDSA && !revealed) return;
-    setLinks(null);
-    fetch(`/api/problems/${data.id}/links`)
-      .then(r => r.json())
-      .then(setLinks)
-      .catch(() => setLinks(getData().links.filter(l => l.problem_id === data.id)));
-  }, [revealed, data?.id, isDSA]);
+  // Reset the reveal/result state whenever the question changes — adjusted
+  // during render (not an effect) to avoid an extra cascading render.
+  const [prevId, setPrevId] = useState(id);
+  if (id !== prevId) {
+    setPrevId(id);
+    setRevealed(false);
+    setLastResult(null);
+  }
 
   // Record an attempt: offline-first via the local write queue (recomputes SR
-  // locally + persists + queues for replay), then refresh the view from the store.
+  // locally + persists + queues for replay) — the store update flows back
+  // into `data` above automatically via useSyncExternalStore.
   const recordAttempt = useCallback(async (struggled: boolean, time_taken_mins: number) => {
     if (!data) return;
     await logQueued({
@@ -155,8 +131,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
       struggled,
       time_taken_mins,
     });
-    const d = problemDetail(getData(), data.id);
-    if (d) setData(d as ProblemDetail);
     // Push the queued write to the server without a full /api/sync re-pull —
     // that immediate full resync raced the write and could revert the
     // optimistic update if Turso's read lagged behind the write by even a moment.
@@ -208,7 +182,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isDSA]);
+  }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isDSA, id]);
 
   // Touch swipe navigation — locks vertical scroll once direction is determined horizontal
   useEffect(() => {
@@ -478,8 +452,10 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
           attempts={data.attempts}
           showTime={isDSA}
           showPracticeType={domain === 'system_design'}
-          onUpdated={a => setData(d => d ? { ...d, attempts: d.attempts.map(x => x.id === a.id ? a : x) } : d)}
-          onDeleted={aid => setData(d => d ? { ...d, attempts: d.attempts.filter(x => x.id !== aid) } : d)}
+          // editAttemptRemote/deleteAttemptRemote already write through to the
+          // shared store — `data` picks up the change automatically.
+          onUpdated={() => {}}
+          onDeleted={() => {}}
         />
       </section>
 
@@ -490,7 +466,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
           <QuickNotes
             problemId={data.id}
             notes={data.notes}
-            onChange={notes => setData(d => d ? { ...d, notes } : d)}
+            onChange={notes => mutate(d => ({ ...d, notes: [...d.notes.filter(n => n.problem_id !== data.id), ...notes] }))}
           />
         </section>
       )}
@@ -506,7 +482,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                 note={n}
                 onDelete={async nid => {
                   await fetch(`/api/problems/${data.id}/notes/${nid}`, { method: 'DELETE' });
-                  setData(d => d ? { ...d, notes: d.notes.filter(x => x.id !== nid) } : d);
+                  mutate(d => ({ ...d, notes: d.notes.filter(x => x.id !== nid) }));
                 }}
               />
             ))}
