@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
+import AttemptHistory from '@/components/AttemptHistory';
+import CopyLinkButton from '@/components/CopyLinkButton';
 import { useStore, getData } from '@/lib/store/store';
 import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
@@ -106,6 +108,15 @@ function SessionPageInner() {
 
   const card  = allCards[index] ?? null;
   const isDSA = card?.domain === 'dsa';
+
+  // Attempt history for the card currently being reviewed — newest first,
+  // matching lib/store/queries.ts's problemDetail() ordering.
+  const cardAttempts = useMemo(() => {
+    if (!card) return [];
+    return data.attempts
+      .filter(a => a.problem_id === card.id)
+      .sort((x, y) => (x.attempted_at < y.attempted_at ? 1 : x.attempted_at > y.attempted_at ? -1 : y.id - x.id));
+  }, [data.attempts, card]);
 
   // Fetch links: eagerly for DSA, lazily on reveal for concept domains. Cached per card.
   useEffect(() => {
@@ -353,16 +364,18 @@ function SessionPageInner() {
             {links && links.length > 0 && (
               <div className="flex flex-col gap-2">
                 {links.map(l => (
-                  <a
-                    key={l.id}
-                    href={l.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold rounded-lg hover:bg-blue-500/20 transition-colors"
-                  >
-                    <ExternalLink size={14} />
-                    {l.label || hostOf(l.url)}
-                  </a>
+                  <div key={l.id} className="flex items-center gap-1">
+                    <a
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 inline-flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold rounded-lg hover:bg-blue-500/20 transition-colors"
+                    >
+                      <ExternalLink size={14} />
+                      {l.label || hostOf(l.url)}
+                    </a>
+                    <CopyLinkButton url={l.url} />
+                  </div>
                 ))}
               </div>
             )}
@@ -532,6 +545,19 @@ function SessionPageInner() {
           )}
         </div>
       </div>
+
+      {/* ── Attempt history — standalone card, DSA only ── */}
+      {isDSA && cardAttempts.length > 0 && (
+        <div className="bg-surface border border-border rounded-2xl p-5">
+          <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Attempt History</h2>
+          <AttemptHistory
+            attempts={cardAttempts}
+            showTime
+            onUpdated={() => {}}
+            onDeleted={() => {}}
+          />
+        </div>
+      )}
 
       {/* ── Navigation + skip section ── */}
       <div className="flex gap-2">

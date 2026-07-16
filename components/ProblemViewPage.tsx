@@ -11,6 +11,7 @@ import AttemptHistory from './AttemptHistory';
 import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
 import MarkdownRenderer from './MarkdownRenderer';
+import CopyLinkButton from './CopyLinkButton';
 import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
@@ -316,16 +317,18 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         {isDSA ? (
           <div className="border-t border-border px-6 py-3 flex items-center gap-3 flex-wrap">
             {links && links.length > 0 && links.map(l => (
-              <a
-                key={l.id}
-                href={l.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg hover:bg-blue-500/20 transition-colors"
-              >
-                <ExternalLink size={12} />
-                {l.label || hostOf(l.url)}
-              </a>
+              <div key={l.id} className="inline-flex items-center gap-1">
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg hover:bg-blue-500/20 transition-colors"
+                >
+                  <ExternalLink size={12} />
+                  {l.label || hostOf(l.url)}
+                </a>
+                <CopyLinkButton url={l.url} />
+              </div>
             ))}
             {links && links.length === 0 && (
               <span className="text-xs text-muted italic">No practice link — add via Edit.</span>
