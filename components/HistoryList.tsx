@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { CheckCircle2, ChevronDown, Clock, Plus, XCircle } from 'lucide-react';
 import DomainBadge from './DomainBadge';
 import ProficiencyBadge from './ProficiencyBadge';
+import InfoTooltip from './InfoTooltip';
 import { fmtDate } from '@/lib/fmt';
 import { Domain } from '@/lib/types';
+import { computeStudyVelocity } from '@/lib/studyVelocity';
 
 export interface TodayAttempt {
   attempt_id: number;
@@ -50,6 +52,10 @@ function fmtMins(mins: number): string {
 }
 function cardTag(a: TodayAttempt) {
   return a.pattern_tag ?? a.sd_topic ?? a.sd_category ?? a.fe_bucket ?? a.py_category ?? a.ai_category ?? a.lld_topic ?? a.lld_category ?? null;
+}
+/** "45s/q" for sub-minute velocities, "1.5m/q" above a minute. */
+function fmtVelocity(seconds: number): string {
+  return seconds < 60 ? `${Math.round(seconds)}s/q` : `${(seconds / 60).toFixed(1)}m/q`;
 }
 
 const DIFFICULTY_STYLE: Record<string, string> = {
@@ -111,9 +117,13 @@ function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
 function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; attempts: TodayAttempt[]; open: boolean; onToggle: () => void }) {
   const struggled = attempts.filter(a => a.struggled).length;
   const gotIt = attempts.length - struggled;
-  const totalMins = domain === 'dsa'
+  const loggedMins = domain === 'dsa'
     ? attempts.reduce((s, a) => s + (a.time_taken_mins || 0), 0)
     : 0;
+  // Passive study velocity — median seconds between consecutive logged
+  // attempts in this domain group, with long gaps (breaks) excluded automatically.
+  const velocity = computeStudyVelocity(attempts.map(a => a.attempted_at));
+  const estimatedMins = Math.round(velocity.totalActiveSeconds / 60);
 
   return (
     <div className="border border-border rounded-xl overflow-hidden bg-surface">
@@ -134,12 +144,55 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
               <span className="text-xs text-danger tabular">{struggled} struggled</span>
             </>
           )}
-          {totalMins > 0 && (
+          {loggedMins > 0 && velocity.sampleSize > 0 && (
+            <>
+              <span className="text-muted/40 text-xs">·</span>
+              <InfoTooltip content={
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-fg font-medium">Time spent</p>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    <span className="text-fg font-medium tabular">{fmtMins(loggedMins)}</span> logged — the sum of the solve
+                    time you entered per attempt.
+                  </p>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    <span className="text-fg font-medium tabular">~{fmtMins(estimatedMins)}</span> estimated — includes time
+                    between questions, based on your median pace of{' '}
+                    <span className="tabular">{fmtVelocity(velocity.medianDeltaSeconds)}</span> across {attempts.length} attempts.
+                  </p>
+                </div>
+              }>
+                <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
+                  <Clock size={11} /> ~{Math.min(loggedMins, estimatedMins)}–{Math.max(loggedMins, estimatedMins)} min
+                </span>
+              </InfoTooltip>
+            </>
+          )}
+          {/* DSA with only a single attempt today — nothing to estimate a range from, just show the logged time. */}
+          {loggedMins > 0 && velocity.sampleSize === 0 && (
             <>
               <span className="text-muted/40 text-xs">·</span>
               <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
-                <Clock size={11} /> {fmtMins(totalMins)}
+                <Clock size={11} /> {fmtMins(loggedMins)}
               </span>
+            </>
+          )}
+          {loggedMins === 0 && velocity.sampleSize > 0 && (
+            <>
+              <span className="text-muted/40 text-xs">·</span>
+              <InfoTooltip content={
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs text-fg font-medium">Time spent (estimated)</p>
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    <span className="text-fg font-medium tabular">~{fmtMins(estimatedMins)}</span> — based on your median pace
+                    of <span className="tabular">{fmtVelocity(velocity.medianDeltaSeconds)}</span> across {attempts.length} attempts.
+                    {' '}This domain doesn&apos;t log a per-attempt time, so there&apos;s no logged total to compare against.
+                  </p>
+                </div>
+              }>
+                <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
+                  <Clock size={11} /> ~{fmtMins(estimatedMins)}
+                </span>
+              </InfoTooltip>
             </>
           )}
         </div>
