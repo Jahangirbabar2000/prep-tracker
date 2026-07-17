@@ -165,6 +165,7 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
                   <Clock size={11} /> ~{Math.min(loggedMins, estimatedMins)}–{Math.max(loggedMins, estimatedMins)} min
                 </span>
               </InfoTooltip>
+              <span className="text-xs text-muted/70 tabular">({fmtVelocity(velocity.medianDeltaSeconds)})</span>
             </>
           )}
           {/* DSA with only a single attempt today — nothing to estimate a range from, just show the logged time. */}
@@ -193,6 +194,7 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
                   <Clock size={11} /> ~{fmtMins(estimatedMins)}
                 </span>
               </InfoTooltip>
+              <span className="text-xs text-muted/70 tabular">({fmtVelocity(velocity.medianDeltaSeconds)})</span>
             </>
           )}
         </div>
