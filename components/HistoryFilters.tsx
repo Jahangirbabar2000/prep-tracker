@@ -10,6 +10,7 @@ const DOMAINS = [
   { value: 'python',      label: 'Backend' },
   { value: 'ai',          label: 'AI' },
   { value: 'lld',         label: 'LLD' },
+  { value: 'behavioral',  label: 'Behavioral' },
 ];
 
 const selectCls = 'bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 transition cursor-pointer';
