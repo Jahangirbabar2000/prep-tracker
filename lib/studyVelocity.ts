@@ -32,7 +32,11 @@ export interface StudyVelocityResult {
 const DEFAULT_BREAK_THRESHOLD_SECONDS = 1200; // 20 minutes
 
 function toEpochMillis(t: RawTimestamp): number {
-  const ms = typeof t === 'number' ? t : new Date(t).getTime();
+  // Store format is "YYYY-MM-DD HH:MM:SS"; space form is not reliably parsed
+  // across engines, so normalize to ISO-like local before converting.
+  const ms = typeof t === 'number'
+    ? t
+    : new Date(t.includes('T') ? t : t.replace(' ', 'T')).getTime();
   if (!Number.isFinite(ms)) {
     throw new TypeError(`Invalid timestamp: ${String(t)}`);
   }
@@ -97,5 +101,85 @@ export function computeStudyVelocity(
     breaksDropped,
     sampleSize: deltasSeconds.length,
     totalQuestionsReviewed,
+  };
+}
+
+/** An attempt with both a completion timestamp and a logged solve duration. */
+export interface TimedAttempt {
+  attemptedAt: RawTimestamp;
+  /** Solve time entered by the user, in minutes. */
+  timeTakenMins: number;
+}
+
+export interface LoggedSessionResult {
+  /** Sum of entered solve times. */
+  loggedMins: number;
+  /** Estimated time between questions (gaps minus the next question's solve time). */
+  betweenMins: number;
+  /** loggedMins + betweenMins — total active session estimate. */
+  sessionMins: number;
+  /** Gaps dropped as unlogged breaks (> break threshold). */
+  breaksDropped: number;
+  /** Number of inter-attempt gaps used for the between-question estimate. */
+  gapSampleSize: number;
+}
+
+/**
+ * Session time for domains that log per-attempt solve duration (e.g. DSA).
+ *
+ * Solve average stays on the entered times. Between-question time is inferred
+ * from completion gaps: for each consecutive pair, any wall-clock gap beyond
+ * the next question's logged solve time counts as transition/idle (long
+ * breaks above the threshold are excluded, same as computeStudyVelocity).
+ *
+ * This avoids double-counting: you cannot add raw gaps on top of logged
+ * totals, because each gap already includes the next question's solve time.
+ */
+export function computeLoggedSessionTime(
+  attempts: TimedAttempt[],
+  options: StudyVelocityOptions = {},
+): LoggedSessionResult {
+  const breakThresholdSeconds = options.breakThresholdSeconds ?? DEFAULT_BREAK_THRESHOLD_SECONDS;
+  const timed = attempts.filter(a => a.timeTakenMins > 0);
+
+  const loggedMins = timed.reduce((s, a) => s + a.timeTakenMins, 0);
+
+  if (timed.length < 2) {
+    return {
+      loggedMins,
+      betweenMins: 0,
+      sessionMins: loggedMins,
+      breaksDropped: 0,
+      gapSampleSize: 0,
+    };
+  }
+
+  const sorted = [...timed].sort(
+    (a, b) => toEpochMillis(a.attemptedAt) - toEpochMillis(b.attemptedAt),
+  );
+
+  let betweenSeconds = 0;
+  let breaksDropped = 0;
+  let gapSampleSize = 0;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const gapSeconds =
+      (toEpochMillis(sorted[i].attemptedAt) - toEpochMillis(sorted[i - 1].attemptedAt)) / 1000;
+    if (gapSeconds > breakThresholdSeconds) {
+      breaksDropped++;
+      continue;
+    }
+    gapSampleSize++;
+    // Gap ≈ next solve + transition; only the surplus is "between questions".
+    betweenSeconds += Math.max(0, gapSeconds - sorted[i].timeTakenMins * 60);
+  }
+
+  const betweenMins = Math.round(betweenSeconds / 60);
+  return {
+    loggedMins,
+    betweenMins,
+    sessionMins: loggedMins + betweenMins,
+    breaksDropped,
+    gapSampleSize,
   };
 }

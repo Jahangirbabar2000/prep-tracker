@@ -15,7 +15,7 @@ function domainPath(domain: string) {
 }
 
 export default function ReviewQueueItem({ item }: { item: RQI }) {
-  const tag = item.pattern_tag ?? item.sd_category ?? item.fe_bucket ?? item.py_category;
+  const tag = item.pattern_tag ?? item.sd_category ?? item.fe_bucket ?? item.py_category ?? item.ai_category ?? item.beh_category ?? item.lld_category;
   const detailPath = `${domainPath(item.domain)}/${item.id}`;
   const overdue = item.days_overdue <= 0 ? 'due today' : `${item.days_overdue}d overdue`;
 

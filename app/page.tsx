@@ -42,9 +42,9 @@ function ReviewQueueInner() {
   }, [router, sessionHref]);
 
   const DOMAIN_LABELS: Record<string, string> = {
-    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
+    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD', behavioral: 'Behavioral',
   };
-  const QUEUE_DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld'];
+  const QUEUE_DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld', 'behavioral'];
   const PROFICIENCY_ORDER = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
   function levelLabel(l: number) {
     if (l === 0) return 'Struggling';
@@ -101,8 +101,9 @@ function ReviewQueueInner() {
     python:        { label: 'Backend',        bar: 'bg-emerald-500',dot: 'bg-emerald-500' },
     ai:            { label: 'AI',            bar: 'bg-rose-500',   dot: 'bg-rose-500' },
     lld:           { label: 'LLD',            bar: 'bg-amber-500',  dot: 'bg-amber-500' },
+    behavioral:    { label: 'Behavioral',    bar: 'bg-teal-500',   dot: 'bg-teal-500' },
   };
-  const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld'];
+  const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld', 'behavioral'];
   const activeDomains = DOMAIN_ORDER.filter(
     d => (todayByDomain[d] ?? 0) + (pendingByDomain[d] ?? 0) > 0,
   );

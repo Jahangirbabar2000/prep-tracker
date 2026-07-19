@@ -48,6 +48,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     'py_category',
     'ai_category',
     'lld_category', 'lld_topic',
+    'beh_category',
     'resource_url', 'notes_text',
   ];
 

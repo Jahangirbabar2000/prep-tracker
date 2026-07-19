@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 // Core routes to proactively cache on first load so the main flows work offline
 // without having to manually visit each one while online.
-const CORE_ROUTES = ['/', '/dsa', '/system-design', '/frontend', '/backend', '/ai', '/review/session', '/review/history'];
+const CORE_ROUTES = ['/', '/dsa', '/system-design', '/frontend', '/backend', '/ai', '/lld', '/behavioral', '/review/session', '/review/history'];
 
 export default function RegisterSW() {
   useEffect(() => {

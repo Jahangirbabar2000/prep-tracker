@@ -35,7 +35,7 @@ function tagStyle(domain: string, tag: string): string {
 }
 
 export default function ProblemListRow({ problem: p, basePath }: Props) {
-  const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category ?? p.lld_category;
+  const tag = p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category ?? p.beh_category ?? p.lld_category;
   const qset = p.domain === 'system_design' ? (p.sd_topic ?? null) : p.domain === 'lld' ? (p.lld_topic ?? null) : (p.question_list ?? null);
   const isDue = p.next_due_date && p.next_due_date <= new Date().toLocaleDateString('en-CA');
 

@@ -30,6 +30,7 @@ const DOMAIN_LABEL: Record<Domain, string> = {
   python:        'Backend',
   ai:            'AI',
   lld:           'LLD',
+  behavioral:    'Behavioral',
 };
 
 const DOMAIN_STYLE: Record<Domain, string> = {
@@ -39,6 +40,7 @@ const DOMAIN_STYLE: Record<Domain, string> = {
   python:        'bg-emerald-500/10 text-emerald-400',
   ai:            'bg-rose-500/10    text-rose-400',
   lld:           'bg-amber-500/10   text-amber-400',
+  behavioral:    'bg-teal-500/10    text-teal-400',
 };
 
 function hostOf(url: string) {
@@ -46,7 +48,7 @@ function hostOf(url: string) {
 }
 
 function cardTag(p: Problem): string | null {
-  return p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category ?? p.lld_topic ?? p.lld_category ?? p.question_list ?? null;
+  return p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category ?? p.beh_category ?? p.lld_topic ?? p.lld_category ?? p.question_list ?? null;
 }
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';

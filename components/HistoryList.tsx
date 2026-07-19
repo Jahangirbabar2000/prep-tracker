@@ -8,7 +8,7 @@ import ProficiencyBadge from './ProficiencyBadge';
 import InfoTooltip from './InfoTooltip';
 import { fmtDate } from '@/lib/fmt';
 import { Domain } from '@/lib/types';
-import { computeStudyVelocity } from '@/lib/studyVelocity';
+import { computeLoggedSessionTime, computeStudyVelocity } from '@/lib/studyVelocity';
 
 export interface TodayAttempt {
   attempt_id: number;
@@ -31,11 +31,12 @@ export interface TodayAttempt {
   ai_category: string | null;
   lld_category: string | null;
   lld_topic: string | null;
+  beh_category: string | null;
 }
 
-const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld'];
+const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld', 'behavioral'];
 const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
+  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD', behavioral: 'Behavioral',
 };
 
 function domainPath(d: string) {
@@ -51,7 +52,7 @@ function fmtMins(mins: number): string {
   return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
 }
 function cardTag(a: TodayAttempt) {
-  return a.pattern_tag ?? a.sd_topic ?? a.sd_category ?? a.fe_bucket ?? a.py_category ?? a.ai_category ?? a.lld_topic ?? a.lld_category ?? null;
+  return a.pattern_tag ?? a.sd_topic ?? a.sd_category ?? a.fe_bucket ?? a.py_category ?? a.ai_category ?? a.beh_category ?? a.lld_topic ?? a.lld_category ?? null;
 }
 /** "45s/q" for sub-minute velocities, "1.5m/q" above a minute. */
 function fmtVelocity(seconds: number): string {
@@ -117,11 +118,25 @@ function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
 function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; attempts: TodayAttempt[]; open: boolean; onToggle: () => void }) {
   const struggled = attempts.filter(a => a.struggled).length;
   const gotIt = attempts.length - struggled;
-  const loggedMins = domain === 'dsa'
-    ? attempts.reduce((s, a) => s + (a.time_taken_mins || 0), 0)
+
+  // DSA logs per-attempt solve time; other domains don't. Avg pace for DSA
+  // comes from entered times. Session total = logged solve + inferred time
+  // between questions (gap surplus beyond the next solve; long breaks excluded).
+  const dsaSession = domain === 'dsa'
+    ? computeLoggedSessionTime(
+        attempts.map(a => ({ attemptedAt: a.attempted_at, timeTakenMins: a.time_taken_mins })),
+      )
+    : null;
+  const loggedMins = dsaSession?.loggedMins ?? 0;
+  const betweenMins = dsaSession?.betweenMins ?? 0;
+  const sessionMins = dsaSession?.sessionMins ?? 0;
+  const timedCount = domain === 'dsa'
+    ? attempts.filter(a => a.time_taken_mins > 0).length
     : 0;
-  // Passive study velocity — median seconds between consecutive logged
-  // attempts in this domain group, with long gaps (breaks) excluded automatically.
+  const avgLoggedSeconds = timedCount > 0 ? (loggedMins / timedCount) * 60 : 0;
+  const showBetweenRange = loggedMins > 0 && betweenMins > 0;
+
+  // Passive study velocity — sole estimate for domains without per-attempt times.
   const velocity = computeStudyVelocity(attempts.map(a => a.attempted_at));
   const estimatedMins = Math.round(velocity.totalActiveSeconds / 60);
 
@@ -144,7 +159,7 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
               <span className="text-xs text-danger tabular">{struggled} struggled</span>
             </>
           )}
-          {loggedMins > 0 && velocity.sampleSize > 0 && (
+          {loggedMins > 0 && (
             <>
               <span className="text-muted/40 text-xs">·</span>
               <InfoTooltip content={
@@ -152,31 +167,33 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
                   <p className="text-xs text-fg font-medium">Time spent</p>
                   <p className="text-[11px] text-muted leading-relaxed">
                     <span className="text-fg font-medium tabular">{fmtMins(loggedMins)}</span> logged — the sum of the solve
-                    time you entered per attempt.
+                    time you entered per attempt
+                    {' '}(<span className="tabular">{fmtVelocity(avgLoggedSeconds)}</span> average).
                   </p>
-                  <p className="text-[11px] text-muted leading-relaxed">
-                    <span className="text-fg font-medium tabular">~{fmtMins(estimatedMins)}</span> estimated — includes time
-                    between questions, based on your median pace of{' '}
-                    <span className="tabular">{fmtVelocity(velocity.medianDeltaSeconds)}</span> across {attempts.length} attempts.
-                  </p>
+                  {showBetweenRange ? (
+                    <p className="text-[11px] text-muted leading-relaxed">
+                      <span className="text-fg font-medium tabular">+{fmtMins(betweenMins)}</span> between questions —
+                      wall-clock gaps beyond each next solve (long breaks excluded). Session total{' '}
+                      <span className="text-fg font-medium tabular">~{fmtMins(sessionMins)}</span>.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-muted leading-relaxed">
+                      No extra time detected between questions (gaps match solve times, or only one timed attempt).
+                    </p>
+                  )}
                 </div>
               }>
                 <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
-                  <Clock size={11} /> ~{Math.min(loggedMins, estimatedMins)}–{Math.max(loggedMins, estimatedMins)} min
+                  <Clock size={11} />{' '}
+                  {showBetweenRange
+                    ? `~${loggedMins}–${sessionMins} min`
+                    : fmtMins(loggedMins)}
                 </span>
               </InfoTooltip>
-              <span className="text-xs text-muted/70 tabular">({fmtVelocity(velocity.medianDeltaSeconds)})</span>
+              <span className="text-xs text-muted/70 tabular">({fmtVelocity(avgLoggedSeconds)})</span>
             </>
           )}
-          {/* DSA with only a single attempt today — nothing to estimate a range from, just show the logged time. */}
-          {loggedMins > 0 && velocity.sampleSize === 0 && (
-            <>
-              <span className="text-muted/40 text-xs">·</span>
-              <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
-                <Clock size={11} /> {fmtMins(loggedMins)}
-              </span>
-            </>
-          )}
+          {/* Domains without per-attempt times — estimate from inter-attempt gaps only. */}
           {loggedMins === 0 && velocity.sampleSize > 0 && (
             <>
               <span className="text-muted/40 text-xs">·</span>
@@ -354,7 +371,7 @@ export default function HistoryList({ reviewed, added }: Props) {
 
   // Group added by domain — all domains always shown
   const addedByDomain: Record<Domain, TodayAttempt[]> = {
-    dsa: [], python: [], frontend: [], system_design: [], ai: [], lld: [],
+    dsa: [], python: [], frontend: [], system_design: [], ai: [], lld: [], behavioral: [],
   };
   for (const a of added) addedByDomain[a.domain].push(a);
 

@@ -116,6 +116,13 @@ const SECTIONS = [
     ],
   },
   {
+    domain: 'behavioral', label: 'Behavioral',
+    fields: [
+      { field: 'question_list', label: 'Question List' },
+      { field: 'beh_category',  label: 'Category' },
+    ],
+  },
+  {
     domain: 'lld', label: 'LLD',
     fields: [
       { field: 'lld_category', label: 'Category' },
@@ -317,7 +324,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4 pb-28 md:pb-8">
+    <div className="max-w-2xl mx-auto py-8 px-4 pb-10 md:pb-8">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-fg tracking-tight">Settings</h1>
         <p className="text-sm text-muted mt-1">Manage dropdown options across the app. Drag to reorder.</p>

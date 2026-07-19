@@ -1,4 +1,4 @@
-export type Domain = 'dsa' | 'system_design' | 'frontend' | 'python' | 'ai' | 'lld';
+export type Domain = 'dsa' | 'system_design' | 'frontend' | 'python' | 'ai' | 'lld' | 'behavioral';
 
 export interface Problem {
   id: number;
@@ -23,6 +23,8 @@ export interface Problem {
   // Low-Level Design
   lld_category?: string | null;
   lld_topic?: string | null;
+  // Behavioral
+  beh_category?: string | null;
   // Universal
   resource_url?: string | null;
   notes_text?: string | null;

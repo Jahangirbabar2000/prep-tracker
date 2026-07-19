@@ -33,10 +33,10 @@ export async function GET() {
     `, [today]),
   ]);
 
-  const counts: Record<string, number> = { dsa: 0, system_design: 0, frontend: 0, python: 0 };
+  const counts: Record<string, number> = { dsa: 0, system_design: 0, frontend: 0, python: 0, ai: 0, lld: 0, behavioral: 0 };
   for (const row of todayRows) counts[row.domain] = row.count;
 
-  const due: Record<string, number> = { dsa: 0, system_design: 0, frontend: 0, python: 0 };
+  const due: Record<string, number> = { dsa: 0, system_design: 0, frontend: 0, python: 0, ai: 0, lld: 0, behavioral: 0 };
   for (const row of dueRows) due[row.domain] = row.count;
 
   return NextResponse.json({ counts, due });

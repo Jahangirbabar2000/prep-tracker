@@ -6,15 +6,52 @@ import { fmtDate } from '@/lib/fmt';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import HistoryFilters from '@/components/HistoryFilters';
-import HistoryList from '@/components/HistoryList';
+import HistoryList, { type TodayAttempt } from '@/components/HistoryList';
 import { Domain } from '@/lib/types';
 import { useStore } from '@/lib/store/store';
 import { historyBuckets, clientToday } from '@/lib/store/queries';
+import { computeLoggedSessionTime, computeStudyVelocity } from '@/lib/studyVelocity';
 
-const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld'];
+const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld', 'behavioral'];
 const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD',
+  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD', behavioral: 'Behavioral',
 };
+
+function fmtMins(mins: number): string {
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
+}
+
+/** Total active minutes for today's reviewed attempts — same per-domain rules as HistoryList. */
+function totalTimeSpentMins(reviewed: TodayAttempt[]): number {
+  const byDomain: Partial<Record<Domain, TodayAttempt[]>> = {};
+  for (const a of reviewed) {
+    if (!byDomain[a.domain]) byDomain[a.domain] = [];
+    byDomain[a.domain]!.push(a);
+  }
+
+  let total = 0;
+  for (const domain of DOMAIN_ORDER) {
+    const attempts = byDomain[domain];
+    if (!attempts?.length) continue;
+
+    if (domain === 'dsa') {
+      const session = computeLoggedSessionTime(
+        attempts.map(a => ({ attemptedAt: a.attempted_at, timeTakenMins: a.time_taken_mins })),
+      );
+      total += session.sessionMins;
+      continue;
+    }
+
+    const velocity = computeStudyVelocity(attempts.map(a => a.attempted_at));
+    if (velocity.sampleSize > 0) {
+      total += Math.round(velocity.totalActiveSeconds / 60);
+    }
+  }
+  return total;
+}
 
 function HistoryInner() {
   const sp = useSearchParams();
@@ -27,6 +64,7 @@ function HistoryInner() {
   const totalReviewed = reviewed.length;
   const struggled     = reviewed.filter(a => a.struggled).length;
   const gotIt         = totalReviewed - struggled;
+  const totalMins     = totalTimeSpentMins(reviewed);
 
   const byDomain: Partial<Record<Domain, number>> = {};
   for (const a of reviewed) byDomain[a.domain] = (byDomain[a.domain] ?? 0) + 1;
@@ -82,6 +120,15 @@ function HistoryInner() {
                   <p className="text-2xl font-bold text-danger tabular">{struggled}</p>
                   <p className="text-xs text-muted mt-0.5">struggled</p>
                 </div>
+                {totalMins > 0 && (
+                  <>
+                    <div className="w-px h-8 bg-border shrink-0" />
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-fg tabular">~{fmtMins(totalMins)}</p>
+                      <p className="text-xs text-muted mt-0.5">time spent</p>
+                    </div>
+                  </>
+                )}
               </div>
               {Object.keys(byDomain).length > 1 && (
                 <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border">
