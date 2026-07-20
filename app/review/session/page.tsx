@@ -12,6 +12,7 @@ import CopyLinkButton from '@/components/CopyLinkButton';
 import { useStore, getData, mutate } from '@/lib/store/store';
 import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
+import { cardTags } from '@/lib/cardTags';
 
 const DOMAIN_LABEL: Record<string, string> = {
   dsa:           'DSA',
@@ -37,10 +38,6 @@ const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-s
 
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
-}
-
-function cardTag(item: ReviewQueueItem): string | null {
-  return item.pattern_tag ?? item.sd_topic ?? item.sd_category ?? item.fe_bucket ?? item.py_category ?? item.ai_category ?? item.beh_category ?? item.lld_topic ?? item.lld_category ?? item.question_list ?? null;
 }
 
 function domainPath(domain: string) {
@@ -359,7 +356,7 @@ function SessionPageInner() {
 
   const activeCount = allCards.filter(c => isActive(c.id, loggedIds, skippedIds)).length;
   const progress    = ((allCards.length - activeCount) / (allCards.length || 1)) * 100;
-  const t = cardTag(card!);
+  const tags        = cardTags(card!);
   const canGoPrev = findAdjacent(allCards, index, 'prev', loggedIds, skippedIds) !== index;
   const canGoNext = findAdjacent(allCards, index, 'next', loggedIds, skippedIds) !== index;
 
@@ -388,7 +385,12 @@ function SessionPageInner() {
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
             {DOMAIN_LABEL[card!.domain]}
           </span>
-          {t && <span className="text-xs text-muted">{t}</span>}
+          {tags.map((t, i) => (
+            <span key={`${t}-${i}`} className="text-xs text-muted">
+              {i > 0 && <span className="text-muted/40 mx-1">·</span>}
+              {t}
+            </span>
+          ))}
           {card!.difficulty && (
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
               card!.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :

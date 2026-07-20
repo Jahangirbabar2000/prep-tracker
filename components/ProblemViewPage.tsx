@@ -15,6 +15,7 @@ import CopyLinkButton from './CopyLinkButton';
 import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
+import { cardTags } from '@/lib/cardTags';
 
 interface Props {
   id: string;
@@ -45,10 +46,6 @@ const DOMAIN_STYLE: Record<Domain, string> = {
 
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
-}
-
-function cardTag(p: Problem): string | null {
-  return p.pattern_tag ?? p.sd_category ?? p.fe_bucket ?? p.py_category ?? p.ai_category ?? p.beh_category ?? p.lld_topic ?? p.lld_category ?? p.question_list ?? null;
 }
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
@@ -228,7 +225,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
 
   if (!data) return <ProblemViewSkeleton />;
 
-  const tag = cardTag(data);
+  const tags = cardTags(data);
 
   return (
     <div className="max-w-5xl flex flex-col gap-6">
@@ -294,7 +291,12 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${DOMAIN_STYLE[domain]}`}>
               {DOMAIN_LABEL[domain]}
             </span>
-            {tag && <span className="text-xs text-muted truncate">{tag}</span>}
+            {tags.map((t, i) => (
+              <span key={`${t}-${i}`} className="text-xs text-muted truncate">
+                {i > 0 && <span className="text-muted/40 mx-1">·</span>}
+                {t}
+              </span>
+            ))}
           </div>
           <div className="flex flex-col items-end gap-0.5 shrink-0">
             <ProficiencyBadge
