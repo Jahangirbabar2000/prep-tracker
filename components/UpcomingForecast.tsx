@@ -74,10 +74,16 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
             <div
               key={slot.dateKey}
               className="flex flex-col items-center gap-1.5 flex-1"
+              title={`${slot.total} review${slot.total === 1 ? '' : 's'} due ${slot.label}`}
             >
               {/* Date label e.g. 06/22 */}
               <span className="text-[10px] text-muted/50 tabular">
                 {slot.dateKey.slice(5, 7)}/{slot.dateKey.slice(8, 10)}
+              </span>
+
+              {/* Day total — the headline count; per-domain dots below are its breakdown */}
+              <span className={`text-sm font-semibold tabular leading-none ${slot.total > 0 ? 'text-fg' : 'text-muted/30'}`}>
+                {slot.total}
               </span>
 
               {/* Per-domain breakdown — fixed height so all columns align (5 domains × ~16px each) */}
