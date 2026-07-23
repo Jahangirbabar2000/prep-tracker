@@ -9,7 +9,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
 import AttemptHistory from '@/components/AttemptHistory';
 import CopyLinkButton from '@/components/CopyLinkButton';
-import { useStore, getData } from '@/lib/store/store';
+import { useStore, getData, mutate } from '@/lib/store/store';
 import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 
@@ -93,6 +93,10 @@ function SessionPageInner() {
 
   const { data, ready } = useStore();
   const initialized = useRef(false);
+
+  // Touch swipe tracking (mobile navigation)
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
   // Snapshot the queue once the store is hydrated. The session works on a frozen
   // copy so the queue doesn't reshuffle mid-session if a background sync lands.
@@ -203,17 +207,22 @@ function SessionPageInner() {
     if (!card || !noteInput.trim()) return;
     setNoteSaving(true);
     try {
-      await fetch(`/api/problems/${card.id}/notes`, {
+      const res = await fetch(`/api/problems/${card.id}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: noteInput.trim() }),
       });
-    } catch {
-      // notes are online-only; ignore failure offline
-    } finally {
-      setNoteSaving(false);
+      if (!res.ok) throw new Error(`save failed: ${res.status}`);
+      const note = await res.json();
+      // Reflect the new note in the local-first store so it persists and shows
+      // on the problem page immediately, without waiting for the next full sync.
+      mutate(d => ({ ...d, notes: [...d.notes, note] }));
       setNoteOpen(false);
       setNoteInput('');
+    } catch {
+      // notes are online-only; keep the draft open so the user can retry offline
+    } finally {
+      setNoteSaving(false);
     }
   }
 
@@ -253,6 +262,52 @@ function SessionPageInner() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [status, revealed, submitting, advance, advanceDsa, goNext, goPrev, skipSection, isDSA]);
+
+  // Touch swipe navigation (mobile) — mirrors the ← / → keys and the Prev/Next
+  // buttons. Only locks vertical scroll once a drag is clearly horizontal, and
+  // ignores gestures that start inside a text field (e.g. the note editor).
+  useEffect(() => {
+    if (status !== 'ready') return;
+    let isHorizontal: boolean | null = null;
+    let startInField = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      startInField = !!(e.target as HTMLElement).closest?.('input, textarea');
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      isHorizontal = null;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (startInField) return;
+      const dx = e.touches[0].clientX - touchStartX.current;
+      const dy = e.touches[0].clientY - touchStartY.current;
+      if (isHorizontal === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+        isHorizontal = Math.abs(dx) > Math.abs(dy);
+      }
+      if (isHorizontal) e.preventDefault();
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      const wasInField = startInField;
+      const dx = e.changedTouches[0].clientX - touchStartX.current;
+      const dy = e.changedTouches[0].clientY - touchStartY.current;
+      isHorizontal = null;
+      if (wasInField) return;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if (dx < 0) goNext(); // swipe left → next card
+      else        goPrev(); // swipe right → previous card
+    };
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: false }); // non-passive to allow preventDefault
+    document.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [status, goNext, goPrev]);
 
   if (status === 'loading') {
     return (
