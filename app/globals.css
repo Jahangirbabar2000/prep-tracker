@@ -80,7 +80,10 @@
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-font-smoothing: antialiased; }
+/* Background on <html> too, so the iOS status-bar / safe-area and overscroll
+   canvas (which sits behind <body>) follow the theme instead of falling back
+   to white. */
+html { -webkit-font-smoothing: antialiased; background-color: var(--bg); }
 body {
   background-color: var(--bg);
   color: var(--fg);

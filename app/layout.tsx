@@ -11,14 +11,19 @@ export const metadata: Metadata = {
   title: 'Prep Tracker',
 };
 
-// Runs before paint to apply the saved theme and avoid a flash of the wrong mode.
+// Runs before paint to apply the saved theme and avoid a flash of the wrong
+// mode. Also syncs the theme-color meta so the mobile status bar / safe-area
+// matches the selected theme (must stay in sync with --bg in globals.css).
 const themeScript = `
 (function() {
   try {
     var t = localStorage.getItem('theme');
-    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-    }
+    var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) document.documentElement.classList.add('dark');
+    var color = dark ? '#0a0f1a' : '#f6f7f9';
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (!m) { m = document.createElement('meta'); m.setAttribute('name', 'theme-color'); document.head.appendChild(m); }
+    m.setAttribute('content', color);
   } catch (e) {}
 })();
 `;
@@ -29,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0f1117" />
+        <meta name="theme-color" content="#0a0f1a" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Prep" />
