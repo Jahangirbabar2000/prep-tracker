@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import Nav from '@/components/Nav';
@@ -9,6 +9,16 @@ import RegisterSW from '@/components/RegisterSW';
 
 export const metadata: Metadata = {
   title: 'Prep Tracker',
+};
+
+// viewport-fit=cover lets the app draw into the iOS safe areas (notch / home
+// indicator). Combined with the themed html background and the black-translucent
+// status bar, this makes the status-bar strip follow the selected theme in the
+// installed (standalone) PWA instead of showing a white bar.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 // Runs before paint to apply the saved theme and avoid a flash of the wrong
@@ -46,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
           <div className="min-h-dvh md:h-dvh md:flex">
             <Nav />
-            <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-10 md:overflow-y-auto">
+            <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] md:overflow-y-auto">
               <ScrollToTop />
               <GlobalShortcuts />
               {children}

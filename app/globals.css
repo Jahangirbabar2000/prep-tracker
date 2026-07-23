@@ -92,6 +92,12 @@ body {
 }
 .tabular { font-variant-numeric: tabular-nums; }
 
+/* iOS safe-area helpers — used with viewport-fit=cover so the notch / home
+   indicator regions are filled by themed surfaces instead of a white bar. */
+.pt-safe   { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe   { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.h-topbar  { height: calc(3.5rem + env(safe-area-inset-top, 0px)); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
