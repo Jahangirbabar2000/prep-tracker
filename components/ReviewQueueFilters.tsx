@@ -39,6 +39,8 @@ export default function ReviewQueueFilters({
     <div className={`flex flex-wrap gap-2 mb-5 items-center transition-opacity duration-150 ${isPending ? 'opacity-60 pointer-events-none' : ''}`}>
       {availableDomains.length > 1 && (
         <select
+          name="domain"
+          aria-label="Filter by domain"
           value={currentDomain}
           onChange={e => push(e.target.value, currentProficiency)}
           className={cls}
@@ -52,6 +54,8 @@ export default function ReviewQueueFilters({
 
       {availableProficiencies.length > 1 && (
         <select
+          name="proficiency"
+          aria-label="Filter by level"
           value={currentProficiency}
           onChange={e => push(currentDomain, e.target.value)}
           className={cls}
