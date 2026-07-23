@@ -27,6 +27,9 @@ export default function ThemeToggle({ collapsed = true }: ThemeToggleProps) {
   function toggle() {
     const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
     document.documentElement.classList.toggle('dark', next === 'dark');
+    // Keep the mobile status-bar / safe-area color in sync (matches --bg).
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', next === 'dark' ? '#0a0f1a' : '#f6f7f9');
     try {
       localStorage.setItem('theme', next);
     } catch {}

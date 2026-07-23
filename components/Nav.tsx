@@ -253,7 +253,7 @@ export default function Nav() {
       </aside>
 
       {/* ── Mobile top bar ───────────────────────────────────────────────── */}
-      <div className="md:hidden flex items-center justify-between gap-2 px-3 h-14 border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-40">
+      <div className="md:hidden flex items-center justify-between gap-2 px-3 h-topbar pt-safe border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-40">
         <div className="flex items-center gap-1 min-w-0">
           <button
             type="button"
@@ -271,8 +271,8 @@ export default function Nav() {
             <span className="truncate">Jahangir&apos;s Prep</span>
           </span>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0">
-          <SyncStatus compact />
+        <div className="flex items-center shrink-0">
+          <span className="-mr-2"><SyncStatus compact /></span>
           <ThemeToggle />
         </div>
       </div>
@@ -297,7 +297,7 @@ export default function Nav() {
 
         <aside
           className={[
-            'absolute inset-y-0 left-0 w-[min(300px,86vw)] flex flex-col bg-surface border-r border-border shadow-xl',
+            'absolute inset-y-0 left-0 w-[min(272px,78vw)] pt-safe pb-safe flex flex-col bg-surface border-r border-border shadow-xl',
             'transition-transform duration-300 ease-out',
             mobileOpen ? 'translate-x-0' : '-translate-x-full',
           ].join(' ')}

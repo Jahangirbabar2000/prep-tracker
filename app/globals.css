@@ -80,7 +80,10 @@
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-font-smoothing: antialiased; }
+/* Background on <html> too, so the iOS status-bar / safe-area and overscroll
+   canvas (which sits behind <body>) follow the theme instead of falling back
+   to white. */
+html { -webkit-font-smoothing: antialiased; background-color: var(--bg); }
 body {
   background-color: var(--bg);
   color: var(--fg);
@@ -88,6 +91,12 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .tabular { font-variant-numeric: tabular-nums; }
+
+/* iOS safe-area helpers — used with viewport-fit=cover so the notch / home
+   indicator regions are filled by themed surfaces instead of a white bar. */
+.pt-safe   { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe   { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.h-topbar  { height: calc(3.5rem + env(safe-area-inset-top, 0px)); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

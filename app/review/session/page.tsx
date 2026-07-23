@@ -351,7 +351,7 @@ function SessionPageInner() {
           href="/"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors"
         >
-          Back to Review Queue <span className="opacity-50 text-xs font-normal ml-0.5">Enter</span>
+          Back to Review Queue <span className="hidden md:inline opacity-50 text-xs font-normal ml-0.5">Enter</span>
         </Link>
       </div>
     );
@@ -368,7 +368,7 @@ function SessionPageInner() {
       {/* Header row */}
       <div className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
-          <ArrowLeft size={13} /> Exit session <span className="opacity-40 ml-0.5">Esc</span>
+          <ArrowLeft size={13} /> Exit session <span className="hidden md:inline opacity-40 ml-0.5">Esc</span>
         </Link>
         <span className="text-xs text-muted tabular">{activeCount} remaining</span>
       </div>
@@ -460,14 +460,14 @@ function SessionPageInner() {
                     onClick={() => setDsaStruggled(false)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${!dsaStruggled ? 'bg-accent text-accent-fg shadow-sm' : 'text-muted hover:text-fg'}`}
                   >
-                    Solved it <span className="opacity-50 font-normal">Y</span>
+                    Solved it <span className="hidden md:inline opacity-50 font-normal">Y</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDsaStruggled(true)}
                     className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${dsaStruggled ? 'bg-danger text-white shadow-sm' : 'text-muted hover:text-fg'}`}
                   >
-                    Struggled <span className="opacity-50 font-normal">N</span>
+                    Struggled <span className="hidden md:inline opacity-50 font-normal">N</span>
                   </button>
                 </div>
               </div>
@@ -476,7 +476,7 @@ function SessionPageInner() {
                 disabled={submitting || !dsaTime.trim()}
                 className="py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                {submitting ? 'Saving…' : <span>Log & Next → <span className="opacity-50 font-normal text-xs">Enter</span></span>}
+                {submitting ? 'Saving…' : <span>Log & Next → <span className="hidden md:inline opacity-50 font-normal text-xs">Enter</span></span>}
               </button>
             </div>
 
@@ -499,9 +499,9 @@ function SessionPageInner() {
                   onClick={() => setRevealed(true)}
                   className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
                 >
-                  Reveal answer <span className="text-xs font-normal opacity-50">Space</span>
+                  Reveal answer <span className="hidden md:inline text-xs font-normal opacity-50">Space</span>
                 </button>
-                <span className="text-xs text-muted/40">← → to navigate</span>
+                <span className="text-xs text-muted/40"><span className="md:hidden">Swipe to navigate</span><span className="hidden md:inline">← → to navigate</span></span>
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-6 py-5">
@@ -544,14 +544,14 @@ function SessionPageInner() {
                     disabled={submitting}
                     className="flex-1 py-2.5 bg-danger/10 border border-danger/30 text-danger text-sm font-semibold rounded-lg hover:bg-danger/20 disabled:opacity-40 transition-colors cursor-pointer"
                   >
-                    ✗ Struggled <span className="text-xs font-normal opacity-50 ml-1">N</span>
+                    ✗ Struggled <span className="hidden md:inline text-xs font-normal opacity-50 ml-1">N</span>
                   </button>
                   <button
                     onClick={() => advance(false)}
                     disabled={submitting}
                     className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
                   >
-                    ✓ Got it <span className="text-xs font-normal opacity-50 ml-1">Y</span>
+                    ✓ Got it <span className="hidden md:inline text-xs font-normal opacity-50 ml-1">Y</span>
                   </button>
                 </div>
               </div>
@@ -596,7 +596,7 @@ function SessionPageInner() {
                 >
                   Cancel
                 </button>
-                <span className="ml-auto text-[11px] text-muted/40 self-center">⌘↵ to save</span>
+                <span className="hidden md:inline ml-auto text-[11px] text-muted/40 self-center">⌘↵ to save</span>
               </div>
             </div>
           )}
@@ -625,7 +625,7 @@ function SessionPageInner() {
           className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           title="Previous question"
         >
-          <ArrowLeft size={14} /> Prev <span className="opacity-40 text-xs">←</span>
+          <ArrowLeft size={14} /> Prev <span className="hidden md:inline opacity-40 text-xs">←</span>
         </button>
         <button
           type="button"
@@ -633,8 +633,8 @@ function SessionPageInner() {
           className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer"
         >
           <SkipForward size={14} />
-          Skip all {DOMAIN_LABEL[card!.domain]}
-          <span className="opacity-40 text-xs">S</span>
+          <span className="truncate">Skip all {DOMAIN_LABEL[card!.domain]}</span>
+          <span className="hidden md:inline opacity-40 text-xs">S</span>
         </button>
         <button
           type="button"
@@ -643,7 +643,7 @@ function SessionPageInner() {
           className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           title="Next question"
         >
-          <span className="opacity-40 text-xs">→</span> Next <ArrowRight size={14} />
+          <span className="hidden md:inline opacity-40 text-xs">→</span> Next <ArrowRight size={14} />
         </button>
       </div>
     </div>
