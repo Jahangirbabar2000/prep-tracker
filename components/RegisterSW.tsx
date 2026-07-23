@@ -10,6 +10,26 @@ export default function RegisterSW() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
+    // In development the service worker only causes stale-cache confusion: a
+    // soft refresh serves the old cached shell (falling back when Next's
+    // on-demand recompile outruns the fetch timeout), so new pages/domains
+    // don't show up without a hard refresh. Offline support only matters for
+    // the deployed PWA, so in dev we instead tear down any SW + caches left
+    // over from a prior production build and bail.
+    if (process.env.NODE_ENV !== 'production') {
+      (async () => {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+        } catch { /* ignore — best effort */ }
+      })();
+      return;
+    }
+
     (async () => {
       try {
         // Remove any stale service workers from earlier experiments (e.g. the spike).
