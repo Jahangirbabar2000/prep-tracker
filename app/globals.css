@@ -40,6 +40,7 @@
 .bg-bg               { background-color: var(--bg); }
 .bg-surface          { background-color: var(--surface); }
 .bg-surface-2        { background-color: var(--surface-2); }
+.bg-border           { background-color: var(--border); }
 .text-fg             { color: var(--fg); }
 .text-muted          { color: var(--muted); }
 .border-border       { border-color: var(--border); }
