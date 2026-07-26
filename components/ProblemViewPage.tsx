@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pencil, Plus } from 'lucide-react';
 import { fmtDate } from '@/lib/fmt';
 import ProficiencyBadge from './ProficiencyBadge';
-import { Domain, Problem } from '@/lib/types';
+import { Domain } from '@/lib/types';
 import AttemptHistory from './AttemptHistory';
 import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
@@ -16,6 +16,7 @@ import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 import { cardTags } from '@/lib/cardTags';
+import { useSwipeNav } from '@/lib/useSwipeNav';
 
 interface Props {
   id: string;
@@ -108,10 +109,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
   const [dsaTime, setDsaTime]           = useState('');
   const [dsaStruggled, setDsaStruggled] = useState(true);
 
-  // Swipe tracking
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-
   // Reset the reveal/result state whenever the question changes — adjusted
   // during render (not an effect) to avoid an extra cascading render.
   const [prevId, setPrevId] = useState(id);
@@ -184,44 +181,13 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     return () => window.removeEventListener('keydown', onKey);
   }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isDSA, id]);
 
-  // Touch swipe navigation — locks vertical scroll once direction is determined horizontal
-  useEffect(() => {
-    if (!data) return;
-    let isHorizontal: boolean | null = null;
-
-    const onTouchStart = (e: TouchEvent) => {
-      touchStartX.current = e.touches[0].clientX;
-      touchStartY.current = e.touches[0].clientY;
-      isHorizontal = null;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      const dx = e.touches[0].clientX - touchStartX.current;
-      const dy = e.touches[0].clientY - touchStartY.current;
-      if (isHorizontal === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-        isHorizontal = Math.abs(dx) > Math.abs(dy);
-      }
-      if (isHorizontal) e.preventDefault();
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      const dx = e.changedTouches[0].clientX - touchStartX.current;
-      const dy = e.changedTouches[0].clientY - touchStartY.current;
-      isHorizontal = null;
-      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      if (dx < 0 && data.prev_id) router.push(`${basePath}/${data.prev_id}`);
-      if (dx > 0 && data.next_id) router.push(`${basePath}/${data.next_id}`);
-    };
-
-    document.addEventListener('touchstart', onTouchStart, { passive: true });
-    document.addEventListener('touchmove', onTouchMove, { passive: false }); // non-passive to allow preventDefault
-    document.addEventListener('touchend', onTouchEnd, { passive: true });
-    return () => {
-      document.removeEventListener('touchstart', onTouchStart);
-      document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', onTouchEnd);
-    };
-  }, [data, basePath, router]);
+  // Touch swipe navigation — horizontally-scrollable answer content (code
+  // blocks) and text fields keep priority for the gesture; see useSwipeNav.
+  useSwipeNav({
+    enabled: !!data,
+    onSwipeLeft: () => { if (data?.prev_id) router.push(`${basePath}/${data.prev_id}`); },
+    onSwipeRight: () => { if (data?.next_id) router.push(`${basePath}/${data.next_id}`); },
+  });
 
   if (!data) return <ProblemViewSkeleton />;
 
