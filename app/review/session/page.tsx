@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import AskAI from '@/components/AskAI';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
 import AttemptHistory from '@/components/AttemptHistory';
 import CopyLinkButton from '@/components/CopyLinkButton';
@@ -472,6 +473,8 @@ function SessionPageInner() {
                 ) : (
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
+
+                <AskAI problemId={card!.id} question={card!.name} answer={card!.notes_text} />
 
                 {links && links.length > 0 && (
                   <div className="flex flex-wrap gap-3">

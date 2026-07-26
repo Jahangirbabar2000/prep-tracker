@@ -11,6 +11,7 @@ import AttemptHistory from './AttemptHistory';
 import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
 import MarkdownRenderer from './MarkdownRenderer';
+import AskAI from './AskAI';
 import CopyLinkButton from './CopyLinkButton';
 import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
@@ -368,6 +369,8 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                 ) : (
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
+
+                <AskAI problemId={data.id} question={data.name} answer={data.notes_text} />
 
                 {links && links.length > 0 && (
                   <div className="flex flex-wrap gap-3">
