@@ -380,31 +380,33 @@ function SessionPageInner() {
 
       {/* Card */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-        {/* Domain + tag + proficiency badge */}
-        <div className="flex items-center gap-2 flex-wrap px-6 pt-5">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
-            {DOMAIN_LABEL[card!.domain]}
-          </span>
-          {tags.map((t, i) => (
-            <span key={`${t}-${i}`} className="text-xs text-muted">
-              {i > 0 && <span className="text-muted/40 mx-1">·</span>}
-              {t}
+        {/* Domain + proficiency badges (left) · category labels stacked (right) */}
+        <div className="flex items-start justify-between gap-3 px-6 pt-5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
+              {DOMAIN_LABEL[card!.domain]}
             </span>
-          ))}
-          {card!.difficulty && (
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-              card!.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
-              card!.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
-                                             'bg-red-500/10     text-red-400'
-            }`}>
-              {card!.difficulty}
-            </span>
+            {card!.difficulty && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                card!.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
+                card!.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
+                                               'bg-red-500/10     text-red-400'
+              }`}>
+                {card!.difficulty}
+              </span>
+            )}
+            <ProficiencyBadge
+              level={card!.interval_level}
+              nextDueDate={card!.next_due_date ?? null}
+              attemptCount={card!.attempt_count ?? 0}
+            />
+          </div>
+          {tags.length > 0 && (
+            <div className="flex flex-col items-end text-right shrink-0 leading-tight">
+              <span className="text-xs font-medium text-muted">{tags[0]}</span>
+              {tags[1] && <span className="text-xs text-muted/60 mt-0.5">{tags[1]}</span>}
+            </div>
           )}
-          <ProficiencyBadge
-            level={card!.interval_level}
-            nextDueDate={card!.next_due_date ?? null}
-            attemptCount={card!.attempt_count ?? 0}
-          />
         </div>
 
         {/* Question title */}
