@@ -272,7 +272,7 @@ export default function Nav() {
           </span>
         </div>
         <div className="flex items-center shrink-0">
-          <span className="-mr-2"><SyncStatus compact /></span>
+          <span className="mr-1.5"><SyncStatus compact /></span>
           <ThemeToggle />
         </div>
       </div>
