@@ -12,6 +12,7 @@ import {
   reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
 } from '@/lib/store/queries';
 import { computeStreak } from '@/lib/streak';
+import type { Problem } from '@/lib/types';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -87,9 +88,13 @@ function ReviewQueueInner() {
 
   const conceptDue = items.length;
 
-  // When a domain filter is active, scope the progress headline to that domain
-  // (done today + remaining) so it matches the filtered list, not all domains.
-  const doneToday   = filterDomain ? (todayByDomain[filterDomain] ?? 0) : todayCount;
+  // Scope "done today" to the active filters so the ring/headline match the
+  // filtered list. Proficiency is matched on the item's CURRENT level (a review
+  // you complete can move it up a level, so it may then fall outside the filter).
+  const inScope = (r: { domain: string; interval_level: number; next_due_date: string | null }) =>
+    (!filterDomain || r.domain === filterDomain) &&
+    (!filterProficiency || matchesProficiency(r as unknown as Problem, filterProficiency));
+  const doneToday   = (filterDomain || filterProficiency) ? reviewed.filter(inScope).length : todayCount;
   const totalToday  = doneToday + items.length;
   const progressPct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
   const streak      = computeStreak(data.attempts.map(a => a.attempted_at), today);
