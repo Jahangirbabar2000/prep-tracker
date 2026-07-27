@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3007;
 const BASE_URL = `http://localhost:${PORT}`;
+const STORAGE_STATE = 'e2e/.auth/state.json';
 
 export default defineConfig({
   testDir: './e2e',
@@ -14,8 +15,10 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    // Authenticates once (past the passcode gate) and saves the session.
+    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE }, dependencies: ['setup'] },
+    { name: 'mobile', use: { ...devices['Pixel 7'], storageState: STORAGE_STATE }, dependencies: ['setup'] },
   ],
   // Reuses the running dev server locally; starts one in CI.
   webServer: {

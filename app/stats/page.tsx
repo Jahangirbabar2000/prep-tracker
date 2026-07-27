@@ -83,7 +83,7 @@ function MiniBars({ values, tone = 'magenta' }: { values: number[]; tone?: Tone 
   return (
     <div className="flex items-end gap-1 h-6">
       {values.map((v, i) => (
-        <div key={i} className="flex-1 rounded-sm bg-surface-2 flex items-end overflow-hidden">
+        <div key={i} className="flex-1 h-full rounded-sm bg-surface-2 flex items-end overflow-hidden">
           <div className={`w-full rounded-sm ${FILL[tone]}`}
                style={{ height: v > 0 ? `${Math.max(18, (v / max) * 100)}%` : '0%' }} />
         </div>
@@ -180,7 +180,7 @@ function StatsInner() {
         <StatCard
           icon={GraduationCap}
           tone="accent"
-          label="Mastered"
+          label="Retained"
           value={m.familiarPlusCount}
           topRight={
             <span className={`text-[11px] font-medium tabular ${m.netLevelMovement7d > 0 ? 'text-accent' : m.netLevelMovement7d < 0 ? 'text-danger' : 'text-muted'}`}>
@@ -190,8 +190,8 @@ function StatsInner() {
           viz={<MicroBar pct={m.totalProblems ? Math.round((m.familiarPlusCount / m.totalProblems) * 100) : 0} tone="accent" />}
           sub={`${m.confidentCount} confident of ${m.totalProblems}`}
           tip={
-            <Tip title="Mastered">
-              Questions at Familiar or Confident — material that has survived multiple spaced reviews (intervals of 14–30 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
+            <Tip title="Retained">
+              Questions that have stuck — at Familiar or Confident, meaning they&apos;ve survived multiple spaced reviews (intervals of 14–30 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
             </Tip>
           }
         />
@@ -243,7 +243,7 @@ function StatsInner() {
       {!filterDomain && (
         <section>
           <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
-            Mastery by Domain <span className="normal-case font-normal text-muted/70">— % at Familiar+ (retained, not just attempted)</span>
+            Retention by Domain <span className="normal-case font-normal text-muted/70">— % at Familiar+ (retained, not just attempted)</span>
           </h2>
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             {m.masteryByDomain.map((d, i) => (
@@ -255,7 +255,7 @@ function StatsInner() {
                   </div>
                 </div>
                 <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
-                  <span className="text-fg font-medium">{d.familiarPlus}</span>/{d.total} mastered
+                  <span className="text-fg font-medium">{d.familiarPlus}</span>/{d.total} retained
                 </div>
                 <div className="text-xs text-muted tabular shrink-0 w-24 text-right">
                   {d.attempts} attempts
