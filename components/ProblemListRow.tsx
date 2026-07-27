@@ -42,7 +42,7 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
   return (
     <Link
       href={`${basePath}/${p.id}`}
-      className="group flex items-center gap-3 px-4 py-3 bg-surface border border-border rounded-xl hover:border-border-strong hover:shadow-sm transition-all cursor-pointer"
+      className="group flex items-center gap-3 px-4 py-3 bg-surface border border-border rounded-xl hover:border-border-strong hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
     >
       <div className="flex-1 min-w-0">
         {/* Row 1: name + difficulty */}

@@ -3,7 +3,7 @@
 import { computeNextDue } from '@/lib/sr';
 import { Attempt, Problem } from '@/lib/types';
 import { idbGet, idbSet } from './idb';
-import { mutate, getData } from './store';
+import { mutate, getData, replaceAll } from './store';
 import { clientNow } from './queries';
 
 interface QueuedAttempt {
@@ -121,16 +121,25 @@ function recomputeProblemSR(problemId: number, attempts: Attempt[], problems: Pr
  * the next unrelated background sync.
  */
 export async function deleteAttemptRemote(attemptId: number): Promise<void> {
-  const res = await fetch(`/api/attempts/${attemptId}`, { method: 'DELETE' });
-  if (!res.ok) throw new Error('Failed to delete attempt');
+  const prev = getData();
+  const removed = prev.attempts.find(a => a.id === attemptId);
+  if (!removed) return;
 
+  // Optimistic: update the local store now so the UI changes instantly.
   mutate(d => {
-    const removed = d.attempts.find(a => a.id === attemptId);
-    if (!removed) return d;
     const attempts = d.attempts.filter(a => a.id !== attemptId);
     const problems = recomputeProblemSR(removed.problem_id, attempts, d.problems);
     return { ...d, attempts, problems };
   });
+
+  // Sync in the background; roll back if the server rejects it.
+  try {
+    const res = await fetch(`/api/attempts/${attemptId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete attempt');
+  } catch (e) {
+    replaceAll(prev);
+    throw e;
+  }
 }
 
 /**
@@ -141,19 +150,44 @@ export async function editAttemptRemote(
   attemptId: number,
   fields: Partial<Pick<Attempt, 'time_taken_mins' | 'struggled' | 'attempted_at' | 'practice_type'>>,
 ): Promise<Attempt> {
-  const res = await fetch(`/api/attempts/${attemptId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(fields),
-  });
-  if (!res.ok) throw new Error('Failed to update attempt');
-  const updated: Attempt = await res.json();
+  const prev = getData();
+  const existing = prev.attempts.find(a => a.id === attemptId);
+  if (!existing) throw new Error('Attempt not found');
 
+  // Build the optimistic attempt locally. Preserve the time-of-day if the edit
+  // only changed the date (the form supplies YYYY-MM-DD).
+  const optimistic: Attempt = {
+    ...existing,
+    ...fields,
+    attempted_at: fields.attempted_at
+      ? `${fields.attempted_at.slice(0, 10)}${existing.attempted_at.slice(10)}`
+      : existing.attempted_at,
+  };
+
+  // Optimistic: update the local store now so the UI changes instantly.
   mutate(d => {
-    const attempts = d.attempts.map(a => a.id === updated.id ? updated : a);
-    const problems = recomputeProblemSR(updated.problem_id, attempts, d.problems);
+    const attempts = d.attempts.map(a => a.id === attemptId ? optimistic : a);
+    const problems = recomputeProblemSR(existing.problem_id, attempts, d.problems);
     return { ...d, attempts, problems };
   });
 
-  return updated;
+  // Sync in the background; reconcile with the server's copy, roll back on error.
+  try {
+    const res = await fetch(`/api/attempts/${attemptId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields),
+    });
+    if (!res.ok) throw new Error('Failed to update attempt');
+    const updated: Attempt = await res.json();
+    mutate(d => {
+      const attempts = d.attempts.map(a => a.id === updated.id ? updated : a);
+      const problems = recomputeProblemSR(updated.problem_id, attempts, d.problems);
+      return { ...d, attempts, problems };
+    });
+    return updated;
+  } catch (e) {
+    replaceAll(prev);
+    throw e;
+  }
 }

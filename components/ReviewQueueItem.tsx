@@ -27,6 +27,7 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
       {/* Overdue urgency bar */}
       <div className={`w-1 self-stretch rounded-full ${item.days_overdue > 3 ? 'bg-danger/70' : 'bg-accent/40'}`} />
 
+      {/* Left: domain + difficulty + title */}
       <div className="flex flex-col gap-1 min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <DomainBadge domain={item.domain} />
@@ -38,19 +39,24 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
               'bg-surface-2 text-muted'
             }`}>{item.difficulty}</span>
           )}
-          {item.last_struggled ? (
-            <span className="inline-flex items-center gap-1 text-xs text-danger font-medium">
-              <AlertTriangle size={12} /> struggled
-            </span>
-          ) : null}
         </div>
         <span className="font-medium text-fg truncate">{item.name}</span>
-        {tag && <span className="text-xs text-muted">{tag}</span>}
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-xs text-muted tabular">{overdue}</span>
-        <ChevronRight size={16} className="text-muted group-hover:translate-x-0.5 transition-transform" />
+      {/* Right: struggled + overdue, category beneath */}
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-col items-end gap-1 text-right">
+          <div className="flex items-center gap-2">
+            {item.last_struggled ? (
+              <span className="inline-flex items-center gap-1 text-xs text-danger font-medium">
+                <AlertTriangle size={12} /> struggled
+              </span>
+            ) : null}
+            <span className="text-xs text-muted tabular">{overdue}</span>
+          </div>
+          {tag && <span className="text-xs text-muted truncate max-w-[160px]">{tag}</span>}
+        </div>
+        <ChevronRight size={16} className="text-muted group-hover:translate-x-0.5 transition-transform shrink-0" />
       </div>
     </Link>
   );

@@ -30,15 +30,16 @@ export default function AttemptHistory({ attempts, showTime = true, showPractice
     });
   }
 
-  async function saveEdit(id: number) {
-    const updated = await editAttemptRemote(id, fields);
-    onUpdated(updated);
+  function saveEdit(id: number) {
+    // Close the editor immediately; the store updates optimistically and the
+    // network sync happens in the background.
     setEditing(null);
+    editAttemptRemote(id, fields).then(onUpdated).catch(() => {});
   }
 
-  async function deleteAttempt(id: number) {
-    await deleteAttemptRemote(id);
+  function deleteAttempt(id: number) {
     onDeleted(id);
+    deleteAttemptRemote(id).catch(() => {});
   }
 
   if (!attempts.length) {
