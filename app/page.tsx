@@ -12,6 +12,7 @@ import {
   reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
 } from '@/lib/store/queries';
 import { computeStreak } from '@/lib/streak';
+import { fmtDateOrToday } from '@/lib/fmt';
 import type { Problem } from '@/lib/types';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -61,6 +62,16 @@ function ReviewQueueInner() {
     (!filterDomain || it.domain === filterDomain) &&
     (!filterProficiency || matchesProficiency(it, filterProficiency)),
   );
+
+  // Group the queue by due date (already sorted most-overdue-first) so questions
+  // due on different days get a dated divider + count, like the domain pages.
+  const dueGroups: { dateKey: string; label: string; items: typeof items }[] = [];
+  for (const it of items) {
+    const dateKey = (it.next_due_date ?? '').slice(0, 10);
+    const last = dueGroups[dueGroups.length - 1];
+    if (last && last.dateKey === dateKey) last.items.push(it);
+    else dueGroups.push({ dateKey, label: dateKey ? fmtDateOrToday(dateKey) : '', items: [it] });
+  }
 
   // Each dropdown's options reflect the OTHER active filter, not itself — so
   // picking DSA won't leave stale proficiency options on screen that have zero
@@ -276,9 +287,23 @@ function ReviewQueueInner() {
           <p className="text-muted text-sm mt-1">You&apos;re all caught up. Come back tomorrow.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {items.map(item => (
-            <ReviewQueueItemCard key={item.id} item={item} />
+        <div className="flex flex-col gap-0">
+          {dueGroups.map((group, gi) => (
+            <div key={group.dateKey || gi}>
+              <div className={`flex items-center gap-3 ${gi === 0 ? 'pb-2.5' : 'py-3'}`}>
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[11px] font-medium text-muted/50 tracking-wide uppercase whitespace-nowrap">
+                  {group.label}
+                  <span className="ml-1.5 opacity-60">· Count: {group.items.length}</span>
+                </span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {group.items.map(item => (
+                  <ReviewQueueItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
