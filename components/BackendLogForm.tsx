@@ -7,7 +7,7 @@ import { Link2, X } from 'lucide-react';
 import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
 import { syncCreatedProblem } from '@/lib/store/createProblem';
 
-const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
+const inputCls = 'bg-surface-2 border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
 export default function BackendLogForm() {
   const router = useRouter();
@@ -127,7 +127,7 @@ export default function BackendLogForm() {
   }
 
   return (
-    <form onSubmit={submit} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); (e.currentTarget as HTMLFormElement).requestSubmit(); } }} className="flex flex-col gap-6">
+    <form onSubmit={submit} onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); (e.currentTarget as HTMLFormElement).requestSubmit(); } }} className="flex flex-col gap-6 bg-surface border border-border rounded-2xl p-5 sm:p-6">
       {/* Question */}
       <div className="flex flex-col gap-1.5 relative">
         <label className="text-xs font-semibold text-muted uppercase tracking-wider">Question</label>
@@ -215,7 +215,7 @@ export default function BackendLogForm() {
       </div>
 
       {/* Classification card */}
-      <div className="rounded-xl border border-border bg-surface p-4 flex flex-col gap-4">
+      <div className="pt-5 mt-1 border-t border-border flex flex-col gap-4">
         <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">
           Classification &amp; Link <span className="normal-case tracking-normal font-normal opacity-50">— optional</span>
         </p>

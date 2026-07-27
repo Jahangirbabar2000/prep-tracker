@@ -14,7 +14,7 @@ interface Props {
   onLogged?: () => void;
 }
 
-const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
+const inputCls = 'bg-surface-2 border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
 const DSA_PATTERNS = [
   'Arrays & Hashing', 'Two Pointers', 'Sliding Window', 'Stack', 'Binary Search',
@@ -168,7 +168,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
+    <form onSubmit={submit} className="flex flex-col gap-4 bg-surface border border-border rounded-2xl p-5 sm:p-6">
       {!defaultDomain && !problemId && (
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-muted uppercase tracking-wide">Domain</label>
@@ -257,7 +257,7 @@ export default function QuickLogForm({ defaultDomain, inline, problemId, onLogge
 
       {/* ── Classification card (domain-specific optional metadata + link) ── */}
       {!problemId && (
-        <div className="rounded-xl border border-border bg-surface p-4 flex flex-col gap-4">
+        <div className="pt-5 mt-1 border-t border-border flex flex-col gap-4">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wider">
             Classification &amp; Link <span className="normal-case tracking-normal font-normal opacity-50">— optional</span>
           </p>

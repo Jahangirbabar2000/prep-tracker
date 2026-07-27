@@ -1,6 +1,11 @@
 'use client';
 
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, ArrowUp } from 'lucide-react';
+
+function scrollToTop() {
+  document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 interface DaySlot {
   dateKey: string;
@@ -51,6 +56,13 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
           Upcoming · next 7 days
         </h2>
         <span className="text-xs text-muted/50 tabular">{totalUpcoming} reviews</span>
+        <button
+          type="button"
+          onClick={scrollToTop}
+          className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
+        >
+          <ArrowUp size={13} /> Go up
+        </button>
       </div>
 
       {/* 7-day columns. Day/date/total header stays aligned across columns;

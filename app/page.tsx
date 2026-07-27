@@ -164,7 +164,7 @@ function ReviewQueueInner() {
             <p className="text-sm text-muted mt-1">Everything due across all domains, most overdue first.</p>
           </div>
           {/* Desktop buttons */}
-          <div className="hidden md:flex items-center gap-2 shrink-0">
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
             <Link
               href="/review/history"
               className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface border border-border text-fg text-sm font-medium rounded-lg hover:border-border-strong transition-colors"
@@ -186,8 +186,8 @@ function ReviewQueueInner() {
           </div>
         </div>
 
-        {/* Mobile buttons — full-width row below the title */}
-        <div className="flex md:hidden items-center gap-2 mt-4">
+        {/* Compact buttons — full-width row below the title (mobile + iPad portrait) */}
+        <div className="flex lg:hidden items-center gap-2 mt-4">
           <Link
             href="/review/history"
             className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-surface border border-border text-fg text-sm font-medium rounded-xl hover:border-border-strong transition-colors"

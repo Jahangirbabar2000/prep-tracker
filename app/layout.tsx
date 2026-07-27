@@ -58,7 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <StoreProvider>
           <RegisterSW />
           {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
-          <div className="min-h-dvh md:h-dvh md:flex">
+          {/* md+ (iPad/desktop standalone): inset the top safe area so the
+              status bar doesn't overlap the sidebar/header. On mobile the
+              top bar handles its own safe-area padding. */}
+          <div className="min-h-dvh md:h-dvh md:flex md:pt-[env(safe-area-inset-top,0px)]">
             <Nav />
             <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] md:overflow-y-auto">
               <ScrollToTop />
