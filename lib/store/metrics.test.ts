@@ -202,6 +202,18 @@ describe('computeMetrics — window boundaries & correctness', () => {
     expect(all.recallRateRecent!).toBeLessThan(100); // ai's struggle drags the global rate down
   });
 
+  it('buckets reviews per day (oldest -> today) for the sparkline', () => {
+    // recentStart = 07-20; days [07-20 .. 07-26]
+    const atts = [
+      attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-19 09:00:00' }), // first, before window
+      attempt({ id: 2, problem_id: 1, attempted_at: '2026-07-20 09:00:00' }), // review, day 0
+      attempt({ id: 3, problem_id: 1, attempted_at: '2026-07-26 09:00:00' }), // review, day 6
+    ];
+    const m = computeMetrics(store([problem({ id: 1 })], atts), TODAY);
+    expect(m.reviewsByDay7d).toEqual([1, 0, 0, 0, 0, 0, 1]);
+    expect(m.reviewsByDay7d.reduce((a, b) => a + b, 0)).toBe(m.reviewsCompleted7d);
+  });
+
   it('computes mastery % per domain with rounding, over all attempts', () => {
     const data = store(
       [

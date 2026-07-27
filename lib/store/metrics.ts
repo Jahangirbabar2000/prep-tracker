@@ -97,6 +97,7 @@ export interface Metrics {
 
   // 4. Consistency
   reviewsCompleted7d: number;
+  reviewsByDay7d: number[]; // review count per day, oldest -> today (length 7)
   streak: number;
 
   // 5. Mastery by domain — ALWAYS all domains (ignores domainFilter)
@@ -223,6 +224,10 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
     netLevelMovement7d: promotions7d - demotions7d,
 
     reviewsCompleted7d: recentReviews.length,
+    reviewsByDay7d: Array.from({ length: 7 }, (_, k) => {
+      const day = addDays(recentStart, k);
+      return recentReviews.filter(r => dateOf(r.attempt.attempted_at) === day).length;
+    }),
     streak: computeStreak(attempts.map(a => a.attempted_at), today),
 
     masteryByDomain,
