@@ -57,8 +57,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         <StoreProvider>
           <RegisterSW />
-          {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow. */}
-          <div className="min-h-dvh md:h-dvh md:flex">
+          {/* md+: flex row (sidebar | scrollable content). mobile: normal block flow.
+              md:pt-safe keeps the desktop sidebar + content clear of the iOS status
+              bar (the mobile top bar handles this on its own below md). */}
+          <div className="min-h-dvh md:h-dvh md:flex md:pt-[env(safe-area-inset-top,0px)]">
             <Nav />
             <main className="flex-1 min-w-0 px-4 sm:px-8 py-8 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] md:overflow-y-auto">
               <ScrollToTop />

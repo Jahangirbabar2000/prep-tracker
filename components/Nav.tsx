@@ -217,6 +217,7 @@ export default function Nav() {
       <aside
         className={[
           'hidden md:flex flex-col shrink-0 h-full border-r border-border bg-surface overflow-hidden',
+          'pb-[env(safe-area-inset-bottom,0px)]',
           'transition-[width] duration-200',
           collapsed ? 'w-[60px]' : 'w-[220px]',
         ].join(' ')}
