@@ -1,37 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 /* Class-based dark mode — toggle .dark on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ── Light theme ─────────────────────────────────────────────────────────── */
+/* ── Momentum · light ────────────────────────────────────────────────────── */
+/* Indigo-tinted paper with an electric-green accent and a magenta streak hue. */
 :root {
-  --bg:            #f6f7f9;
+  --bg:            #f4f3fb;
   --surface:       #ffffff;
-  --surface-2:     #f1f5f9;
-  --fg:            #0f172a;
-  --muted:         #64748b;
-  --border:        #e2e8f0;
-  --border-strong: #cbd5e1;
+  --surface-2:     #eeebf8;
+  --fg:            #171334;
+  --muted:         #6b648c;
+  --border:        #e4e0f2;
+  --border-strong: #cfc9e6;
   --accent:        #16a34a;
   --accent-h:      #15803d;
   --accent-fg:     #ffffff;
-  --danger:        #dc2626;
+  --accent-2:      #db2777;
+  --danger:        #e11d48;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
 }
 
-/* ── Dark theme ──────────────────────────────────────────────────────────── */
+/* ── Momentum · dark ─────────────────────────────────────────────────────── */
+/* Deep indigo base, electric-green accent, magenta for streaks/highlights. */
 .dark {
-  --bg:            #0a0f1a;
-  --surface:       #111827;
-  --surface-2:     #1a2334;
-  --fg:            #f1f5f9;
-  --muted:         #94a3b8;
-  --border:        #1e2a3d;
-  --border-strong: #334155;
-  --accent:        #22c55e;
-  --accent-h:      #16a34a;
-  --accent-fg:     #052e16;
-  --danger:        #f87171;
+  --bg:            #0c0a1a;
+  --surface:       #16132a;
+  --surface-2:     #211c3d;
+  --fg:            #eceaff;
+  --muted:         #9a93c7;
+  --border:        #2a2547;
+  --border-strong: #3b3563;
+  --accent:        #4ade80;
+  --accent-h:      #22c55e;
+  --accent-fg:     #04231a;
+  --accent-2:      #f472b6;
+  --danger:        #fb7185;
 }
 
 /* ── Semantic utility classes ────────────────────────────────────────────── */
@@ -50,6 +55,12 @@
 .bg-accent-fg        { background-color: var(--accent-fg); }
 .text-danger         { color: var(--danger); }
 .bg-danger           { background-color: var(--danger); }
+.text-accent-2       { color: var(--accent-2); }
+.bg-accent-2         { background-color: var(--accent-2); }
+.border-accent-2     { border-color: var(--accent-2); }
+.bg-accent-2\/10     { background-color: color-mix(in srgb, var(--accent-2) 10%, transparent); }
+.bg-accent-2\/15     { background-color: color-mix(in srgb, var(--accent-2) 15%, transparent); }
+.border-accent-2\/30 { border-color: color-mix(in srgb, var(--accent-2) 30%, transparent); }
 
 /* hover variants */
 .hover\:bg-accent-hover:hover   { background-color: var(--accent-h); }
@@ -91,6 +102,12 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .tabular { font-variant-numeric: tabular-nums; }
+
+/* Display face carries the Momentum personality on headings + big numbers. */
+h1, h2, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
 
 /* iOS safe-area helpers — used with viewport-fit=cover so the notch / home
    indicator regions are filled by themed surfaces instead of a white bar. */

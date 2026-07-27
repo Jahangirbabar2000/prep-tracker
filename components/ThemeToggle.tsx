@@ -29,7 +29,7 @@ export default function ThemeToggle({ collapsed = true }: ThemeToggleProps) {
     document.documentElement.classList.toggle('dark', next === 'dark');
     // Keep the mobile status-bar / safe-area color in sync (matches --bg).
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', next === 'dark' ? '#0a0f1a' : '#f6f7f9');
+    if (meta) meta.setAttribute('content', next === 'dark' ? '#0c0a1a' : '#f4f3fb');
     try {
       localStorage.setItem('theme', next);
     } catch {}

@@ -6,11 +6,12 @@ import ReviewQueueItemCard from '@/components/ReviewQueueItem';
 import UpcomingForecast from '@/components/UpcomingForecast';
 import ReviewQueueFilters from '@/components/ReviewQueueFilters';
 import Link from 'next/link';
-import { Check, History, Play } from 'lucide-react';
+import { Check, History, Play, Flame } from 'lucide-react';
 import { useStore } from '@/lib/store/store';
 import {
   reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
 } from '@/lib/store/queries';
+import { computeStreak } from '@/lib/streak';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -88,6 +89,7 @@ function ReviewQueueInner() {
 
   const totalToday  = todayCount + items.length;
   const progressPct = totalToday > 0 ? Math.round((todayCount / totalToday) * 100) : 0;
+  const streak      = computeStreak(data.attempts.map(a => a.attempted_at), today);
 
   const pendingByDomain: Record<string, number> = {};
   for (const item of items) {
@@ -193,21 +195,36 @@ function ReviewQueueInner() {
       {/* Today's progress summary */}
       {totalToday > 0 && (
         <div className="mb-5 bg-surface border border-border rounded-xl px-4 py-3.5 flex flex-col gap-3">
-          {/* Overall */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted font-medium">Today&apos;s progress</span>
-              <span className="tabular">
-                <span className="text-accent font-semibold">{todayCount}</span>
-                <span className="text-muted"> / {totalToday}</span>
-                {items.length > 0 && <span className="text-muted"> · {items.length} remaining</span>}
+          {/* Overall — progress ring + streak */}
+          <div className="flex items-center gap-4">
+            <div className="relative shrink-0" style={{ width: 56, height: 56 }}>
+              <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+                <circle cx="28" cy="28" r="23" fill="none" stroke="var(--border)" strokeWidth="5" />
+                <circle
+                  cx="28" cy="28" r="23" fill="none" stroke="var(--accent)" strokeWidth="5" strokeLinecap="round"
+                  strokeDasharray={144.513}
+                  strokeDashoffset={144.513 * (1 - progressPct / 100)}
+                  transform="rotate(-90 28 28)"
+                  className="transition-[stroke-dashoffset] duration-500"
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold tabular text-fg">
+                {progressPct}%
               </span>
             </div>
-            <div className="h-1.5 bg-border rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent rounded-full transition-[width] duration-300"
-                style={{ width: `${progressPct}%` }}
-              />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-fg">Today&apos;s progress</span>
+                {streak > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-accent-2 bg-accent-2/10 px-2 py-0.5 rounded-full shrink-0">
+                    <Flame size={12} /> {streak}-day streak
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-muted mt-1 tabular">
+                <span className="text-accent font-semibold">{todayCount}</span> / {totalToday} done
+                {items.length > 0 && <span> · {items.length} remaining</span>}
+              </div>
             </div>
           </div>
 
