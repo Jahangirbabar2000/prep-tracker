@@ -144,10 +144,10 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
     <div className="border border-border rounded-xl overflow-hidden bg-surface">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors cursor-pointer"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-surface-2 transition-colors cursor-pointer"
         aria-expanded={open}
       >
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
           <DomainBadge domain={domain} showIcon={false} />
           <span className="text-sm font-semibold text-fg">{DOMAIN_LABEL[domain]}</span>
           <span className="text-xs text-muted tabular">{attempts.length} reviewed</span>
@@ -159,9 +159,11 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
               <span className="text-xs text-danger tabular">{struggled} struggled</span>
             </>
           )}
+        </div>
+        {/* Time + pace live on the right so the header reads counts-left / time-right. */}
+        <div className="flex items-center gap-2 shrink-0">
           {loggedMins > 0 && (
             <>
-              <span className="text-muted/40 text-xs">·</span>
               <InfoTooltip content={
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-fg font-medium">Time spent</p>
@@ -196,7 +198,6 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
           {/* Domains without per-attempt times — estimate from inter-attempt gaps only. */}
           {loggedMins === 0 && velocity.sampleSize > 0 && (
             <>
-              <span className="text-muted/40 text-xs">·</span>
               <InfoTooltip content={
                 <div className="flex flex-col gap-2">
                   <p className="text-xs text-fg font-medium">Time spent (estimated)</p>
@@ -214,12 +215,12 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
               <span className="text-xs text-muted/70 tabular">({fmtVelocity(velocity.medianDeltaSeconds)})</span>
             </>
           )}
+          <ChevronDown
+            size={14}
+            className="text-muted shrink-0 transition-transform duration-200"
+            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          />
         </div>
-        <ChevronDown
-          size={14}
-          className="text-muted shrink-0 ml-2 transition-transform duration-200"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
       </button>
 
       <div
@@ -255,29 +256,29 @@ function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: Toda
     <div className={`border border-border rounded-xl overflow-hidden bg-surface transition-opacity ${!hasItems ? 'opacity-40' : ''}`}>
       <button
         onClick={() => { if (hasItems) setOpen(o => !o); }}
-        className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${hasItems ? 'hover:bg-surface-2 cursor-pointer' : 'cursor-default'}`}
+        className={`w-full flex items-center justify-between gap-3 px-4 py-3 transition-colors ${hasItems ? 'hover:bg-surface-2 cursor-pointer' : 'cursor-default'}`}
         aria-expanded={hasItems ? open : undefined}
       >
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
           <DomainBadge domain={domain} showIcon={false} />
           <span className="text-sm font-semibold text-fg">{DOMAIN_LABEL[domain]}</span>
           <span className="text-xs text-muted tabular">{attempts.length} added</span>
+        </div>
+        {/* Time + chevron on the right so the header reads count-left / time-right. */}
+        <div className="flex items-center gap-2 shrink-0">
           {totalMins > 0 && (
-            <>
-              <span className="text-muted/40 text-xs">·</span>
-              <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
-                <Clock size={11} /> {fmtMins(totalMins)}
-              </span>
-            </>
+            <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
+              <Clock size={11} /> {fmtMins(totalMins)}
+            </span>
+          )}
+          {hasItems && (
+            <ChevronDown
+              size={14}
+              className="text-muted shrink-0 transition-transform duration-200"
+              style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            />
           )}
         </div>
-        {hasItems && (
-          <ChevronDown
-            size={14}
-            className="text-muted shrink-0 ml-2 transition-transform duration-200"
-            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          />
-        )}
       </button>
 
       {hasItems && (
