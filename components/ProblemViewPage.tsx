@@ -370,7 +370,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
 
-                <AskAI problemId={data.id} question={data.name} answer={data.notes_text} />
+                <AskAI problemId={data.id} question={data.name} answer={data.notes_text} domain={DOMAIN_LABEL[domain]} tags={tags} />
 
                 {links && links.length > 0 && (
                   <div className="flex flex-wrap gap-3">

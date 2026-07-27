@@ -474,7 +474,7 @@ function SessionPageInner() {
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
 
-                <AskAI problemId={card!.id} question={card!.name} answer={card!.notes_text} />
+                <AskAI problemId={card!.id} question={card!.name} answer={card!.notes_text} domain={DOMAIN_LABEL[card!.domain]} tags={tags} />
 
                 {links && links.length > 0 && (
                   <div className="flex flex-wrap gap-3">

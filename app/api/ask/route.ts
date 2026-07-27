@@ -41,16 +41,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { question?: string; answer?: string };
+  let body: { question?: string; answer?: string; domain?: string; tags?: string[] };
   try { body = await req.json(); } catch { return json({ error: 'Send a JSON body.' }, 400); }
 
   const question = (body.question ?? '').trim();
   const answer = (body.answer ?? '').trim();
   if (!question) return json({ error: 'A question is required.' }, 400);
 
+  // Context lines help the model disambiguate (e.g. "Caching" under System
+  // Design vs Backend) and pitch the answer at the right topic.
+  const context: string[] = [];
+  if (body.domain) context.push(`Domain: ${body.domain}`);
+  const tags = (body.tags ?? []).map((t) => t.trim()).filter(Boolean);
+  if (tags.length) context.push(`Topic: ${tags.join(' › ')}`);
+  const contextBlock = context.length ? `${context.join('\n')}\n\n` : '';
+
   const userContent = answer
-    ? `Question: ${question}\n\nMy saved answer:\n${answer}`
-    : `Question: ${question}\n\n(No saved answer yet — give a concise primer with a worked example.)`;
+    ? `${contextBlock}Question: ${question}\n\nMy saved answer:\n${answer}`
+    : `${contextBlock}Question: ${question}\n\n(No saved answer yet — give a concise primer with a worked example.)`;
 
   let upstream: Response;
   try {

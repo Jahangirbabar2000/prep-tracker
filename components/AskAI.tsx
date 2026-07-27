@@ -13,10 +13,14 @@ export default function AskAI({
   problemId,
   question,
   answer,
+  domain,
+  tags,
 }: {
   problemId: number;
   question: string;
   answer?: string | null;
+  domain?: string;
+  tags?: string[];
 }) {
   const [status, setStatus] = useState<Status>('idle');
   const [text, setText] = useState('');
@@ -43,7 +47,7 @@ export default function AskAI({
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, answer: answer ?? '' }),
+        body: JSON.stringify({ question, answer: answer ?? '', domain, tags }),
       });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => ({}));
@@ -65,7 +69,7 @@ export default function AskAI({
       setStatus('error');
       setError(e instanceof Error ? e.message : 'Something went wrong. Try again.');
     }
-  }, [cacheKey, question, answer]);
+  }, [cacheKey, question, answer, domain, tags]);
 
   const open = () => { if (!started.current) { started.current = true; void run(false); } };
 
