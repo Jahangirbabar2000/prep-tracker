@@ -5,14 +5,14 @@ import remarkGfm from 'remark-gfm';
 
 export default function MarkdownRenderer({ content }: { content: string }) {
   return (
-    <div className="text-sm text-fg/90 leading-relaxed">
+    <div className="md-body text-sm text-fg/90 leading-relaxed">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           p:          ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-          ul:         ({ children }) => <ul className="list-disc list-outside pl-4 mb-2 space-y-0.5">{children}</ul>,
-          ol:         ({ children }) => <ol className="list-decimal list-outside pl-4 mb-2 space-y-0.5">{children}</ol>,
-          li:         ({ children }) => <li>{children}</li>,
+          ul:         ({ children }) => <ul className="list-outside pl-5 mb-2 space-y-1 marker:text-muted">{children}</ul>,
+          ol:         ({ children }) => <ol className="list-decimal list-outside pl-5 mb-2 space-y-1 marker:text-muted marker:font-medium">{children}</ol>,
+          li:         ({ children }) => <li className="pl-0.5">{children}</li>,
           strong:     ({ children }) => <strong className="font-semibold text-fg">{children}</strong>,
           em:         ({ children }) => <em className="italic">{children}</em>,
           h1:         ({ children }) => <h1 className="text-base font-semibold text-fg mb-1 mt-3 first:mt-0">{children}</h1>,
@@ -25,12 +25,13 @@ export default function MarkdownRenderer({ content }: { content: string }) {
           code:       ({ children, className }) => {
             const isBlock = !!className;
             return isBlock
-              ? <code className="block font-mono text-xs text-fg/90">{children}</code>
+              ? <code className="block font-mono text-xs">{children}</code>
               : <code className="px-1.5 py-0.5 rounded bg-surface-2 border border-border font-mono text-xs text-accent">{children}</code>;
           },
-          // Code blocks
+          // Code / plaintext blocks — dark surface in both themes so code reads
+          // as code (not decoration) and never washes out on a light card.
           pre:        ({ children }) => (
-            <pre className="bg-surface-2 border border-border rounded-lg px-4 py-3 overflow-x-auto font-mono text-xs mb-2 leading-relaxed">
+            <pre className="bg-code text-code border border-code rounded-lg px-4 py-3 overflow-x-auto font-mono text-xs mb-2 leading-relaxed">
               {children}
             </pre>
           ),

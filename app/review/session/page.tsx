@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight, ExternalLink, SkipForward } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import AskAI from '@/components/AskAI';
@@ -341,31 +341,30 @@ function SessionPageInner() {
 
       {/* Card */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
-        {/* Domain + tag + proficiency badge */}
+        {/* Domain + category on the left; topic, difficulty + proficiency right-aligned */}
         <div className="flex items-center gap-2 flex-wrap px-6 pt-5">
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
             {DOMAIN_LABEL[card!.domain]}
           </span>
-          {tags.map((t, i) => (
-            <span key={`${t}-${i}`} className="text-xs text-muted">
-              {i > 0 && <span className="text-muted/40 mx-1">·</span>}
-              {t}
-            </span>
-          ))}
-          {card!.difficulty && (
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-              card!.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
-              card!.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
-                                             'bg-red-500/10     text-red-400'
-            }`}>
-              {card!.difficulty}
-            </span>
-          )}
-          <ProficiencyBadge
-            level={card!.interval_level}
-            nextDueDate={card!.next_due_date ?? null}
-            attemptCount={card!.attempt_count ?? 0}
-          />
+          {tags[0] && <span className="text-xs text-muted">{tags[0]}</span>}
+
+          <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
+            {tags[1] && <span className="text-xs text-muted">{tags[1]}</span>}
+            {card!.difficulty && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                card!.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
+                card!.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
+                                               'bg-red-500/10     text-red-400'
+              }`}>
+                {card!.difficulty}
+              </span>
+            )}
+            <ProficiencyBadge
+              level={card!.interval_level}
+              nextDueDate={card!.next_due_date ?? null}
+              attemptCount={card!.attempt_count ?? 0}
+            />
+          </div>
         </div>
 
         {/* Question title */}
@@ -473,8 +472,6 @@ function SessionPageInner() {
                 ) : (
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
-
-                <AskAI problemId={card!.id} question={card!.name} answer={card!.notes_text} domain={DOMAIN_LABEL[card!.domain]} tags={tags} />
 
                 {links && links.length > 0 && (
                   <div className="flex flex-wrap gap-3">
@@ -587,30 +584,47 @@ function SessionPageInner() {
           type="button"
           onClick={goPrev}
           disabled={!canGoPrev}
-          className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-muted hover:text-fg hover:border-border-strong hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           title="Previous question"
         >
-          <ArrowLeft size={14} /> Prev <span className="hidden md:inline opacity-40 text-xs">←</span>
+          <ChevronLeft size={16} className="md:hidden shrink-0" />
+          <span>Prev</span>
+          <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">←</kbd>
         </button>
         <button
           type="button"
           onClick={skipSection}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer"
+          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-muted hover:text-fg hover:border-border-strong hover:bg-surface-2 transition-colors cursor-pointer"
         >
-          <SkipForward size={14} />
+          <SkipForward size={14} className="shrink-0" />
           <span className="truncate">Skip all {DOMAIN_LABEL[card!.domain]}</span>
-          <span className="hidden md:inline opacity-40 text-xs">S</span>
+          <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">S</kbd>
         </button>
         <button
           type="button"
           onClick={goNext}
           disabled={!canGoNext}
-          className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-border rounded-xl text-sm text-muted hover:text-fg hover:border-border-strong transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-muted hover:text-fg hover:border-border-strong hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
           title="Next question"
         >
-          <span className="hidden md:inline opacity-40 text-xs">→</span> Next <ArrowRight size={14} />
+          <span>Next</span>
+          <ChevronRight size={16} className="md:hidden shrink-0" />
+          <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">→</kbd>
         </button>
       </div>
+
+      {/* AI elaboration — its own card below the nav, available regardless of
+          whether the answer is revealed. Keyed by card id so it resets per card. */}
+      {card && (
+        <AskAI
+          key={card.id}
+          problemId={card.id}
+          question={card.name}
+          answer={card.notes_text}
+          domain={DOMAIN_LABEL[card.domain]}
+          tags={tags}
+        />
+      )}
     </div>
   );
 }

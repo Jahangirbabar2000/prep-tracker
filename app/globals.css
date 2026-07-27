@@ -7,18 +7,21 @@
 /* ── Momentum · light ────────────────────────────────────────────────────── */
 /* Indigo-tinted paper with an electric-green accent and a magenta streak hue. */
 :root {
-  --bg:            #f4f3fb;
+  --bg:            #e7e5f5;
   --surface:       #ffffff;
-  --surface-2:     #eeebf8;
+  --surface-2:     #e3def4;
   --fg:            #171334;
   --muted:         #6b648c;
-  --border:        #e4e0f2;
-  --border-strong: #cfc9e6;
+  --border:        #dbd5ee;
+  --border-strong: #c5bee0;
   --accent:        #16a34a;
   --accent-h:      #15803d;
   --accent-fg:     #ffffff;
   --accent-2:      #db2777;
   --danger:        #e11d48;
+  --code-bg:       #edeef2;
+  --code-fg:       #2b2740;
+  --code-border:   #dcdee5;
   --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
 }
 
@@ -37,6 +40,9 @@
   --accent-fg:     #04231a;
   --accent-2:      #f472b6;
   --danger:        #fb7185;
+  --code-bg:       #0f0c22;
+  --code-fg:       #e7e3f7;
+  --code-border:   #2a2547;
 }
 
 /* ── Semantic utility classes ────────────────────────────────────────────── */
@@ -56,6 +62,9 @@
 .text-danger         { color: var(--danger); }
 .bg-danger           { background-color: var(--danger); }
 .text-accent-2       { color: var(--accent-2); }
+.bg-code             { background-color: var(--code-bg); }
+.text-code           { color: var(--code-fg); }
+.border-code         { border-color: var(--code-border); }
 .bg-accent-2         { background-color: var(--accent-2); }
 .border-accent-2     { border-color: var(--accent-2); }
 .bg-accent-2\/10     { background-color: color-mix(in srgb, var(--accent-2) 10%, transparent); }
@@ -103,10 +112,36 @@ body {
 }
 .tabular { font-variant-numeric: tabular-nums; }
 
+/* Light mode: lift rounded surface cards off the indigo canvas so the UI reads
+   layered, not flat. Dark mode keeps depth via borders (no shadow). Excludes
+   the nav sidebar (not rounded) and the translucent mobile top bar. */
+:root:not(.dark) [class*="rounded"].bg-surface {
+  box-shadow: 0 1px 2px rgba(23, 19, 52, 0.05), 0 10px 26px -10px rgba(23, 19, 52, 0.14);
+}
+
 /* Display face carries the Momentum personality on headings + big numbers. */
 h1, h2, .font-display {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
+}
+
+/* Markdown lists: restore markers and give nested levels a distinct shape so
+   the hierarchy (the "order") of nested points reads clearly. */
+.md-body ul       { list-style-type: disc; }
+.md-body ul ul    { list-style-type: circle; }
+.md-body ul ul ul { list-style-type: square; }
+
+/* Subtle press feedback on anything clickable, app-wide. Buttons/links already
+   animate their colors; this adds a gentle "give" on press so taps feel alive. */
+button, a, select, summary, [role="button"], .cursor-pointer {
+  transition: transform 0.12s ease, background-color 0.15s ease,
+              border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+button:active, [role="button"]:active, .cursor-pointer:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active, [role="button"]:active, .cursor-pointer:active { transform: none; }
 }
 
 /* iOS safe-area helpers — used with viewport-fit=cover so the notch / home

@@ -36,16 +36,6 @@ const DOMAIN_STYLE: Record<string, string> = {
   behavioral:    'text-teal-400',
 };
 
-const DOMAIN_DOT: Record<string, string> = {
-  dsa:           'bg-blue-400',
-  system_design: 'bg-orange-400',
-  frontend:      'bg-violet-400',
-  python:        'bg-emerald-400',
-  ai:            'bg-rose-400',
-  lld:           'bg-amber-400',
-  behavioral:    'bg-teal-400',
-};
-
 // Ordered so the domain row is always consistent left-to-right
 const DOMAIN_ORDER = ['python', 'dsa', 'frontend', 'system_design', 'ai', 'lld', 'behavioral'];
 
@@ -63,8 +53,10 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
         <span className="text-xs text-muted/50 tabular">{totalUpcoming} reviews</span>
       </div>
 
-      {/* 7-day columns */}
-      <div className="flex items-end gap-2 mb-5">
+      {/* 7-day columns. Day/date/total header stays aligned across columns;
+          the per-domain dot stack flows below with dynamic height, so a busy
+          day simply reads taller — no fixed clip to overflow into the labels. */}
+      <div className="flex items-start gap-1.5 sm:gap-2 mb-5">
         {slots.map((slot) => {
           const domainEntries = DOMAIN_ORDER
             .filter(d => slot.domains[d] > 0)
@@ -73,35 +65,34 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
           return (
             <div
               key={slot.dateKey}
-              className="flex flex-col items-center gap-1.5 flex-1"
+              className="group flex-1 min-w-0 flex flex-col items-center gap-1"
               title={`${slot.total} review${slot.total === 1 ? '' : 's'} due ${slot.label}`}
             >
-              {/* Date label e.g. 06/22 */}
-              <span className="text-[10px] text-muted/50 tabular">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted/60 leading-none">
+                {slot.shortLabel}
+              </span>
+              <span className="text-[10px] text-muted/50 tabular leading-none">
                 {slot.dateKey.slice(5, 7)}/{slot.dateKey.slice(8, 10)}
               </span>
-
-              {/* Day total — the headline count; per-domain dots below are its breakdown */}
-              <span className={`text-sm font-semibold tabular leading-none ${slot.total > 0 ? 'text-fg' : 'text-muted/30'}`}>
+              <span className={`text-[15px] font-semibold tabular leading-none mt-0.5 ${slot.total > 0 ? 'text-fg' : 'text-muted/30'}`}>
                 {slot.total}
               </span>
 
-              {/* Per-domain breakdown — fixed height so all columns align (5 domains × ~16px each) */}
-              <div className="flex flex-col items-center gap-0.5 h-[90px] justify-start pt-0.5">
+              {/* Per-domain breakdown — dynamic height, hover to read each domain */}
+              <div className="flex flex-col items-center gap-0.5 pt-1.5">
                 {domainEntries.map(([domain, count]) => (
-                  <div key={domain} className="flex items-center gap-1">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOMAIN_DOT[domain] ?? 'bg-muted'}`} />
+                  <div
+                    key={domain}
+                    className="flex items-center gap-1 rounded px-1 -mx-1 group-hover:bg-surface-2 transition-colors"
+                    title={`${DOMAIN_LABEL[domain] ?? domain}: ${count}`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOMAIN_STYLE[domain] ?? 'text-muted'}`} style={{ backgroundColor: 'currentColor' }} />
                     <span className={`text-[10px] font-medium tabular ${DOMAIN_STYLE[domain] ?? 'text-muted'}`}>
                       {count}
                     </span>
                   </div>
                 ))}
               </div>
-
-              {/* Day label */}
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted/60">
-                {slot.shortLabel}
-              </span>
             </div>
           );
         })}

@@ -83,66 +83,63 @@ export default function AskAI({
 
   if (status === 'idle') {
     return (
-      <button
-        onClick={open}
-        className="inline-flex items-center gap-2 self-start text-sm text-muted hover:text-fg bg-surface-2 border border-border rounded-full px-3.5 py-1.5 transition-colors cursor-pointer"
-      >
-        <Sparkles size={15} className="text-accent" />
-        Ask AI to elaborate
-      </button>
+      <div className="bg-surface border border-border rounded-2xl px-4 py-4">
+        <button
+          onClick={open}
+          className="w-full inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-accent bg-accent/5 border border-accent/20 rounded-xl hover:bg-accent/10 transition-colors cursor-pointer"
+        >
+          <Sparkles size={16} />
+          Ask AI to elaborate
+        </button>
+      </div>
     );
   }
 
   return (
-    <div className="flex">
-      {/* Connector rail — makes the elaboration read as a margin note on the answer. */}
-      <div className="w-0.5 bg-accent/60 ml-[18px] mr-4 shrink-0" aria-hidden />
-
-      <div className="flex-1 min-w-0 bg-accent/5 border border-accent/25 rounded-r-xl px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.12em] uppercase text-accent">
-            <Sparkles size={13} /> AI · elaborated
-          </span>
-          {(status === 'done' || status === 'error') && (
-            <button
-              onClick={() => run(true)}
-              title="Regenerate"
-              aria-label="Regenerate"
-              className="text-muted hover:text-fg transition-colors cursor-pointer"
-            >
-              <RefreshCw size={14} />
-            </button>
-          )}
-        </div>
-
-        {status === 'loading' && (
-          <p className="text-sm text-muted">Thinking<span className="motion-safe:animate-pulse">…</span></p>
-        )}
-
-        {error && <p className="text-sm text-danger">{error}</p>}
-
-        {text && (
-          <>
-            <MarkdownRenderer content={text} />
-            {status === 'streaming' && (
-              <span className="inline-block w-1.5 h-4 bg-accent/70 align-text-bottom ml-0.5 motion-safe:animate-pulse" aria-hidden />
-            )}
-          </>
-        )}
-
-        {status === 'done' && text && (
-          <div className="flex items-center justify-between mt-3 pt-2 border-t border-accent/15">
-            <button
-              onClick={copy}
-              className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
-            >
-              {copied ? <Check size={13} className="text-accent" /> : <Copy size={13} />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-            <span className="text-[11px] text-muted/70">AI-generated — verify</span>
-          </div>
+    <div className="bg-surface border border-border rounded-2xl px-6 py-5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.12em] uppercase text-accent">
+          <Sparkles size={13} /> AI · elaborated
+        </span>
+        {(status === 'done' || status === 'error') && (
+          <button
+            onClick={() => run(true)}
+            title="Regenerate"
+            aria-label="Regenerate"
+            className="text-muted hover:text-fg transition-colors cursor-pointer"
+          >
+            <RefreshCw size={14} />
+          </button>
         )}
       </div>
+
+      {status === 'loading' && (
+        <p className="text-sm text-muted">Thinking<span className="motion-safe:animate-pulse">…</span></p>
+      )}
+
+      {error && <p className="text-sm text-danger">{error}</p>}
+
+      {text && (
+        <>
+          <MarkdownRenderer content={text} />
+          {status === 'streaming' && (
+            <span className="inline-block w-1.5 h-4 bg-accent/70 align-text-bottom ml-0.5 motion-safe:animate-pulse" aria-hidden />
+          )}
+        </>
+      )}
+
+      {status === 'done' && text && (
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+          <button
+            onClick={copy}
+            className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
+          >
+            {copied ? <Check size={13} className="text-accent" /> : <Copy size={13} />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          <span className="text-[11px] text-muted/70">AI-generated — verify</span>
+        </div>
+      )}
     </div>
   );
 }
