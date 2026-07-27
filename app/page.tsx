@@ -87,8 +87,11 @@ function ReviewQueueInner() {
 
   const conceptDue = items.length;
 
-  const totalToday  = todayCount + items.length;
-  const progressPct = totalToday > 0 ? Math.round((todayCount / totalToday) * 100) : 0;
+  // When a domain filter is active, scope the progress headline to that domain
+  // (done today + remaining) so it matches the filtered list, not all domains.
+  const doneToday   = filterDomain ? (todayByDomain[filterDomain] ?? 0) : todayCount;
+  const totalToday  = doneToday + items.length;
+  const progressPct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
   const streak      = computeStreak(data.attempts.map(a => a.attempted_at), today);
 
   const pendingByDomain: Record<string, number> = {};
@@ -222,7 +225,7 @@ function ReviewQueueInner() {
                 )}
               </div>
               <div className="text-xs text-muted mt-1 tabular">
-                <span className="text-accent font-semibold">{todayCount}</span> / {totalToday} done
+                <span className="text-accent font-semibold">{doneToday}</span> / {totalToday} done
                 {items.length > 0 && <span> · {items.length} remaining</span>}
               </div>
             </div>
