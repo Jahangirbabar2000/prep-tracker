@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { TrendingDown, TrendingUp, Minus, AlertCircle } from 'lucide-react';
@@ -36,12 +36,23 @@ const PROFICIENCY_COLOR: Record<string, string> = {
 
 const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
 
-function StatCard({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
+function StatCard({ label, value, sub, tip }: { label: string; value: React.ReactNode; sub?: React.ReactNode; tip: ReactNode }) {
   return (
-    <div className="bg-surface border border-border rounded-xl px-5 py-4">
-      <p className="text-xs text-muted font-medium uppercase tracking-wide">{label}</p>
-      <p className="text-2xl font-bold text-fg tabular mt-1">{value}</p>
-      {sub && <p className="text-xs text-muted mt-0.5">{sub}</p>}
+    <InfoTooltip className="block h-full" width={300} content={tip}>
+      <div className="h-full bg-surface border border-border rounded-xl px-5 py-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+        <p className="text-xs text-muted font-medium uppercase tracking-wide">{label}</p>
+        <p className="text-2xl font-bold text-fg tabular mt-1">{value}</p>
+        {sub && <p className="text-xs text-muted mt-0.5">{sub}</p>}
+      </div>
+    </InfoTooltip>
+  );
+}
+
+function Tip({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="text-xs text-fg/90 leading-relaxed">
+      <p className="font-semibold text-fg mb-1">{title}</p>
+      <p>{children}</p>
     </div>
   );
 }
@@ -70,7 +81,7 @@ function TrendBadge({ recent, prior, higherIsBetter = false, title, unit = '%' }
 
   return (
     <InfoTooltip content={tip} width={280}>
-      <span className={`inline-flex items-center gap-1 text-xs font-medium underline decoration-dotted decoration-muted/50 underline-offset-4 ${cls}`}>
+      <span className={`inline-flex items-center gap-1 text-xs font-medium ${cls}`}>
         <Icon size={12} /> {label}
       </span>
     </InfoTooltip>
@@ -117,38 +128,41 @@ function StatsInner() {
           label="Recall on reviews (7d)"
           value={m.recallRateRecent === null ? '—' : `${m.recallRateRecent}%`}
           sub={m.reviewCountRecent > 0 ? `${m.reviewCountRecent} reviews` : 'no reviews yet'}
+          tip={
+            <Tip title="Recall on reviews">
+              Of your scheduled reviews in the last 7 days — repeat attempts, not first-ever sightings — the share you got right without struggling. This is the clearest sign spaced repetition is working: can you retrieve what you&apos;ve seen before? Higher is better.
+            </Tip>
+          }
         />
         <StatCard
           label="Due to review"
           value={m.dueCount}
           sub={m.dueCount > 0 ? `avg ${m.avgDaysOverdue}d overdue · oldest ${m.oldestOverdueAge}d` : 'all caught up'}
+          tip={
+            <Tip title="Due to review">
+              Questions whose next review date has arrived or passed. Spaced repetition only works if you review on time — a growing backlog means recall is decaying faster than you refresh it. Shows the average and oldest overdue age.
+            </Tip>
+          }
         />
         <StatCard
           label="Mastered"
           value={m.familiarPlusCount}
-          sub={
-            <>
-              {m.confidentCount} confident ·{' '}
-              <InfoTooltip
-                content={
-                  <div className="text-xs text-fg/90 leading-relaxed">
-                    <p className="font-semibold text-fg mb-1">Net level movement (7d)</p>
-                    <p>Promotions minus demotions across your reviews this week — getting a review right moves an item up a level, struggling moves it down.</p>
-                  </div>
-                }
-                width={280}
-              >
-                <span className="underline decoration-dotted decoration-muted/50 underline-offset-4">
-                  net {signed(m.netLevelMovement7d)} (7d)
-                </span>
-              </InfoTooltip>
-            </>
+          sub={`${m.confidentCount} confident · net ${signed(m.netLevelMovement7d)} (7d)`}
+          tip={
+            <Tip title="Mastered">
+              Questions at Familiar or Confident — material that has survived multiple spaced reviews (intervals of 14–30 days). &ldquo;Net (7d)&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
+            </Tip>
           }
         />
         <StatCard
           label="Reviews this week"
           value={m.reviewsCompleted7d}
           sub={`${m.streak}-day streak`}
+          tip={
+            <Tip title="Reviews this week">
+              Review attempts completed in the last 7 days (first-ever attempts don&apos;t count), plus your consecutive-day streak. Consistency is the input that drives everything else — retention and maturity follow from showing up.
+            </Tip>
+          }
         />
       </div>
 

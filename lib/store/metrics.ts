@@ -115,8 +115,10 @@ export interface Metrics {
 }
 
 export function computeMetrics(data: StoreData, today: string, domainFilter?: Domain): Metrics {
-  const sevenAgo = addDays(today, -7);
-  const fourteenAgo = addDays(today, -14);
+  // "Last 7 days" = today and the 6 days before it; the prior block is the 7
+  // days before that. Two equal, non-overlapping 7-day windows.
+  const recentStart = addDays(today, -6);
+  const priorStart = addDays(today, -13);
 
   // Scope problems/attempts to the active domain filter (mastery-by-domain stays global).
   const problems = domainFilter ? data.problems.filter(p => p.domain === domainFilter) : data.problems;
@@ -138,10 +140,10 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
     if (lapses > 0) lapsesByProblem.set(pid, lapses);
   }
 
-  const inRecent = (r: AttemptReplay) => dateOf(r.attempt.attempted_at) >= sevenAgo;
+  const inRecent = (r: AttemptReplay) => dateOf(r.attempt.attempted_at) >= recentStart;
   const inPrior = (r: AttemptReplay) => {
     const d = dateOf(r.attempt.attempted_at);
-    return d >= fourteenAgo && d < sevenAgo;
+    return d >= priorStart && d < recentStart;
   };
 
   // 1. Recall on reviews

@@ -158,3 +158,60 @@ describe('computeMetrics — scoping & edges', () => {
     expect(m.masteryByDomain).toHaveLength(7);
   });
 });
+
+describe('computeMetrics — window boundaries & correctness', () => {
+  it('splits the 7-day recent/prior windows at the right day boundaries', () => {
+    // today 07-26 → recent = [07-20, 07-26], prior = [07-13, 07-19]
+    const atts = [
+      attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-12 09:00:00' }), // first + before prior window
+      attempt({ id: 2, problem_id: 1, attempted_at: '2026-07-13 09:00:00' }), // review, prior start
+      attempt({ id: 3, problem_id: 1, attempted_at: '2026-07-19 09:00:00' }), // review, prior end
+      attempt({ id: 4, problem_id: 1, attempted_at: '2026-07-20 09:00:00' }), // review, recent start
+      attempt({ id: 5, problem_id: 1, attempted_at: '2026-07-26 09:00:00' }), // review, recent (today)
+    ];
+    const m = computeMetrics(store([problem({ id: 1 })], atts), TODAY);
+    expect(m.reviewCountPrior).toBe(2);  // 07-13, 07-19
+    expect(m.reviewCountRecent).toBe(2); // 07-20, 07-26 (07-12 is the first attempt, excluded)
+  });
+
+  it('computes the prior-window recall rate independently of the recent one', () => {
+    const atts = [
+      attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-13 09:00:00' }),               // first (not a review)
+      attempt({ id: 2, problem_id: 1, attempted_at: '2026-07-14 09:00:00', struggled: 1 }),  // review, prior, struggled
+      attempt({ id: 3, problem_id: 1, attempted_at: '2026-07-15 09:00:00' }),               // review, prior, ok
+    ];
+    const m = computeMetrics(store([problem({ id: 1 })], atts), TODAY);
+    expect(m.reviewCountPrior).toBe(2);
+    expect(m.recallRatePrior).toBe(50);      // 1 of 2 not struggled
+    expect(m.recallRateRecent).toBeNull();   // nothing in the recent window
+  });
+
+  it('scopes recall and review debt to the domain filter', () => {
+    const data = store(
+      [
+        problem({ id: 1, domain: 'dsa', next_due_date: '2026-07-20' }),
+        problem({ id: 2, domain: 'ai', next_due_date: '2026-07-20' }),
+      ],
+      [...seq(1, 20, [0, 0, 0]), ...seq(2, 20, [0, 0, 1])], // dsa reviews all pass; ai has a struggled review
+    );
+    const all = computeMetrics(data, TODAY);
+    const dsa = computeMetrics(data, TODAY, 'dsa');
+    expect(all.dueCount).toBe(2);
+    expect(dsa.dueCount).toBe(1);
+    expect(dsa.recallRateRecent).toBe(100);          // only dsa reviews (both pass)
+    expect(all.recallRateRecent!).toBeLessThan(100); // ai's struggle drags the global rate down
+  });
+
+  it('computes mastery % per domain with rounding, over all attempts', () => {
+    const data = store(
+      [
+        problem({ id: 1, domain: 'dsa', interval_level: 2 }),
+        problem({ id: 2, domain: 'dsa', interval_level: 0 }),
+        problem({ id: 3, domain: 'dsa', interval_level: 0 }),
+      ],
+      [attempt({ id: 1, problem_id: 1 }), attempt({ id: 2, problem_id: 1 })],
+    );
+    const dsa = computeMetrics(data, TODAY).masteryByDomain.find(d => d.domain === 'dsa')!;
+    expect(dsa).toMatchObject({ total: 3, familiarPlus: 1, pct: 33, attempts: 2 }); // round(1/3*100)
+  });
+});

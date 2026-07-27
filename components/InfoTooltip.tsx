@@ -9,6 +9,9 @@ interface Props {
   /** Tooltip body content. */
   content: ReactNode;
   width?: number;
+  /** Override the trigger wrapper classes (e.g. "block h-full" to wrap a card).
+   *  Defaults to an inline trigger. */
+  className?: string;
 }
 
 const VIEWPORT_MARGIN = 8;
@@ -20,7 +23,7 @@ function clamp(n: number, min: number, max: number) {
 
 /** Generic hover/focus tooltip, portaled to <body> so it escapes overflow-hidden
  *  ancestors (cards, scroll areas). Positioning logic mirrors ProficiencyBadge. */
-export default function InfoTooltip({ children, content, width = 256 }: Props) {
+export default function InfoTooltip({ children, content, width = 256, className }: Props) {
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; arrowLeft: number; placement: 'top' | 'bottom' } | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -61,7 +64,7 @@ export default function InfoTooltip({ children, content, width = 256 }: Props) {
   return (
     <span
       ref={triggerRef}
-      className="inline-flex items-center cursor-default"
+      className={`cursor-default ${className ?? 'inline-flex items-center'}`}
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}
