@@ -404,7 +404,8 @@ function SessionPageInner() {
           {tags.length > 0 && (
             <div className="flex flex-col items-end text-right shrink-0 leading-tight">
               <span className="text-xs font-medium text-muted">{tags[0]}</span>
-              {tags[1] && <span className="text-xs text-muted/60 mt-0.5">{tags[1]}</span>}
+              {/* Sub-category is hidden on mobile so the header stays one line; shown stacked on md+. */}
+              {tags[1] && <span className="hidden md:block text-xs text-muted/60 mt-0.5">{tags[1]}</span>}
             </div>
           )}
         </div>
