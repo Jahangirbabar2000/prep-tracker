@@ -1,9 +1,22 @@
 import { NextRequest } from 'next/server';
 import { parseSSE } from '@/lib/openaiStream';
+import { createRateLimiter } from '@/lib/rateLimit';
 
 export const runtime = 'nodejs';
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5-nano';
+
+// Guards a public, unauthenticated endpoint that spends OpenAI credits:
+// max 2 requests per minute per IP (best-effort per warm instance).
+const rateLimit = createRateLimiter({ limit: 2, windowMs: 60_000 });
+
+function clientIp(req: NextRequest): string {
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
 
 const SYSTEM_PROMPT = `You are a concise interview-prep tutor. The user has a saved answer to the question below and wants a little more depth. Extend their answer: fill the likely gaps and clarify the tricky points, and ALWAYS include at least one concrete, worked example — a short code snippet, a small scenario, or a real-world case — that makes the concept stick. Keep it tight: under ~150 words, prefer bullets, don't restate what they already wrote, no filler. Format with GitHub-flavoured markdown.`;
 
@@ -18,6 +31,14 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return json({ error: 'AI isn’t configured. Add OPENAI_API_KEY to .env.local and restart.' }, 503);
+  }
+
+  const rl = rateLimit(clientIp(req));
+  if (!rl.ok) {
+    return new Response(
+      JSON.stringify({ error: `Slow down — max 2 AI requests per minute. Try again in ${rl.retryAfter}s.` }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rl.retryAfter) } },
+    );
   }
 
   let body: { question?: string; answer?: string };
