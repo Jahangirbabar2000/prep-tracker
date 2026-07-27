@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, LogOut } from 'lucide-react';
 
 function DefaultLinkCard({ domain }: { domain: string }) {
   const [value, setValue]     = useState('');
@@ -325,9 +325,17 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4 pb-10 md:pb-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-fg tracking-tight">Settings</h1>
-        <p className="text-sm text-muted mt-1">Manage dropdown options across the app. Drag to reorder.</p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-fg tracking-tight">Settings</h1>
+          <p className="text-sm text-muted mt-1">Manage dropdown options across the app. Drag to reorder.</p>
+        </div>
+        <button
+          onClick={async () => { await fetch('/api/auth', { method: 'DELETE' }); window.location.assign('/login'); }}
+          className="shrink-0 inline-flex items-center gap-1.5 text-sm text-muted hover:text-danger border border-border rounded-lg px-3 py-1.5 transition-colors cursor-pointer"
+        >
+          <LogOut size={15} /> Log out
+        </button>
       </div>
 
       {loading ? (

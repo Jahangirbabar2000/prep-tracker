@@ -56,6 +56,9 @@ export default function Nav() {
     return () => window.removeEventListener('keydown', onKey);
   }, [mobileOpen]);
 
+  // The login page renders full-screen without app chrome.
+  if (pathname === '/login') return null;
+
   function toggleCollapse() {
     setCollapsed(c => {
       const next = !c;
