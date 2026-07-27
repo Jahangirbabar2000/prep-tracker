@@ -8,7 +8,8 @@ import DomainBadge from '@/components/DomainBadge';
 import HistoryFilters from '@/components/HistoryFilters';
 import InfoTooltip from '@/components/InfoTooltip';
 import { useStore } from '@/lib/store/store';
-import { overallStats } from '@/lib/store/queries';
+import { clientToday } from '@/lib/store/queries';
+import { computeMetrics } from '@/lib/store/metrics';
 import { Domain } from '@/lib/types';
 
 const DOMAIN_DOT: Record<Domain, string> = {
@@ -33,7 +34,9 @@ const PROFICIENCY_COLOR: Record<string, string> = {
   Confident:  'bg-accent',
 };
 
-function StatCard({ label, value, sub }: { label: string; value: React.ReactNode; sub?: string }) {
+const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+
+function StatCard({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
     <div className="bg-surface border border-border rounded-xl px-5 py-4">
       <p className="text-xs text-muted font-medium uppercase tracking-wide">{label}</p>
@@ -43,23 +46,24 @@ function StatCard({ label, value, sub }: { label: string; value: React.ReactNode
   );
 }
 
-function TrendBadge({ recent, prior }: { recent: number; prior: number }) {
+function TrendBadge({ recent, prior, higherIsBetter = false, title, unit = '%' }: {
+  recent: number; prior: number; higherIsBetter?: boolean; title: string; unit?: string;
+}) {
   const diff = recent - prior;
   if (prior === 0 && recent === 0) return null;
 
   const flat = Math.abs(diff) < 1;
-  const improving = diff < 0; // lower struggle rate = improving
-  const Icon = flat ? Minus : improving ? TrendingDown : TrendingUp;
+  const improving = higherIsBetter ? diff > 0 : diff < 0;
+  const Icon = flat ? Minus : diff > 0 ? TrendingUp : TrendingDown;
   const cls = flat ? 'text-muted' : improving ? 'text-accent' : 'text-danger';
   const label = flat ? 'flat vs prior week' : `${Math.abs(diff)}pt ${improving ? 'better' : 'worse'} vs prior week`;
 
   const tip = (
     <div className="text-xs text-fg/90 leading-relaxed">
-      <p className="font-semibold text-fg mb-1">Struggled-rate trend</p>
+      <p className="font-semibold text-fg mb-1">{title}</p>
       <p>
-        Share of attempts you marked <span className="text-danger font-medium">struggled</span> in the last 7 days
-        {' '}(<span className="tabular font-medium text-fg">{recent}%</span>) vs the 7 days before that
-        {' '}(<span className="tabular font-medium text-fg">{prior}%</span>). Lower is better.
+        Last 7 days (<span className="tabular font-medium text-fg">{recent}{unit}</span>) vs the 7 days before that
+        {' '}(<span className="tabular font-medium text-fg">{prior}{unit}</span>). {higherIsBetter ? 'Higher' : 'Lower'} is better.
       </p>
     </div>
   );
@@ -91,9 +95,10 @@ function StatsInner() {
     );
   }
 
-  const s = overallStats(data, filterDomain || undefined);
-  const proficiencyOrder: Array<keyof typeof s.proficiencyCounts> = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident'];
-  const proficiencyTotal = Object.values(s.proficiencyCounts).reduce((a, b) => a + b, 0) || 1;
+  const m = computeMetrics(data, clientToday(), filterDomain || undefined);
+  const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident'];
+  const proficiencyTotal = Object.values(m.proficiencyCounts).reduce((a, b) => a + b, 0) || 1;
+  const showRecallTrend = m.recallRateRecent !== null && m.recallRatePrior !== null;
 
   return (
     <div className="max-w-4xl flex flex-col gap-6">
@@ -101,33 +106,55 @@ function StatsInner() {
         <h1 className="text-2xl font-semibold text-fg tracking-tight">
           Stats {filterDomain && <span className="text-muted font-normal">· {DOMAIN_LABEL[filterDomain]}</span>}
         </h1>
-        <p className="text-sm text-muted mt-1">How much you&apos;ve done, and whether it&apos;s actually sticking.</p>
+        <p className="text-sm text-muted mt-1">Whether it&apos;s sticking, whether you&apos;re keeping up, and what keeps slipping.</p>
       </div>
 
       <HistoryFilters currentDomain={filterDomain} basePath="/stats" />
 
-      {/* Top-line numbers */}
+      {/* Headline KPIs — retention, adherence, maturity, consistency */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Total Attempts" value={s.totalAttempts} />
         <StatCard
-          label="Questions Attempted"
-          value={s.attemptedProblems}
-          sub={`of ${s.totalProblems} total`}
+          label="Recall on reviews (7d)"
+          value={m.recallRateRecent === null ? '—' : `${m.recallRateRecent}%`}
+          sub={m.reviewCountRecent > 0 ? `${m.reviewCountRecent} reviews` : 'no reviews yet'}
         />
         <StatCard
-          label="Struggled Rate (all-time)"
-          value={`${s.struggledRateOverall}%`}
+          label="Due to review"
+          value={m.dueCount}
+          sub={m.dueCount > 0 ? `avg ${m.avgDaysOverdue}d overdue · oldest ${m.oldestOverdueAge}d` : 'all caught up'}
         />
         <StatCard
-          label="Struggled Rate (7d)"
-          value={s.recentAttemptCount > 0 ? `${s.struggledRateRecent}%` : '—'}
-          sub={s.recentAttemptCount > 0 ? `${s.recentAttemptCount} attempts` : 'no attempts yet'}
+          label="Mastered"
+          value={m.familiarPlusCount}
+          sub={
+            <>
+              {m.confidentCount} confident ·{' '}
+              <InfoTooltip
+                content={
+                  <div className="text-xs text-fg/90 leading-relaxed">
+                    <p className="font-semibold text-fg mb-1">Net level movement (7d)</p>
+                    <p>Promotions minus demotions across your reviews this week — getting a review right moves an item up a level, struggling moves it down.</p>
+                  </div>
+                }
+                width={280}
+              >
+                <span className="underline decoration-dotted decoration-muted/50 underline-offset-4">
+                  net {signed(m.netLevelMovement7d)} (7d)
+                </span>
+              </InfoTooltip>
+            </>
+          }
+        />
+        <StatCard
+          label="Reviews this week"
+          value={m.reviewsCompleted7d}
+          sub={`${m.streak}-day streak`}
         />
       </div>
 
-      {s.recentAttemptCount > 0 && (
+      {showRecallTrend && (
         <div className="-mt-3">
-          <TrendBadge recent={s.struggledRateRecent} prior={s.struggledRatePrior} />
+          <TrendBadge recent={m.recallRateRecent!} prior={m.recallRatePrior!} higherIsBetter title="Recall-rate trend" />
         </div>
       )}
 
@@ -137,7 +164,7 @@ function StatsInner() {
         <div className="bg-surface border border-border rounded-xl px-5 py-4 flex flex-col gap-3">
           <div className="h-3 rounded-full overflow-hidden flex bg-surface-2">
             {proficiencyOrder.map(key => {
-              const n = s.proficiencyCounts[key];
+              const n = m.proficiencyCounts[key];
               if (!n) return null;
               return (
                 <div
@@ -153,53 +180,54 @@ function StatsInner() {
             {proficiencyOrder.map(key => (
               <span key={key} className="inline-flex items-center gap-1.5 text-xs text-muted">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${PROFICIENCY_COLOR[key]}`} />
-                {key} <span className="text-fg font-medium tabular">{s.proficiencyCounts[key]}</span>
+                {key} <span className="text-fg font-medium tabular">{m.proficiencyCounts[key]}</span>
               </span>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Per-domain coverage — only meaningful when not already scoped to one domain */}
+      {/* Mastery by domain — only meaningful when not already scoped to one domain */}
       {!filterDomain && (
         <section>
-          <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Coverage by Domain</h2>
+          <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
+            Mastery by Domain <span className="normal-case font-normal text-muted/70">— % at Familiar+ (retained, not just attempted)</span>
+          </h2>
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            {s.byDomain.map((d, i) => {
-              const pct = d.total > 0 ? Math.round((d.attempted / d.total) * 100) : 0;
-              return (
-                <div key={d.domain} className={`px-5 py-3.5 flex items-center gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
-                  <div className="w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
-                  <div className="flex-1 min-w-0">
-                    <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${DOMAIN_DOT[d.domain]}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
-                    <span className="text-fg font-medium">{d.attempted}</span>/{d.total} covered
-                  </div>
-                  <div className="text-xs text-muted tabular shrink-0 w-24 text-right">
-                    {d.attempts} attempts
+            {m.masteryByDomain.map((d, i) => (
+              <div key={d.domain} className={`px-5 py-3.5 flex items-center gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
+                <div className="w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
+                <div className="flex-1 min-w-0">
+                  <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${DOMAIN_DOT[d.domain]}`} style={{ width: `${d.pct}%` }} />
                   </div>
                 </div>
-              );
-            })}
+                <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
+                  <span className="text-fg font-medium">{d.familiarPlus}</span>/{d.total} mastered
+                </div>
+                <div className="text-xs text-muted tabular shrink-0 w-24 text-right">
+                  {d.attempts} attempts
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
 
-      {/* Chronic strugglers */}
+      {/* Leeches — items that matured then lapsed */}
       <section>
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">
-          Chronic Strugglers <span className="normal-case font-normal text-muted/70">— still stuck after 3+ attempts</span>
+          Leeches <span className="normal-case font-normal text-muted/70">
+            — {m.leechesAreFallback ? 'still stuck after 3+ attempts' : 'reached Familiar+, then lapsed'}
+          </span>
         </h2>
-        {s.chronicStrugglers.length === 0 ? (
+        {m.leeches.length === 0 ? (
           <div className="bg-surface border border-border rounded-xl px-5 py-6 text-center">
-            <p className="text-sm text-muted">None right now — nothing has resisted 3+ attempts.</p>
+            <p className="text-sm text-muted">None right now — nothing has lapsed after maturing.</p>
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
-            {s.chronicStrugglers.map((c, i) => (
+            {m.leeches.map((c, i) => (
               <Link
                 key={c.id}
                 href={`${c.domain === 'system_design' ? '/system-design' : c.domain === 'python' ? '/backend' : `/${c.domain}`}/${c.id}`}
@@ -208,7 +236,9 @@ function StatsInner() {
                 <AlertCircle size={14} className="text-danger shrink-0" />
                 <span className="text-sm text-fg flex-1 truncate">{c.name}</span>
                 <DomainBadge domain={c.domain} showIcon={false} />
-                <span className="text-xs text-danger font-semibold tabular shrink-0">{c.attempt_count}× struggled</span>
+                <span className="text-xs text-danger font-semibold tabular shrink-0">
+                  {c.lapseCount > 0 ? `${c.lapseCount}× lapsed` : `${c.attemptCount}× attempted`}
+                </span>
               </Link>
             ))}
           </div>
