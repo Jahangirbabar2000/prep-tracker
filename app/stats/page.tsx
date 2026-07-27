@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { TrendingDown, TrendingUp, Minus, AlertCircle } from 'lucide-react';
 import DomainBadge from '@/components/DomainBadge';
 import HistoryFilters from '@/components/HistoryFilters';
+import InfoTooltip from '@/components/InfoTooltip';
 import { useStore } from '@/lib/store/store';
 import { overallStats } from '@/lib/store/queries';
 import { Domain } from '@/lib/types';
@@ -45,15 +46,30 @@ function StatCard({ label, value, sub }: { label: string; value: React.ReactNode
 function TrendBadge({ recent, prior }: { recent: number; prior: number }) {
   const diff = recent - prior;
   if (prior === 0 && recent === 0) return null;
-  if (Math.abs(diff) < 1) {
-    return <span className="inline-flex items-center gap-1 text-xs text-muted"><Minus size={12} /> flat vs prior week</span>;
-  }
+
+  const flat = Math.abs(diff) < 1;
   const improving = diff < 0; // lower struggle rate = improving
-  const Icon = improving ? TrendingDown : TrendingUp;
+  const Icon = flat ? Minus : improving ? TrendingDown : TrendingUp;
+  const cls = flat ? 'text-muted' : improving ? 'text-accent' : 'text-danger';
+  const label = flat ? 'flat vs prior week' : `${Math.abs(diff)}pt ${improving ? 'better' : 'worse'} vs prior week`;
+
+  const tip = (
+    <div className="text-xs text-fg/90 leading-relaxed">
+      <p className="font-semibold text-fg mb-1">Struggled-rate trend</p>
+      <p>
+        Share of attempts you marked <span className="text-danger font-medium">struggled</span> in the last 7 days
+        {' '}(<span className="tabular font-medium text-fg">{recent}%</span>) vs the 7 days before that
+        {' '}(<span className="tabular font-medium text-fg">{prior}%</span>). Lower is better.
+      </p>
+    </div>
+  );
+
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium ${improving ? 'text-accent' : 'text-danger'}`}>
-      <Icon size={12} /> {Math.abs(diff)}pt {improving ? 'better' : 'worse'} vs prior week
-    </span>
+    <InfoTooltip content={tip} width={280}>
+      <span className={`inline-flex items-center gap-1 text-xs font-medium underline decoration-dotted decoration-muted/50 underline-offset-4 ${cls}`}>
+        <Icon size={12} /> {label}
+      </span>
+    </InfoTooltip>
   );
 }
 
