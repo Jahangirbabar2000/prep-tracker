@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { Sparkles, RefreshCw, Copy, Check } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import { idbGet, idbSet } from '@/lib/store/idb';
@@ -9,19 +9,23 @@ type Status = 'idle' | 'loading' | 'streaming' | 'done' | 'error';
 
 interface Cached { text: string; at: number }
 
-export default function AskAI({
-  problemId,
-  question,
-  answer,
-  domain,
-  tags,
-}: {
+export interface AskAIHandle {
+  /** Start elaborating (or regenerate if it already ran). Used by the c / ⌘C shortcuts. */
+  generate: () => void;
+}
+
+interface AskAIProps {
   problemId: number;
   question: string;
   answer?: string | null;
   domain?: string;
   tags?: string[];
-}) {
+}
+
+const AskAI = forwardRef<AskAIHandle, AskAIProps>(function AskAI(
+  { problemId, question, answer, domain, tags },
+  ref,
+) {
   const [status, setStatus] = useState<Status>('idle');
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -72,6 +76,13 @@ export default function AskAI({
   }, [cacheKey, question, answer, domain, tags]);
 
   const open = () => { if (!started.current) { started.current = true; void run(false); } };
+
+  useImperativeHandle(ref, () => ({
+    generate() {
+      if (!started.current) { started.current = true; void run(false); }
+      else { void run(true); }
+    },
+  }), [run]);
 
   const copy = async () => {
     try {
@@ -142,4 +153,6 @@ export default function AskAI({
       )}
     </div>
   );
-}
+});
+
+export default AskAI;

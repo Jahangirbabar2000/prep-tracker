@@ -22,7 +22,7 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
   return (
     <Link
       href={detailPath}
-      className="group flex items-center gap-4 px-4 py-3.5 bg-surface border border-border rounded-xl hover:border-border-strong hover:shadow-sm transition-all cursor-pointer"
+      className="group flex items-center gap-4 px-4 py-3.5 bg-surface border border-border rounded-xl hover:border-border-strong hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
     >
       {/* Overdue urgency bar */}
       <div className={`w-1 self-stretch rounded-full ${item.days_overdue > 3 ? 'bg-danger/70' : 'bg-accent/40'}`} />

@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
-import AskAI from '@/components/AskAI';
+import AskAI, { type AskAIHandle } from '@/components/AskAI';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
 import AttemptHistory from '@/components/AttemptHistory';
 import CopyLinkButton from '@/components/CopyLinkButton';
@@ -77,6 +77,8 @@ function SessionPageInner() {
   const [results, setResults]       = useState<{ struggled: boolean }[]>([]);
 
   const [revealed, setRevealed]   = useState(false);
+  const [showAI, setShowAI]       = useState(true);
+  const aiRef                     = useRef<AskAIHandle>(null);
   const [links, setLinks]         = useState<LinkType[] | null>(null);
   const linksCache = useRef<Map<number, LinkType[]>>(new Map());
   const [submitting, setSubmitting] = useState(false);
@@ -231,6 +233,22 @@ function SessionPageInner() {
       }
       const tag = (e.target as HTMLElement)?.tagName;
       const inField = tag === 'INPUT' || tag === 'TEXTAREA';
+
+      // AI card shortcuts (outside text fields)
+      if (!inField && (e.key === 'c' || e.key === 'C')) {
+        if (e.metaKey || e.ctrlKey) {
+          // ⌘C / Ctrl+C triggers "elaborate" — but only when nothing is
+          // selected, so normal copy still works.
+          if (!window.getSelection()?.toString().trim()) {
+            e.preventDefault();
+            setShowAI(true);
+            aiRef.current?.generate();
+          }
+        } else {
+          setShowAI(v => !v); // plain "c" toggles the AI card
+        }
+        return;
+      }
 
       // Navigation — always active (except inside text fields)
       if (!inField) {
@@ -614,16 +632,20 @@ function SessionPageInner() {
       </div>
 
       {/* AI elaboration — its own card below the nav, available regardless of
-          whether the answer is revealed. Keyed by card id so it resets per card. */}
+          whether the answer is revealed. Kept mounted (just hidden) so ⌘C can
+          trigger it while hidden; "c" toggles visibility. Keyed per card. */}
       {card && (
-        <AskAI
-          key={card.id}
-          problemId={card.id}
-          question={card.name}
-          answer={card.notes_text}
-          domain={DOMAIN_LABEL[card.domain]}
-          tags={tags}
-        />
+        <div className={showAI ? '' : 'hidden'}>
+          <AskAI
+            ref={aiRef}
+            key={card.id}
+            problemId={card.id}
+            question={card.name}
+            answer={card.notes_text}
+            domain={DOMAIN_LABEL[card.domain]}
+            tags={tags}
+          />
+        </div>
       )}
     </div>
   );
