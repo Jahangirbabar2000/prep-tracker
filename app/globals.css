@@ -4,45 +4,47 @@
 /* Class-based dark mode — toggle .dark on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ── Momentum · light ────────────────────────────────────────────────────── */
-/* Indigo-tinted paper with an electric-green accent and a magenta streak hue. */
+/* ── Lapis · light ───────────────────────────────────────────────────────── */
+/* Porcelain-blue "paper" with ultramarine ink, antique-gold leaf, and a deep
+   azure secondary — the manuscript read of lapis lazuli: gilt on blue. */
 :root {
-  --bg:            #e7e5f5;
+  --bg:            #eef1fb;
   --surface:       #ffffff;
-  --surface-2:     #e3def4;
-  --fg:            #171334;
-  --muted:         #6b648c;
-  --border:        #dbd5ee;
-  --border-strong: #c5bee0;
-  --accent:        #16a34a;
-  --accent-h:      #15803d;
+  --surface-2:     #e2e8f8;
+  --fg:            #101a3e;
+  --muted:         #58618c;
+  --border:        #d6ddf2;
+  --border-strong: #bcc7ea;
+  --accent:        #9a6f0a;
+  --accent-h:      #815c05;
   --accent-fg:     #ffffff;
-  --accent-2:      #db2777;
+  --accent-2:      #2f6fd6;
   --danger:        #e11d48;
-  --code-bg:       #edeef2;
-  --code-fg:       #2b2740;
-  --code-border:   #dcdee5;
+  --code-bg:       #eef0f7;
+  --code-fg:       #232b4d;
+  --code-border:   #dbe0f0;
   --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
 }
 
-/* ── Momentum · dark ─────────────────────────────────────────────────────── */
-/* Deep indigo base, electric-green accent, magenta for streaks/highlights. */
+/* ── Lapis · dark ────────────────────────────────────────────────────────── */
+/* Deep ultramarine-ink canvas, gilt-gold accent (the pyrite in the stone),
+   lapis-azure for streaks/highlights (the stone's brighter blue). */
 .dark {
-  --bg:            #0c0a1a;
-  --surface:       #16132a;
-  --surface-2:     #211c3d;
-  --fg:            #eceaff;
-  --muted:         #9a93c7;
-  --border:        #2a2547;
-  --border-strong: #3b3563;
-  --accent:        #4ade80;
-  --accent-h:      #22c55e;
-  --accent-fg:     #04231a;
-  --accent-2:      #f472b6;
+  --bg:            #0a1128;
+  --surface:       #121b3d;
+  --surface-2:     #1c2856;
+  --fg:            #e9edfc;
+  --muted:         #8f9bce;
+  --border:        #243161;
+  --border-strong: #34437e;
+  --accent:        #e6bd57;
+  --accent-h:      #f2ce77;
+  --accent-fg:     #2a1e02;
+  --accent-2:      #5aa2f5;
   --danger:        #fb7185;
-  --code-bg:       #0f0c22;
-  --code-fg:       #e7e3f7;
-  --code-border:   #2a2547;
+  --code-bg:       #0b1430;
+  --code-fg:       #dfe6fb;
+  --code-border:   #243161;
 }
 
 /* ── Semantic utility classes ────────────────────────────────────────────── */
@@ -112,14 +114,14 @@ body {
 }
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* Light mode: lift rounded surface cards off the indigo canvas so the UI reads
-   layered, not flat. Dark mode keeps depth via borders (no shadow). Excludes
-   the nav sidebar (not rounded) and the translucent mobile top bar. */
+/* Light mode: lift rounded surface cards off the porcelain-blue canvas so the
+   UI reads layered, not flat. Dark mode keeps depth via borders (no shadow).
+   Excludes the nav sidebar (not rounded) and the translucent mobile top bar. */
 :root:not(.dark) [class*="rounded"].bg-surface {
-  box-shadow: 0 1px 2px rgba(23, 19, 52, 0.05), 0 10px 26px -10px rgba(23, 19, 52, 0.14);
+  box-shadow: 0 1px 2px rgba(16, 26, 62, 0.05), 0 10px 26px -10px rgba(16, 26, 62, 0.16);
 }
 
-/* Display face carries the Momentum personality on headings + big numbers. */
+/* Display face carries the Lapis personality on headings + big numbers. */
 h1, h2, .font-display {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
