@@ -4,45 +4,49 @@
 /* Class-based dark mode — toggle .dark on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ── Momentum · light ────────────────────────────────────────────────────── */
-/* Indigo-tinted paper with an electric-green accent and a magenta streak hue. */
+/* ── Gilded · light ──────────────────────────────────────────────────────── */
+/* Warm parchment ground with bistre ink, antique gold-leaf, and a deep teal
+   secondary. Cards are warm ivory panels, never pure white — gold reads as
+   precious only against a warm ground, not a bright one. */
 :root {
-  --bg:            #e7e5f5;
-  --surface:       #ffffff;
-  --surface-2:     #e3def4;
-  --fg:            #171334;
-  --muted:         #6b648c;
-  --border:        #dbd5ee;
-  --border-strong: #c5bee0;
-  --accent:        #16a34a;
-  --accent-h:      #15803d;
+  --bg:            #f4efe2;
+  --surface:       #fdfbf4;
+  --surface-2:     #efe7d5;
+  --fg:            #2a2213;
+  --muted:         #756a52;
+  --border:        #e7ddc7;
+  --border-strong: #d8cbac;
+  --accent:        #9a6f0a;
+  --accent-h:      #7f5a06;
   --accent-fg:     #ffffff;
-  --accent-2:      #db2777;
-  --danger:        #e11d48;
-  --code-bg:       #edeef2;
-  --code-fg:       #2b2740;
-  --code-border:   #dcdee5;
+  --accent-2:      #0f766e;
+  --danger:        #be123c;
+  --code-bg:       #f0ead9;
+  --code-fg:       #2f2716;
+  --code-border:   #e3d9c2;
   --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
 }
 
-/* ── Momentum · dark ─────────────────────────────────────────────────────── */
-/* Deep indigo base, electric-green accent, magenta for streaks/highlights. */
+/* ── Gilded · dark ───────────────────────────────────────────────────────── */
+/* Warm near-black ground (black with a gold bias, not blue-black), gilt-gold
+   accent, luminous teal for streaks/highlights. Cards are warm espresso
+   panels — a clear step up from the ground, so nothing reads flat. */
 .dark {
-  --bg:            #0c0a1a;
-  --surface:       #16132a;
-  --surface-2:     #211c3d;
-  --fg:            #eceaff;
-  --muted:         #9a93c7;
-  --border:        #2a2547;
-  --border-strong: #3b3563;
-  --accent:        #4ade80;
-  --accent-h:      #22c55e;
-  --accent-fg:     #04231a;
-  --accent-2:      #f472b6;
+  --bg:            #141009;
+  --surface:       #1f1810;
+  --surface-2:     #2a2114;
+  --fg:            #f3ecdb;
+  --muted:         #a79880;
+  --border:        #332818;
+  --border-strong: #473824;
+  --accent:        #e6bd57;
+  --accent-h:      #f2ce77;
+  --accent-fg:     #241a04;
+  --accent-2:      #2dd4bf;
   --danger:        #fb7185;
-  --code-bg:       #0f0c22;
-  --code-fg:       #e7e3f7;
-  --code-border:   #2a2547;
+  --code-bg:       #100b05;
+  --code-fg:       #efe6d3;
+  --code-border:   #332818;
 }
 
 /* ── Semantic utility classes ────────────────────────────────────────────── */
@@ -112,14 +116,14 @@ body {
 }
 .tabular { font-variant-numeric: tabular-nums; }
 
-/* Light mode: lift rounded surface cards off the indigo canvas so the UI reads
-   layered, not flat. Dark mode keeps depth via borders (no shadow). Excludes
-   the nav sidebar (not rounded) and the translucent mobile top bar. */
+/* Light mode: lift rounded surface cards off the warm parchment canvas so the
+   UI reads layered, not flat. Dark mode keeps depth via borders (no shadow).
+   Excludes the nav sidebar (not rounded) and the translucent mobile top bar. */
 :root:not(.dark) [class*="rounded"].bg-surface {
-  box-shadow: 0 1px 2px rgba(23, 19, 52, 0.05), 0 10px 26px -10px rgba(23, 19, 52, 0.14);
+  box-shadow: 0 1px 2px rgba(42, 34, 19, 0.06), 0 10px 26px -10px rgba(42, 34, 19, 0.18);
 }
 
-/* Display face carries the Momentum personality on headings + big numbers. */
+/* Display face carries the Gilded personality on headings + big numbers. */
 h1, h2, .font-display {
   font-family: var(--font-display);
   letter-spacing: -0.01em;
