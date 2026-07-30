@@ -37,10 +37,13 @@ export default function SwipeableReviewCard({
   onSwipeRight,
 }: Props) {
   const x = useMotionValue(0);
-  // The active card follows a shallow downward arc in either direction. Keeping
-  // rotation at zero makes this feel like paging through a study deck rather
-  // than dismissing a Tinder-style card.
-  const y = useTransform(x, value => Math.min(112, Math.abs(value) * 0.16));
+  // The drag value still measures the user's full gesture, but most of its
+  // straight-line travel is cancelled on the visible card. After a short
+  // translation-only lead-in, the card rotates around an imaginary pivot below
+  // its bottom edge and naturally traces a downward circular arc.
+  const cardX = useTransform(x, value => value * -0.68);
+  const cardY = useTransform(x, value => Math.max(0, Math.abs(value) - 18) * 0.025);
+  const rotate = useTransform(x, [-140, -18, 18, 140], [-12, 0, 0, 12]);
   // Adjacent cards are already positioned directly beneath the active card,
   // but stay completely hidden until the gesture moves in their direction.
   const nextOpacity = useTransform(x, [-12, 0], [1, 0]);
@@ -123,28 +126,36 @@ export default function SwipeableReviewCard({
         dragListener={false}
         dragControls={dragControls}
         dragConstraints={{
-          left: canSwipeLeft ? -220 : 0,
-          right: canSwipeRight ? 220 : 0,
+          left: canSwipeLeft ? -140 : 0,
+          right: canSwipeRight ? 140 : 0,
         }}
-        dragElastic={0.72}
+        dragElastic={0.2}
         dragMomentum={false}
         onPointerDown={startDrag}
         onDragEnd={finishDrag}
-        whileDrag={reduceMotion ? undefined : { scale: 0.995 }}
-        style={{ x, y }}
-        className={`relative z-10 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm ${
-          disabled ? 'pointer-events-none' : ''
-        }`}
+        style={{ x }}
+        className={`relative z-10 ${disabled ? 'pointer-events-none' : ''}`}
       >
-        <div
-          data-swipe-handle="true"
-          aria-hidden
-          className="absolute inset-x-0 top-0 z-30 h-5 cursor-grab active:cursor-grabbing"
-          style={{ touchAction: 'pan-y' }}
+        <motion.div
+          whileDrag={reduceMotion ? undefined : { scale: 0.995 }}
+          style={{
+            x: cardX,
+            y: cardY,
+            rotate,
+            transformOrigin: '50% 135%',
+          }}
+          className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
         >
-          <span className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-border-strong/60" />
-        </div>
-        {children}
+          <div
+            data-swipe-handle="true"
+            aria-hidden
+            className="absolute inset-x-0 top-0 z-30 h-5 cursor-grab active:cursor-grabbing"
+            style={{ touchAction: 'pan-y' }}
+          >
+            <span className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-border-strong/60" />
+          </div>
+          {children}
+        </motion.div>
       </motion.div>
     </div>
   );
