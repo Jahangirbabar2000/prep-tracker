@@ -16,7 +16,8 @@ import CopyLinkButton from './CopyLinkButton';
 import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
-import { cardTags } from '@/lib/cardTags';
+import { cardTagsFromFields, domainById, isTimedMode, resolveDomain, usesPracticeType } from '@/lib/domains';
+import { domainPalette } from './domainVisuals';
 import { useSwipeNav } from '@/lib/useSwipeNav';
 
 interface Props {
@@ -25,26 +26,6 @@ interface Props {
   basePath: string;
   backLabel: string;
 }
-
-const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa:           'DSA',
-  system_design: 'System Design',
-  frontend:      'Frontend',
-  python:        'Backend',
-  ai:            'AI',
-  lld:           'LLD',
-  behavioral:    'Behavioral',
-};
-
-const DOMAIN_STYLE: Record<Domain, string> = {
-  dsa:           'bg-blue-500/10    text-blue-400',
-  system_design: 'bg-orange-500/10  text-orange-400',
-  frontend:      'bg-violet-500/10  text-violet-400',
-  python:        'bg-emerald-500/10 text-emerald-400',
-  ai:            'bg-rose-500/10    text-rose-400',
-  lld:           'bg-amber-500/10   text-amber-400',
-  behavioral:    'bg-teal-500/10    text-teal-400',
-};
 
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
@@ -93,12 +74,15 @@ function ProblemViewSkeleton() {
 
 export default function ProblemViewPage({ id, domain, basePath, backLabel }: Props) {
   const router = useRouter();
-  const isDSA = domain === 'dsa';
 
   // Read straight from the already-synced local store — no per-navigation
   // network round trip. `problemDetail()` mirrors GET /api/problems/[id]
   // (attempts, notes, links, prev/next, position) entirely from local data.
   const store = useStore();
+  const domainDefinition = resolveDomain(store.data.domains, domain);
+  const canLog = !!domainById(store.data.domains, domain) && !domainDefinition.archived_at;
+  const isTimed = isTimedMode(domainDefinition.study_mode);
+  const palette = domainPalette(domainDefinition.color);
   const data = useMemo(() => problemDetail(store.data, Number(id)), [store.data, id]);
   const links = data?.links ?? null;
 
@@ -162,7 +146,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (!isDSA) {
+      if (!isTimed) {
         if (e.key === ' ' || e.key === 'Spacebar') {
           e.preventDefault();
           setRevealed(r => !r);
@@ -173,14 +157,14 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         }
       }
       if (e.key === 'Escape') router.push(basePath);
-      if (e.key === 'l' || e.key === 'L') router.push(`${basePath}/log`);
+      if (canLog && (e.key === 'l' || e.key === 'L')) router.push(`${basePath}/log`);
       if (e.key === 'e' || e.key === 'E') router.push(`${basePath}/${id}/edit`);
       if (e.key === 'ArrowLeft'  && data?.next_id) router.push(`${basePath}/${data.next_id}`);
       if (e.key === 'ArrowRight' && data?.prev_id) router.push(`${basePath}/${data.prev_id}`);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isDSA, id]);
+  }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isTimed, id, canLog]);
 
   // Touch swipe navigation — horizontally-scrollable answer content (code
   // blocks) and text fields keep priority for the gesture; see useSwipeNav.
@@ -192,7 +176,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
 
   if (!data) return <ProblemViewSkeleton />;
 
-  const tags = cardTags(data);
+  const tags = cardTagsFromFields(data, store.data.domain_fields);
 
   return (
     <div className="max-w-5xl flex flex-col gap-6">
@@ -241,12 +225,12 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
           >
             <Pencil size={12} /> Edit <span className="opacity-40 font-normal text-[10px] ml-0.5">E</span>
           </Link>
-          <Link
+          {canLog && <Link
             href={`${basePath}/log`}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-accent text-accent-fg rounded-lg hover:bg-accent-hover transition-colors"
           >
-            <Plus size={12} /> {isDSA ? 'Log Attempt' : 'Log Question'} <span className="opacity-50 font-normal text-[10px] ml-0.5">L</span>
-          </Link>
+            <Plus size={12} /> {domainDefinition.log_label} <span className="opacity-50 font-normal text-[10px] ml-0.5">L</span>
+          </Link>}
         </div>
       </div>
 
@@ -255,8 +239,8 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         {/* Domain + tag + proficiency */}
         <div className="flex items-center justify-between gap-2 px-6 pt-5">
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${DOMAIN_STYLE[domain]}`}>
-              {DOMAIN_LABEL[domain]}
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ring-1 ring-inset ${palette.badge}`}>
+              {domainDefinition.name}
             </span>
             {tags.map((t, i) => (
               <span key={`${t}-${i}`} className="text-xs text-muted truncate">
@@ -285,7 +269,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         </p>
 
         {/* ── DSA: compact single-row ── */}
-        {isDSA ? (
+        {isTimed ? (
           <div className="border-t border-border px-6 py-3 flex items-center gap-3 flex-wrap">
             {links && links.length > 0 && links.map(l => (
               <div key={l.id} className="inline-flex items-center gap-1">
@@ -370,7 +354,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
 
-                <AskAI problemId={data.id} question={data.name} answer={data.notes_text} domain={DOMAIN_LABEL[domain]} tags={tags} />
+                <AskAI problemId={data.id} question={data.name} answer={data.notes_text} domain={domainDefinition.name} tags={tags} />
 
                 {links && links.length > 0 && (
                   <div className="flex flex-wrap gap-3">
@@ -426,8 +410,8 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         <h2 className={`${sectionTitle} mb-3`}>Attempt History</h2>
         <AttemptHistory
           attempts={data.attempts}
-          showTime={isDSA}
-          showPracticeType={domain === 'system_design'}
+          showTime={isTimed}
+          showPracticeType={usesPracticeType(domainDefinition.study_mode)}
           // editAttemptRemote/deleteAttemptRemote already write through to the
           // shared store — `data` picks up the change automatically.
           onUpdated={() => {}}
@@ -436,7 +420,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
       </section>
 
       {/* Notes — one-liners for non-DSA */}
-      {!isDSA && data.notes.length > 0 && (
+      {!isTimed && data.notes.length > 0 && (
         <section className="hidden md:block">
           <h2 className={`${sectionTitle} mb-3`}>Notes</h2>
           <QuickNotes
@@ -448,7 +432,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
       )}
 
       {/* Active recall Q&A — DSA only */}
-      {isDSA && data.notes.length > 0 && (
+      {isTimed && data.notes.length > 0 && (
         <section className="hidden md:block">
           <h2 className={`${sectionTitle} mb-3`}>Active Recall Notes</h2>
           <div className="flex flex-col gap-3">

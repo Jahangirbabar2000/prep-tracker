@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryOne, queryAll, execute } from '@/lib/db';
 import { Attempt, Link, Note, Problem } from '@/lib/types';
+import { getProblem, validateProblemMetadata, legacyWrites } from '@/lib/domain-server';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const problem = await queryOne<Problem>('SELECT * FROM problems WHERE id = ?', [id]);
+  const problem = await getProblem(id);
   if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const [attempts, notes, links, prevRow, nextRow, totalRow, newerRow] = await Promise.all([
@@ -52,14 +53,57 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     'resource_url', 'notes_text',
   ];
 
-  const fields = Object.keys(body).filter(k => allowed.includes(k));
-  if (!fields.length) return NextResponse.json({ error: 'No valid fields' }, { status: 400 });
+  const problem = await getProblem(id);
+  if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const setClause = fields.map(f => `${f} = ?`).join(', ');
-  const values = fields.map(f => body[f]);
+  const fields = Object.keys(body).filter(k => allowed.includes(k));
+  let mergedMetadata = problem.metadata;
+  const metadataFields = await queryAll<import('@/lib/types').DomainField>(
+    'SELECT * FROM domain_fields WHERE domain_id = ? AND archived_at IS NULL',
+    [problem.domain],
+  );
+  const legacyMetadata = Object.fromEntries(
+    metadataFields
+      .filter(field => field.legacy_column && Object.hasOwn(body, field.legacy_column))
+      .map(field => [field.key, body[field.legacy_column!]]),
+  ) as Record<string, unknown>;
+  let metadataPatch: Record<string, unknown> = legacyMetadata;
+  if (body.metadata !== undefined) {
+    const validated = await validateProblemMetadata(problem.domain, body.metadata);
+    if ('error' in validated) return NextResponse.json({ error: validated.error }, { status: 400 });
+    metadataPatch = { ...legacyMetadata, ...(body.metadata as Record<string, unknown>) };
+    mergedMetadata = { ...problem.metadata, ...validated.metadata };
+    for (const [key, value] of Object.entries(metadataPatch)) {
+      if (value === '' || value == null) delete mergedMetadata[key];
+      else mergedMetadata[key] = String(value).trim();
+    }
+  } else if (Object.keys(legacyMetadata).length) {
+    mergedMetadata = { ...problem.metadata };
+    for (const [key, value] of Object.entries(legacyMetadata)) {
+      if (value === '' || value == null) delete mergedMetadata[key];
+      else mergedMetadata[key] = String(value).trim();
+    }
+  }
+  const hasMetadataUpdate = body.metadata !== undefined || Object.keys(legacyMetadata).length > 0;
+  if (!fields.length && !hasMetadataUpdate) {
+    return NextResponse.json({ error: 'No valid fields' }, { status: 400 });
+  }
+
+  const writes = !hasMetadataUpdate ? [] : legacyWrites(
+    Object.fromEntries(Object.keys(metadataPatch).map(key => [key, mergedMetadata[key] ?? ''])),
+    metadataFields,
+  );
+  const assignments = [
+    ...fields.map(field => ({ column: field, value: body[field] })),
+    ...(!hasMetadataUpdate ? [] : [{ column: 'metadata_json', value: JSON.stringify(mergedMetadata) }]),
+    ...writes,
+  ];
+  const deduped = [...new Map(assignments.map(item => [item.column, item])).values()];
+  const setClause = deduped.map(item => `${item.column} = ?`).join(', ');
+  const values = deduped.map(item => item.value);
 
   await execute(`UPDATE problems SET ${setClause} WHERE id = ?`, [...values, id]);
-  const updated = await queryOne<Problem>('SELECT * FROM problems WHERE id = ?', [id]);
+  const updated = await getProblem(id);
   return NextResponse.json(updated);
 }
 

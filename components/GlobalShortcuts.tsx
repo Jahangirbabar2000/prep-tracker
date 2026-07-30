@@ -2,21 +2,16 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-
-const NAV_SHORTCUTS: Record<string, string> = {
-  '1': '/',
-  '2': '/dsa',
-  '3': '/system-design',
-  '4': '/frontend',
-  '5': '/backend',
-  '6': '/ai',
-};
+import { navigationShortcutMap } from '@/lib/domains';
+import { useStore } from '@/lib/store/store';
 
 export default function GlobalShortcuts() {
   const router   = useRouter();
   const pathname = usePathname();
+  const { data } = useStore();
 
   useEffect(() => {
+    const navShortcuts = navigationShortcutMap(data.domains);
     function onKey(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -34,15 +29,15 @@ export default function GlobalShortcuts() {
       }
 
       // Number shortcuts for nav — disabled during active session to avoid accidental navigation
-      if (pathname !== '/review/session' && NAV_SHORTCUTS[e.key]) {
-        router.push(NAV_SHORTCUTS[e.key]);
+      if (pathname !== '/review/session' && navShortcuts[e.key]) {
+        router.push(navShortcuts[e.key]);
         return;
       }
     }
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [router, pathname]);
+  }, [data.domains, router, pathname]);
 
   return null;
 }

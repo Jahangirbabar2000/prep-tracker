@@ -11,7 +11,8 @@ import { Attempt, Domain } from '@/lib/types';
 import { StoreData } from './store';
 import { computeNextDue } from '@/lib/sr';
 import { computeStreak } from '@/lib/streak';
-import { reviewQueue, proficiencyOf, DOMAIN_ORDER, DOMAIN_LABEL } from './queries';
+import { reviewQueue, proficiencyOf } from './queries';
+import { allDomains } from '@/lib/domains';
 
 const dateOf = (datetime: string) => datetime.slice(0, 10);
 
@@ -168,13 +169,14 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
   const demotions7d = recentReviews.filter(r => r.isDemotion).length;
 
   // 5. Mastery by domain — always all domains
-  const masteryByDomain: DomainMastery[] = DOMAIN_ORDER.map(domain => {
-    const dProblems = data.problems.filter(p => p.domain === domain);
+  const masteryByDomain: DomainMastery[] = allDomains(data.domains).map(definition => {
+    const domain = definition.id;
+    const dProblems = data.problems.filter(p => p.domain === definition.id);
     const total = dProblems.length;
     const familiarPlus = dProblems.filter(p => p.interval_level >= 2).length;
     return {
       domain,
-      label: DOMAIN_LABEL[domain],
+      label: definition.name,
       total,
       familiarPlus,
       pct: total ? Math.round((familiarPlus / total) * 100) : 0,

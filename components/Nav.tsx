@@ -4,28 +4,29 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Inbox, Binary, Network, Layout, Code2, Brain, Blocks, MessagesSquare,
+  Inbox, Binary,
   Settings, ChevronLeft, ChevronRight, BarChart3, Menu, X,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import { useStore } from '@/lib/store/store';
 import { todayStats, clientToday } from '@/lib/store/queries';
 import SyncStatus from './SyncStatus';
-
-const links = [
-  { href: '/',              label: 'Review Queue', short: 'Queue', Icon: Inbox,   domain: null },
-  { href: '/dsa',           label: 'DSA',          short: 'DSA',   Icon: Binary,  domain: 'dsa' },
-  { href: '/system-design', label: 'System Design',short: 'SysD',  Icon: Network, domain: 'system_design' },
-  { href: '/lld',           label: 'LLD',          short: 'LLD',   Icon: Blocks,  domain: 'lld' },
-  { href: '/backend',        label: 'Backend',       short: 'BE',    Icon: Code2,   domain: 'python' },
-  { href: '/frontend',      label: 'Frontend',     short: 'FE',    Icon: Layout,  domain: 'frontend' },
-  { href: '/ai',            label: 'AI',           short: 'AI',    Icon: Brain,   domain: 'ai' },
-  { href: '/behavioral',    label: 'Behavioral',   short: 'Beh',   Icon: MessagesSquare, domain: 'behavioral' },
-];
+import { activeDomains } from '@/lib/domains';
+import { domainIcon } from './domainVisuals';
 
 export default function Nav() {
   const pathname = usePathname();
   const { data } = useStore();
+  const links = [
+    { href: '/', label: 'Review Queue', Icon: Inbox, domain: null, shortcut: '1' },
+    ...activeDomains(data.domains).map((domain, index) => ({
+      href: `/${domain.slug}`,
+      label: domain.name,
+      Icon: domainIcon(domain.icon),
+      domain: domain.id,
+      shortcut: index < 8 ? String(index + 2) : null,
+    })),
+  ];
   const { counts: todayCounts, due: dueCounts } = todayStats(data, clientToday());
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -78,12 +79,13 @@ export default function Nav() {
   }
 
   function SidebarLink({
-    href, label, Icon, domain, compact = false, onNavigate,
+    href, label, Icon, domain, shortcut, compact = false, onNavigate,
   }: {
     href: string;
     label: string;
     Icon: typeof Inbox;
     domain: string | null;
+    shortcut: string | null;
     compact?: boolean;
     onNavigate?: () => void;
   }) {
@@ -117,6 +119,11 @@ export default function Nav() {
           {!compact && (
             <>
               <span className="flex-1 whitespace-nowrap truncate">{label}</span>
+              {shortcut && (
+                <kbd className="hidden md:inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">
+                  {shortcut}
+                </kbd>
+              )}
               {badgeN > 0 && (
                 <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-semibold leading-none shrink-0 ${badgeCls}`}>
                   {badgeN}
@@ -130,6 +137,7 @@ export default function Nav() {
           <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none hidden group-hover:block">
             <div className="bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 shadow-lg flex items-center gap-2 whitespace-nowrap">
               <span className="text-xs font-medium text-fg">{label}</span>
+              {shortcut && <kbd className="text-[10px] text-muted/70">{shortcut}</kbd>}
               {badgeN > 0 && (
                 <span className={`inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-semibold leading-none ${badgeCls}`}>
                   {badgeN}
@@ -247,8 +255,8 @@ export default function Nav() {
         </div>
 
         <nav className="flex-1 flex flex-col gap-0.5 py-3 px-2 overflow-y-auto">
-          {links.map(({ href, label, Icon, domain }) => (
-            <SidebarLink key={href} href={href} label={label} Icon={Icon} domain={domain} compact={collapsed} />
+          {links.map(({ href, label, Icon, domain, shortcut }) => (
+            <SidebarLink key={href} href={href} label={label} Icon={Icon} domain={domain} shortcut={shortcut} compact={collapsed} />
           ))}
         </nav>
 
@@ -324,13 +332,14 @@ export default function Nav() {
           </div>
 
           <nav className="flex-1 flex flex-col gap-0.5 py-3 px-2 overflow-y-auto">
-            {links.map(({ href, label, Icon, domain }) => (
+            {links.map(({ href, label, Icon, domain, shortcut }) => (
               <SidebarLink
                 key={href}
                 href={href}
                 label={label}
                 Icon={Icon}
                 domain={domain}
+                shortcut={shortcut}
                 onNavigate={() => setMobileOpen(false)}
               />
             ))}

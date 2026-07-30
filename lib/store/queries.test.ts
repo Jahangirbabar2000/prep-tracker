@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { reviewQueue, matchesProficiency, todayStats } from './queries';
 import type { StoreData } from './store';
 import type { Problem, Attempt } from '@/lib/types';
+import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
 
 const TODAY = '2026-07-26';
 
@@ -25,7 +26,16 @@ function attempt(over: Partial<Attempt> & { id: number; problem_id: number }): A
 }
 
 function store(problems: Problem[], attempts: Attempt[]): StoreData {
-  return { problems, attempts, notes: [], links: [], config_options: [] };
+  return {
+    problems,
+    attempts,
+    notes: [],
+    links: [],
+    config_options: [],
+    domains: LEGACY_DOMAIN_FALLBACKS,
+    domain_fields: [],
+    domain_field_options: [],
+  };
 }
 
 describe('reviewQueue', () => {

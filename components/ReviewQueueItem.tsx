@@ -4,20 +4,15 @@ import Link from 'next/link';
 import { ReviewQueueItem as RQI } from '@/lib/types';
 import DomainBadge from './DomainBadge';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
-
-const DOMAIN_PATH: Record<string, string> = {
-  system_design: '/system-design',
-  python:        '/backend',
-};
-
-function domainPath(domain: string) {
-  return DOMAIN_PATH[domain] ?? `/${domain}`;
-}
+import { cardTagsFromFields, domainPath } from '@/lib/domains';
+import { useStore } from '@/lib/store/store';
 
 export default function ReviewQueueItem({ item }: { item: RQI }) {
-  const tag = item.pattern_tag ?? item.sd_category ?? item.fe_bucket ?? item.py_category ?? item.ai_category ?? item.beh_category ?? item.lld_category;
-  const detailPath = `${domainPath(item.domain)}/${item.id}`;
+  const { data } = useStore();
+  const [tag] = cardTagsFromFields(item, data.domain_fields);
+  const detailPath = `${domainPath(data.domains, item.domain)}/${item.id}`;
   const overdue = item.days_overdue <= 0 ? 'due today' : `${item.days_overdue}d overdue`;
+  const difficulty = item.metadata.difficulty;
 
   return (
     <Link
@@ -31,13 +26,13 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
       <div className="flex flex-col gap-1 min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <DomainBadge domain={item.domain} />
-          {item.difficulty && (
+          {difficulty && (
             <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${
-              item.difficulty === 'Easy'   ? 'bg-green-500/10 text-green-500' :
-              item.difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-500' :
-              item.difficulty === 'Hard'   ? 'bg-red-500/10 text-red-500' :
+              difficulty === 'Easy'   ? 'bg-green-500/10 text-green-500' :
+              difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-500' :
+              difficulty === 'Hard'   ? 'bg-red-500/10 text-red-500' :
               'bg-surface-2 text-muted'
-            }`}>{item.difficulty}</span>
+            }`}>{difficulty}</span>
           )}
           {tag && <span className="text-xs text-muted truncate">{tag}</span>}
         </div>

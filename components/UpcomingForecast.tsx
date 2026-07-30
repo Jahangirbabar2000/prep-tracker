@@ -1,6 +1,9 @@
 'use client';
 
 import { CalendarDays, ArrowUp } from 'lucide-react';
+import { useStore } from '@/lib/store/store';
+import { allDomains, resolveDomain } from '@/lib/domains';
+import { domainPalette } from './domainVisuals';
 
 function scrollToTop() {
   document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -21,30 +24,9 @@ interface Props {
   totalUpcoming: number;
 }
 
-const DOMAIN_LABEL: Record<string, string> = {
-  dsa:           'DSA',
-  system_design: 'System Design',
-  frontend:      'Frontend',
-  python:        'Backend',
-  ai:            'AI',
-  lld:           'LLD',
-  behavioral:    'Behavioral',
-};
-
-const DOMAIN_STYLE: Record<string, string> = {
-  dsa:           'text-blue-400',
-  system_design: 'text-orange-400',
-  frontend:      'text-violet-400',
-  python:        'text-emerald-400',
-  ai:            'text-rose-400',
-  lld:           'text-amber-400',
-  behavioral:    'text-teal-400',
-};
-
-// Ordered so the domain row is always consistent left-to-right
-const DOMAIN_ORDER = ['python', 'dsa', 'frontend', 'system_design', 'ai', 'lld', 'behavioral'];
-
 export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }: Props) {
+  const { data } = useStore();
+  const domainOrder = allDomains(data.domains).map(domain => domain.id);
   if (totalUpcoming === 0) return null;
 
   return (
@@ -70,7 +52,7 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
           day simply reads taller — no fixed clip to overflow into the labels. */}
       <div className="flex items-start gap-1.5 sm:gap-2 mb-5">
         {slots.map((slot) => {
-          const domainEntries = DOMAIN_ORDER
+          const domainEntries = domainOrder
             .filter(d => slot.domains[d] > 0)
             .map(d => [d, slot.domains[d]] as [string, number]);
 
@@ -96,10 +78,10 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
                   <div
                     key={domain}
                     className="flex items-center gap-1 rounded px-1 -mx-1 group-hover:bg-surface-2 transition-colors"
-                    title={`${DOMAIN_LABEL[domain] ?? domain}: ${count}`}
+                    title={`${resolveDomain(data.domains, domain).name}: ${count}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOMAIN_STYLE[domain] ?? 'text-muted'}`} style={{ backgroundColor: 'currentColor' }} />
-                    <span className={`text-[10px] font-medium tabular ${DOMAIN_STYLE[domain] ?? 'text-muted'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${domainPalette(resolveDomain(data.domains, domain).color).text}`} style={{ backgroundColor: 'currentColor' }} />
+                    <span className={`text-[10px] font-medium tabular ${domainPalette(resolveDomain(data.domains, domain).color).text}`}>
                       {count}
                     </span>
                   </div>
@@ -112,14 +94,14 @@ export default function UpcomingForecast({ slots, domainTotals, totalUpcoming }:
 
       {/* Weekly domain totals */}
       <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-        {DOMAIN_ORDER
+        {domainOrder
           .filter(d => domainTotals[d] > 0)
           .map(domain => (
             <span key={domain} className="text-xs text-muted">
-              <span className={`font-semibold ${DOMAIN_STYLE[domain] ?? 'text-fg'}`}>
+              <span className={`font-semibold ${domainPalette(resolveDomain(data.domains, domain).color).text}`}>
                 {domainTotals[domain]}
               </span>
-              {' '}{DOMAIN_LABEL[domain] ?? domain}
+              {' '}{resolveDomain(data.domains, domain).name}
             </span>
           ))
         }

@@ -7,15 +7,11 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import HistoryFilters from '@/components/HistoryFilters';
 import HistoryList, { type TodayAttempt } from '@/components/HistoryList';
-import { Domain } from '@/lib/types';
+import { Domain, StudyDomain } from '@/lib/types';
 import { useStore } from '@/lib/store/store';
 import { historyBuckets, clientToday } from '@/lib/store/queries';
 import { computeLoggedSessionTime, computeStudyVelocity } from '@/lib/studyVelocity';
-
-const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld', 'behavioral'];
-const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD', behavioral: 'Behavioral',
-};
+import { allDomains, isTimedMode, resolveDomain } from '@/lib/domains';
 
 function fmtMins(mins: number): string {
   if (mins < 60) return `${mins} min`;
@@ -25,7 +21,7 @@ function fmtMins(mins: number): string {
 }
 
 /** Total active minutes for today's reviewed attempts — same per-domain rules as HistoryList. */
-function totalTimeSpentMins(reviewed: TodayAttempt[]): number {
+function totalTimeSpentMins(reviewed: TodayAttempt[], domains: StudyDomain[]): number {
   const byDomain: Partial<Record<Domain, TodayAttempt[]>> = {};
   for (const a of reviewed) {
     if (!byDomain[a.domain]) byDomain[a.domain] = [];
@@ -33,11 +29,11 @@ function totalTimeSpentMins(reviewed: TodayAttempt[]): number {
   }
 
   let total = 0;
-  for (const domain of DOMAIN_ORDER) {
+  for (const domain of allDomains(domains).map(definition => definition.id)) {
     const attempts = byDomain[domain];
     if (!attempts?.length) continue;
 
-    if (domain === 'dsa') {
+    if (isTimedMode(resolveDomain(domains, domain).study_mode)) {
       const session = computeLoggedSessionTime(
         attempts.map(a => ({ attemptedAt: a.attempted_at, timeTakenMins: a.time_taken_mins })),
       );
@@ -64,7 +60,8 @@ function HistoryInner() {
   const totalReviewed = reviewed.length;
   const struggled     = reviewed.filter(a => a.struggled).length;
   const gotIt         = totalReviewed - struggled;
-  const totalMins     = totalTimeSpentMins(reviewed);
+  const totalMins     = totalTimeSpentMins(reviewed, data.domains);
+  const domainOrder = allDomains(data.domains).map(domain => domain.id);
 
   const byDomain: Partial<Record<Domain, number>> = {};
   for (const a of reviewed) byDomain[a.domain] = (byDomain[a.domain] ?? 0) + 1;
@@ -126,11 +123,11 @@ function HistoryInner() {
                 </div>
               )}
               {Object.keys(byDomain).length > 1 && (
-                <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-border">
-                  {DOMAIN_ORDER.filter(d => byDomain[d]).map(d => (
+                <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border">
+                  {domainOrder.filter(d => byDomain[d]).map(d => (
                     <span key={d} className="inline-flex items-center gap-1.5 text-xs text-muted px-2 py-0.5 bg-surface-2 rounded-full">
                       <span className="font-medium text-fg">{byDomain[d]}</span>
-                      {DOMAIN_LABEL[d]}
+                      {resolveDomain(data.domains, d).name}
                     </span>
                   ))}
                 </div>

@@ -17,9 +17,10 @@ interface Props {
   logLabel: string;
   filterConfigs: DomainFilterConfig[];
   emptyMessage: string;
+  canLog?: boolean;
 }
 
-function DomainListInner({ domain, title, basePath, logLabel, filterConfigs, emptyMessage }: Props) {
+function DomainListInner({ domain, title, basePath, logLabel, filterConfigs, emptyMessage, canLog = true }: Props) {
   const sp = useSearchParams();
   const { data, ready } = useStore();
   const today = clientToday();
@@ -42,10 +43,12 @@ function DomainListInner({ domain, title, basePath, logLabel, filterConfigs, emp
             </span>
           )}
         </div>
-        <LogShortcut href={`${basePath}/log`} />
-        <Link href={`${basePath}/log`} className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
-          <Plus size={16} /> {logLabel} <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
-        </Link>
+        {canLog && <LogShortcut href={`${basePath}/log`} />}
+        {canLog && (
+          <Link href={`${basePath}/log`} className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
+            <Plus size={16} /> {logLabel} <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
+          </Link>
+        )}
       </div>
 
       {ready ? (

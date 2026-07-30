@@ -10,9 +10,20 @@ It is a **tracker**, not a study tool — studying happens externally. The app l
 
 ## Domains
 
-Seven self-contained sections, each with its own filters and logging form:
+Domains are runtime-configurable from **Settings → Study domains**. A domain defines
+its stable URL, appearance, study workflow, custom text/select fields, filters, and
+card tags. Creating or editing a normal domain does not require a code change.
 
-**DSA** · **System Design** (with solo/mock practice tracking) · **LLD** · **Backend** · **Frontend** · **AI** · **Behavioral**
+The initial registry contains **DSA** · **System Design** (with solo/mock practice
+tracking) · **LLD** · **Backend** · **Frontend** · **AI** · **Behavioral**.
+Archived domains disappear from navigation and new-item logging while their existing
+records remain available in details, history, reviews, and statistics.
+
+Three study-mode templates are built in:
+
+- `timed_problem` — timing and direct result logging.
+- `flashcard` — reveal the answer, then grade recall.
+- `flashcard_practice` — flashcard behavior with Solo/Mock attempt type.
 
 ## Features
 
@@ -34,7 +45,7 @@ Seven self-contained sections, each with its own filters and logging form:
 ## Architecture
 
 - **Local-first client** — all reads come from an in-memory store hydrated from **IndexedDB**, so the UI is instant and offline-capable. Writes are optimistic.
-- **Sync** — the client pulls the full dataset from `GET /api/sync` when online and persists it to IndexedDB; server writes go through the domain API routes.
+- **Sync** — the client pulls problems, attempts, and the domain/field/option registry from `GET /api/sync` when online and persists them to IndexedDB; server writes go through validated API routes.
 - **Server** — Next.js route handlers backed by **libSQL / Turso** (`@libsql/client`).
 - **Auth** (optional) — a single shared passcode gates the whole app via middleware: a signed, httpOnly cookie (HMAC over `AUTH_SECRET`), with a `/login` screen. Fail-open when unset, so it's off until you configure it.
 
@@ -49,6 +60,7 @@ Seven self-contained sections, each with its own filters and logging form:
 
 ```bash
 npm install
+npm run db:migrate
 npm run dev
 ```
 
@@ -72,6 +84,11 @@ APP_PASSWORD=your-passcode
 
 `.env.local` and all local `*.db` files are git-ignored.
 
+`npm run db:migrate` is journaled and idempotent. It creates the runtime domain
+registry, seeds the seven existing domains, backfills problem metadata from whatever
+legacy columns are present, and retains those columns for rollback compatibility.
+Run it against each local or Turso database before deploying this version.
+
 ## Testing
 
 ```bash
@@ -80,7 +97,10 @@ npm run test:watch
 npm run test:e2e  # Playwright (desktop + mobile projects)
 ```
 
-Unit tests cover the spaced-repetition scheduler, card tagging, store queries, streak calculation, the swipe-decision helpers, session auth, and the rate limiter. The e2e smoke suite checks the queue renders, all domains appear in nav, domain navigation works, and the filter selects are accessible.
+Unit tests cover the spaced-repetition scheduler, runtime domain resolution and
+metadata, both observed migration schemas and repeat execution, store queries,
+streak calculation, swipe helpers, session auth, and rate limiting. The e2e smoke
+suite checks the queue, domain navigation, and accessible filters.
 
 ## Deployment
 
