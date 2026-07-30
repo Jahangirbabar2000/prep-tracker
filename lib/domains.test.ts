@@ -3,6 +3,7 @@ import type { DomainField, DomainFieldOption, Problem, StudyDomain } from './typ
 import {
   activeDomains,
   cardTagsFromFields,
+  domainBySlugWithFallback,
   domainBySlug,
   domainPath,
   isTimedMode,
@@ -45,6 +46,12 @@ describe('runtime domains', () => {
     expect(domainPath(domains, 'dsa')).toBe('/dsa');
     expect(domainBySlug(domains, 'databases')?.id).toBe('custom');
     expect(activeDomains(domains).map(domain => domain.id)).toEqual(['dsa']);
+  });
+
+  it('keeps renamed built-in detail routes valid without a hydrated domain registry', () => {
+    expect(domainPath([], 'python')).toBe('/backend');
+    expect(domainPath([], 'system_design')).toBe('/system-design');
+    expect(domainBySlugWithFallback([], [{ domain: 'python' }], 'backend')?.id).toBe('python');
   });
 
   it('assigns numeric shortcuts from active Settings order and skips archived domains', () => {

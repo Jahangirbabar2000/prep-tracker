@@ -164,6 +164,10 @@ export function domainBySlug(domains: StudyDomain[], slug: string): StudyDomain 
   return domains.find(domain => domain.slug === slug);
 }
 
+function legacyDomainById(id: string): StudyDomain | undefined {
+  return LEGACY_DOMAIN_FALLBACKS.find(domain => domain.id === id);
+}
+
 export function domainBySlugWithFallback(
   domains: StudyDomain[],
   problems: Array<Pick<Problem, 'domain'>>,
@@ -171,6 +175,11 @@ export function domainBySlugWithFallback(
 ): StudyDomain | undefined {
   const configured = domainBySlug(domains, slug);
   if (configured) return configured;
+  // Preserve renamed built-in routes (for example internal `python` now lives
+  // at `/backend`) while an offline/older IndexedDB snapshot has problems but
+  // no runtime domain registry yet.
+  const legacy = LEGACY_DOMAIN_FALLBACKS.find(domain => domain.slug === slug);
+  if (legacy && problems.some(problem => problem.domain === legacy.id)) return legacy;
   const orphanId = problems.find(problem => fallbackDomain(problem.domain).slug === slug)?.domain;
   return orphanId ? fallbackDomain(orphanId) : undefined;
 }
@@ -198,7 +207,7 @@ export function fallbackDomain(id: string): StudyDomain {
 }
 
 export function resolveDomain(domains: StudyDomain[], id: string): StudyDomain {
-  return domainById(domains, id) ?? fallbackDomain(id);
+  return domainById(domains, id) ?? legacyDomainById(id) ?? fallbackDomain(id);
 }
 
 export function domainPath(domains: StudyDomain[], id: string): string {
