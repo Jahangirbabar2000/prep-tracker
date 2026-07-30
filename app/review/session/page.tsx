@@ -347,10 +347,14 @@ function SessionPageInner() {
     : index;
   const previousCard = canGoPrev ? allCards[previousIndex] : null;
   const nextCard = canGoNext ? allCards[nextIndex] : null;
+  // Dock controls only while a compact, unrevealed flashcard is on screen.
+  // Revealed answers, timed cards, and AI content can all grow vertically, so
+  // their controls must participate in normal document flow.
+  const controlsInFlow = isTimed || revealed || aiExpanded;
 
   return (
     <div className={`mx-auto flex max-w-xl flex-col gap-4 overflow-x-clip md:pb-0 ${
-      aiExpanded ? 'pb-4' : 'pb-40'
+      controlsInFlow ? 'pb-4' : 'pb-40'
     }`}>
       {/* Header row */}
       <div className="flex items-center justify-between">
@@ -639,13 +643,12 @@ function SessionPageInner() {
         </div>
       )}
 
-      {/* Navigation stays docked during normal review. When AI opens it returns
-          to document flow above the explanation so no reading content is ever
-          covered by fixed controls. */}
+      {/* Navigation stays docked only for a compact, unrevealed flashcard.
+          Expanded answers and AI content keep every control in document flow. */}
       <div
         data-testid="review-nav-dock"
         className={`mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5 md:static ${
-          aiExpanded
+          controlsInFlow
             ? 'relative w-full'
             : 'fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-30'
         }`}
@@ -692,8 +695,8 @@ function SessionPageInner() {
           data-testid="ai-elaboration-card"
           className={!showAI
             ? 'hidden'
-            : aiExpanded
-              ? 'relative scroll-mt-20 md:mt-0'
+            : controlsInFlow
+              ? `relative md:mt-0 ${aiExpanded ? 'scroll-mt-20' : ''}`
               : 'fixed inset-x-4 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto max-w-xl md:static'}
         >
           <AskAI

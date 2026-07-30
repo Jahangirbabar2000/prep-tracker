@@ -177,15 +177,29 @@ test('Ask AI leaves the mobile dock and scrolls into normal page flow', async ({
 
   await page.goto('/review/session');
   const aiCard = page.getByTestId('ai-elaboration-card');
+  const navDock = page.getByTestId('review-nav-dock');
+  const reviewCard = page.getByTestId('swipe-review-card');
   await expect(aiCard).toBeVisible();
   await expect(aiCard).toHaveCSS('position', 'fixed');
+  await expect(navDock).toHaveCSS('position', 'fixed');
+
+  await page.getByRole('button', { name: 'Reveal answer' }).click();
+  await expect(aiCard).toHaveCSS('position', 'relative');
+  await expect(navDock).toHaveCSS('position', 'relative');
+  const revealedOverlap = await page.evaluate(() => {
+    const card = document.querySelector('[data-testid="swipe-review-card"]')!.getBoundingClientRect();
+    const nav = document.querySelector('[data-testid="review-nav-dock"]')!.getBoundingClientRect();
+    return Math.max(0, Math.min(card.bottom, nav.bottom) - Math.max(card.top, nav.top));
+  });
+  expect(revealedOverlap).toBe(0);
 
   await page.getByRole('button', { name: 'Ask AI to elaborate' }).click();
 
   await expect(page.getByTestId('ai-elaboration-content')).toBeVisible();
   await expect(page.getByText('A mocked explanation that belongs below the review card.')).toBeVisible();
   await expect(aiCard).toHaveCSS('position', 'relative');
-  await expect(page.getByTestId('review-nav-dock')).toHaveCSS('position', 'relative');
+  await expect(navDock).toHaveCSS('position', 'relative');
+  await expect(reviewCard).toBeVisible();
 
   const overlap = await page.evaluate(() => {
     const ai = document.querySelector('[data-testid="ai-elaboration-card"]')!.getBoundingClientRect();
