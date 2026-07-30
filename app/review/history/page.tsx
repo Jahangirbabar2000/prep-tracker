@@ -77,7 +77,7 @@ function HistoryInner() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors mb-2">
-            <ArrowLeft size={13} /> Review Queue <span className="opacity-40 ml-0.5">Esc</span>
+            <ArrowLeft size={13} /> Review Queue <span className="hidden md:inline opacity-40 ml-0.5">Esc</span>
           </Link>
           <h1 className="text-2xl font-semibold text-fg tracking-tight">Today&apos;s History</h1>
           <p className="text-sm text-muted mt-0.5">{fmtDate(today)}</p>
@@ -105,33 +105,28 @@ function HistoryInner() {
           {/* Summary stats — reviews only */}
           {totalReviewed > 0 && (
             <div className="bg-surface border border-border rounded-xl px-5 py-4 mb-6 flex flex-col gap-3">
-              <div className="flex items-center gap-6 flex-wrap">
-                <div className="text-center">
+              <div className="grid grid-cols-3">
+                <div className="text-center px-2">
                   <p className="text-2xl font-bold text-fg tabular">{totalReviewed}</p>
                   <p className="text-xs text-muted mt-0.5">reviewed</p>
                 </div>
-                <div className="w-px h-8 bg-border shrink-0" />
-                <div className="text-center">
+                <div className="text-center px-2 border-x border-border">
                   <p className="text-2xl font-bold text-accent tabular">{gotIt}</p>
                   <p className="text-xs text-muted mt-0.5">got it</p>
                 </div>
-                <div className="w-px h-8 bg-border shrink-0" />
-                <div className="text-center">
+                <div className="text-center px-2">
                   <p className="text-2xl font-bold text-danger tabular">{struggled}</p>
                   <p className="text-xs text-muted mt-0.5">struggled</p>
                 </div>
-                {totalMins > 0 && (
-                  <>
-                    <div className="w-px h-8 bg-border shrink-0" />
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-fg tabular">~{fmtMins(totalMins)}</p>
-                      <p className="text-xs text-muted mt-0.5">time spent</p>
-                    </div>
-                  </>
-                )}
               </div>
+              {totalMins > 0 && (
+                <div className="flex items-center justify-center gap-2 pt-3 border-t border-border">
+                  <span className="text-xl font-bold text-fg tabular">~{fmtMins(totalMins)}</span>
+                  <span className="text-xs text-muted">time spent</span>
+                </div>
+              )}
               {Object.keys(byDomain).length > 1 && (
-                <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border">
+                <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-border">
                   {DOMAIN_ORDER.filter(d => byDomain[d]).map(d => (
                     <span key={d} className="inline-flex items-center gap-1.5 text-xs text-muted px-2 py-0.5 bg-surface-2 rounded-full">
                       <span className="font-medium text-fg">{byDomain[d]}</span>
