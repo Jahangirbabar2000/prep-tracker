@@ -15,7 +15,7 @@ import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/querie
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 import { cardTagsFromFields, domainPath, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from '@/components/domainVisuals';
-import { useSwipeNav } from '@/lib/useSwipeNav';
+import SwipeableReviewCard from '@/components/SwipeableReviewCard';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
@@ -254,15 +254,6 @@ function SessionPageInner() {
     return () => window.removeEventListener('keydown', onKey);
   }, [status, revealed, submitting, advance, advanceDsa, goNext, goPrev, skipSection, isTimed]);
 
-  // Touch swipe navigation (mobile) — mirrors the ← / → keys and the Prev/Next
-  // buttons. Horizontally-scrollable answer content (e.g. code blocks) and text
-  // fields keep priority for the gesture; see useSwipeNav.
-  useSwipeNav({
-    enabled: status === 'ready',
-    onSwipeLeft: goNext,  // swipe left → next card
-    onSwipeRight: goPrev, // swipe right → previous card
-  });
-
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-[60vh] text-sm text-muted">
@@ -337,9 +328,20 @@ function SessionPageInner() {
       </div>
 
       {/* Card */}
-      <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <SwipeableReviewCard
+        key={card!.id}
+        canSwipeLeft={canGoNext}
+        canSwipeRight={canGoPrev}
+        disabled={submitting}
+        onSwipeLeft={goNext}
+        onSwipeRight={goPrev}
+      >
         {/* Domain + category on the left; topic, difficulty + proficiency right-aligned */}
-        <div className="flex items-center gap-2 flex-wrap px-6 pt-5">
+        <div
+          data-swipe-handle="true"
+          className="flex items-center gap-2 flex-wrap px-6 pt-5"
+          style={{ touchAction: 'pan-y' }}
+        >
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${palette.badge}`}>
             {domainDefinition.name}
           </span>
@@ -365,7 +367,11 @@ function SessionPageInner() {
         </div>
 
         {/* Question title */}
-        <div className="px-6 pt-4 pb-6">
+        <div
+          data-swipe-handle="true"
+          className="px-6 pt-4 pb-6 cursor-grab active:cursor-grabbing"
+          style={{ touchAction: 'pan-y' }}
+        >
           <p className="text-lg font-semibold text-fg leading-snug">{card!.name}</p>
           {(card!.attempt_count ?? 0) > 0 && (
             <p className="text-xs text-muted mt-1">
@@ -453,7 +459,11 @@ function SessionPageInner() {
           /* ── Concept domains: Q&A flashcard ── */
           <div className="border-t border-border">
             {!revealed ? (
-              <div className="flex flex-col items-center gap-3 py-8">
+              <div
+                data-swipe-handle="true"
+                className="flex flex-col items-center gap-3 py-8 cursor-grab active:cursor-grabbing"
+                style={{ touchAction: 'pan-y' }}
+              >
                 <button
                   onClick={() => setRevealed(true)}
                   className="px-6 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer"
@@ -560,7 +570,7 @@ function SessionPageInner() {
             </div>
           )}
         </div>
-      </div>
+      </SwipeableReviewCard>
 
       {/* ── Attempt history — standalone card, DSA only ── */}
       {isTimed && cardAttempts.length > 0 && (
