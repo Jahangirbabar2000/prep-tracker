@@ -625,7 +625,7 @@ function SessionPageInner() {
 
       {/* The mobile action zone is fixed independently of card height. Bottom
           padding on the session keeps scrollable card content clear of it. */}
-      <div className="fixed inset-x-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto flex max-h-[calc(100dvh-6rem)] max-w-xl flex-col gap-2 overflow-y-auto rounded-2xl bg-background/90 p-1.5 shadow-xl backdrop-blur md:static md:max-h-none md:gap-4 md:overflow-visible md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
+      <div className="fixed inset-x-4 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto flex max-h-[calc(100dvh-6rem)] max-w-xl flex-col gap-2.5 overflow-y-auto rounded-2xl bg-background/90 p-1.5 shadow-xl backdrop-blur md:static md:max-h-none md:gap-4 md:overflow-visible md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
         {/* ── Navigation + skip section ── */}
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5">
           <button
