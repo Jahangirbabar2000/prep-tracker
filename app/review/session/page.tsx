@@ -335,7 +335,7 @@ function SessionPageInner() {
   const nextCard = canGoNext ? allCards[nextIndex] : null;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh_-_7.5rem_-_env(safe-area-inset-top,0px)_-_env(safe-area-inset-bottom,0px))] max-w-xl flex-col gap-4 overflow-x-clip md:min-h-0">
+    <div className="mx-auto flex max-w-xl flex-col gap-4 overflow-x-clip pb-40 md:pb-0">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
@@ -623,15 +623,9 @@ function SessionPageInner() {
         </div>
       )}
 
-      <div className="flex min-h-12 flex-1 items-center justify-center px-6 py-5 text-center md:hidden">
-        <p className="text-xs leading-relaxed text-muted/55">
-          You&apos;re building momentum — one card at a time.
-        </p>
-      </div>
-
-      {/* Stable mobile action zone: flexible space above absorbs differences in
-          question height so these controls stay near the bottom of the screen. */}
-      <div className="mt-auto flex flex-col gap-5 md:mt-0 md:gap-4">
+      {/* The mobile action zone is fixed independently of card height. Bottom
+          padding on the session keeps scrollable card content clear of it. */}
+      <div className="fixed inset-x-4 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto flex max-h-[calc(100dvh-6rem)] max-w-xl flex-col gap-2 overflow-y-auto rounded-2xl bg-background/90 p-1.5 shadow-xl backdrop-blur md:static md:max-h-none md:gap-4 md:overflow-visible md:rounded-none md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none">
         {/* ── Navigation + skip section ── */}
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5">
           <button
