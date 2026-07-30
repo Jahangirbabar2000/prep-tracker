@@ -17,6 +17,8 @@ interface Props {
   children: ReactNode;
   canSwipeLeft: boolean;
   canSwipeRight: boolean;
+  nextPreview?: ReactNode;
+  previousPreview?: ReactNode;
   disabled?: boolean;
   onSwipeLeft: () => void;
   onSwipeRight: () => void;
@@ -28,14 +30,21 @@ export default function SwipeableReviewCard({
   children,
   canSwipeLeft,
   canSwipeRight,
+  nextPreview,
+  previousPreview,
   disabled = false,
   onSwipeLeft,
   onSwipeRight,
 }: Props) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-320, 0, 320], [-11, 0, 11]);
-  const nextOpacity = useTransform(x, [-180, -45, 0], [1, 0.15, 0]);
-  const previousOpacity = useTransform(x, [0, 45, 180], [0, 0.15, 1]);
+  // The active card follows a shallow downward arc in either direction. Keeping
+  // rotation at zero makes this feel like paging through a study deck rather
+  // than dismissing a Tinder-style card.
+  const y = useTransform(x, value => Math.min(112, Math.abs(value) * 0.16));
+  const nextOpacity = useTransform(x, [-180, -32, 0], [1, 0.72, 0.48]);
+  const previousOpacity = useTransform(x, [0, 32, 180], [0.48, 0.72, 1]);
+  const nextX = useTransform(x, [-180, 0], [0, 18]);
+  const previousX = useTransform(x, [0, 180], [-18, 0]);
   const dragControls = useDragControls();
   const reduceMotion = useReducedMotion();
   const [animating, setAnimating] = useState(false);
@@ -105,12 +114,24 @@ export default function SwipeableReviewCard({
   }
 
   return (
-    <div className="relative isolate">
-      {(canSwipeLeft || canSwipeRight) && (
-        <>
-          <div aria-hidden className="absolute inset-0 translate-y-3 scale-[0.965] rounded-2xl border border-border/60 bg-surface-2/55" />
-          <div aria-hidden className="absolute inset-0 translate-y-1.5 scale-[0.985] rounded-2xl border border-border/80 bg-surface-2" />
-        </>
+    <div className="relative isolate px-2 pb-3 sm:px-0">
+      {canSwipeRight && previousPreview && (
+        <motion.div
+          aria-hidden
+          style={{ x: previousX, opacity: previousOpacity }}
+          className="pointer-events-none absolute inset-x-2 top-2 z-0 -translate-y-0.5 -translate-x-3 sm:inset-x-0"
+        >
+          {previousPreview}
+        </motion.div>
+      )}
+      {canSwipeLeft && nextPreview && (
+        <motion.div
+          aria-hidden
+          style={{ x: nextX, opacity: nextOpacity }}
+          className="pointer-events-none absolute inset-x-2 top-2 z-[1] translate-y-1 translate-x-3 sm:inset-x-0"
+        >
+          {nextPreview}
+        </motion.div>
       )}
       <motion.div
         data-testid="swipe-review-card"
@@ -125,8 +146,8 @@ export default function SwipeableReviewCard({
         dragMomentum={false}
         onPointerDown={startDrag}
         onDragEnd={finishDrag}
-        whileDrag={reduceMotion ? undefined : { scale: 1.015 }}
-        style={{ x, rotate }}
+        whileDrag={reduceMotion ? undefined : { scale: 0.995 }}
+        style={{ x, y }}
         className={`relative z-10 bg-surface border border-border rounded-2xl overflow-hidden shadow-sm ${
           disabled || animating ? 'pointer-events-none' : ''
         }`}
@@ -139,20 +160,6 @@ export default function SwipeableReviewCard({
         >
           <span className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-border-strong/60" />
         </div>
-        <motion.div
-          aria-hidden
-          style={{ opacity: nextOpacity }}
-          className="pointer-events-none absolute left-5 top-7 z-30 -rotate-6 rounded-lg border-2 border-accent px-3 py-1 text-xs font-black tracking-[0.2em] text-accent"
-        >
-          NEXT
-        </motion.div>
-        <motion.div
-          aria-hidden
-          style={{ opacity: previousOpacity }}
-          className="pointer-events-none absolute right-5 top-7 z-30 rotate-6 rounded-lg border-2 border-border-strong px-3 py-1 text-xs font-black tracking-[0.16em] text-muted"
-        >
-          PREV
-        </motion.div>
         {children}
       </motion.div>
     </div>

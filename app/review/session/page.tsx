@@ -41,6 +41,23 @@ function findAdjacent(
   return from;
 }
 
+function CardPreview({
+  card,
+  domainName,
+}: {
+  card: ReviewQueueItem;
+  domainName: string;
+}) {
+  return (
+    <div className="min-h-40 overflow-hidden rounded-2xl border border-border bg-surface-2 px-6 pb-6 pt-5 shadow-sm">
+      <p className="text-xs font-medium text-muted">{domainName}</p>
+      <p className="mt-4 line-clamp-3 text-lg font-semibold leading-snug text-fg/80">
+        {card.name}
+      </p>
+    </div>
+  );
+}
+
 function SessionPageInner() {
   const sp = useSearchParams();
   const filterDomain      = sp.get('domain')      ?? '';
@@ -308,9 +325,17 @@ function SessionPageInner() {
   const palette     = domainPalette(domainDefinition.color);
   const canGoPrev = findAdjacent(allCards, index, 'prev', loggedIds, skippedIds) !== index;
   const canGoNext = findAdjacent(allCards, index, 'next', loggedIds, skippedIds) !== index;
+  const previousIndex = canGoPrev
+    ? findAdjacent(allCards, index, 'prev', loggedIds, skippedIds)
+    : index;
+  const nextIndex = canGoNext
+    ? findAdjacent(allCards, index, 'next', loggedIds, skippedIds)
+    : index;
+  const previousCard = canGoPrev ? allCards[previousIndex] : null;
+  const nextCard = canGoNext ? allCards[nextIndex] : null;
 
   return (
-    <div className="flex flex-col gap-4 max-w-xl mx-auto">
+    <div className="mx-auto flex max-w-xl flex-col gap-4 overflow-x-clip">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
@@ -332,6 +357,18 @@ function SessionPageInner() {
         key={card!.id}
         canSwipeLeft={canGoNext}
         canSwipeRight={canGoPrev}
+        nextPreview={nextCard ? (
+          <CardPreview
+            card={nextCard}
+            domainName={resolveDomain(data.domains, nextCard.domain).name}
+          />
+        ) : undefined}
+        previousPreview={previousCard ? (
+          <CardPreview
+            card={previousCard}
+            domainName={resolveDomain(data.domains, previousCard.domain).name}
+          />
+        ) : undefined}
         disabled={submitting}
         onSwipeLeft={goNext}
         onSwipeRight={goPrev}
@@ -339,16 +376,17 @@ function SessionPageInner() {
         {/* Domain + category on the left; topic, difficulty + proficiency right-aligned */}
         <div
           data-swipe-handle="true"
-          className="flex items-center gap-2 flex-wrap px-6 pt-5"
+          className="flex items-start gap-2 px-4 pt-5 sm:px-6"
           style={{ touchAction: 'pan-y' }}
         >
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${palette.badge}`}>
-            {domainDefinition.name}
-          </span>
-          {tags[0] && <span className="text-xs text-muted">{tags[0]}</span>}
-
-          <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${palette.badge}`}>
+              {domainDefinition.name}
+            </span>
+            {tags[0] && <span className="text-xs text-muted">{tags[0]}</span>}
             {tags[1] && <span className="text-xs text-muted">{tags[1]}</span>}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             {card!.metadata.difficulty && (
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                 card!.metadata.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
@@ -369,7 +407,7 @@ function SessionPageInner() {
         {/* Question title */}
         <div
           data-swipe-handle="true"
-          className="px-6 pt-4 pb-6 cursor-grab active:cursor-grabbing"
+          className="cursor-grab px-4 pb-6 pt-4 active:cursor-grabbing sm:px-6"
           style={{ touchAction: 'pan-y' }}
         >
           <p className="text-lg font-semibold text-fg leading-snug">{card!.name}</p>
