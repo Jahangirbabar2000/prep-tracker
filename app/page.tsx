@@ -14,6 +14,8 @@ import {
 import { computeStreak } from '@/lib/streak';
 import { fmtDateOrToday } from '@/lib/fmt';
 import type { Problem } from '@/lib/types';
+import { allDomains, resolveDomain } from '@/lib/domains';
+import { domainPalette } from '@/components/domainVisuals';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -44,10 +46,7 @@ function ReviewQueueInner() {
     return () => window.removeEventListener('keydown', onKey);
   }, [router, sessionHref]);
 
-  const DOMAIN_LABELS: Record<string, string> = {
-    dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD', behavioral: 'Behavioral',
-  };
-  const QUEUE_DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld', 'behavioral'];
+  const domainOrder = allDomains(data.domains).map(domain => domain.id);
   const PROFICIENCY_ORDER = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
   function levelLabel(l: number) {
     if (l === 0) return 'Struggling';
@@ -83,9 +82,9 @@ function ReviewQueueInner() {
     !filterDomain || it.domain === filterDomain,
   );
 
-  const availableDomains = QUEUE_DOMAIN_ORDER
+  const availableDomains = domainOrder
     .filter(d => queueForDomainOptions.some(it => it.domain === d))
-    .map(d => ({ value: d, label: DOMAIN_LABELS[d] }));
+    .map(d => ({ value: d, label: resolveDomain(data.domains, d).name }));
   const availableProficiencies = PROFICIENCY_ORDER
     .filter(p => queueForProficiencyOptions.some(it => levelLabel(it.interval_level) === p));
 
@@ -115,17 +114,7 @@ function ReviewQueueInner() {
     pendingByDomain[item.domain] = (pendingByDomain[item.domain] ?? 0) + 1;
   }
 
-  const DOMAIN_META: Record<string, { label: string; bar: string; dot: string }> = {
-    dsa:           { label: 'DSA',           bar: 'bg-blue-500',   dot: 'bg-blue-500' },
-    system_design: { label: 'System Design', bar: 'bg-orange-500', dot: 'bg-orange-500' },
-    frontend:      { label: 'Frontend',      bar: 'bg-violet-500', dot: 'bg-violet-500' },
-    python:        { label: 'Backend',        bar: 'bg-emerald-500',dot: 'bg-emerald-500' },
-    ai:            { label: 'AI',            bar: 'bg-rose-500',   dot: 'bg-rose-500' },
-    lld:           { label: 'LLD',            bar: 'bg-amber-500',  dot: 'bg-amber-500' },
-    behavioral:    { label: 'Behavioral',    bar: 'bg-teal-500',   dot: 'bg-teal-500' },
-  };
-  const DOMAIN_ORDER = ['dsa', 'system_design', 'frontend', 'python', 'ai', 'lld', 'behavioral'];
-  const activeDomains = DOMAIN_ORDER.filter(
+  const activeSummaryDomains = domainOrder.filter(
     d => (todayByDomain[d] ?? 0) + (pendingByDomain[d] ?? 0) > 0,
   );
 
@@ -248,17 +237,18 @@ function ReviewQueueInner() {
           </div>
 
           {/* Per-domain chips — single row */}
-          {activeDomains.length > 1 && (
+          {activeSummaryDomains.length > 1 && (
             <div className="flex items-center gap-3 flex-wrap pt-0.5 border-t border-border">
-              {activeDomains.map(d => {
-                const meta  = DOMAIN_META[d];
+              {activeSummaryDomains.map(d => {
+                const definition = resolveDomain(data.domains, d);
+                const palette = domainPalette(definition.color);
                 const done  = todayByDomain[d] ?? 0;
                 const total = done + (pendingByDomain[d] ?? 0);
                 return (
                   <span key={d} className="inline-flex items-center gap-1.5 text-xs text-muted">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${palette.dot}`} />
                     <span className="whitespace-nowrap">
-                      {meta.label}
+                      {definition.name}
                       <span className="mx-1 opacity-30">·</span>
                       <span className={done > 0 ? 'text-fg font-medium' : ''}>{done}</span>
                       <span className="opacity-50">/{total}</span>

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { replayAttempts, computeMetrics } from './metrics';
 import type { StoreData } from './store';
 import type { Attempt, Problem } from '@/lib/types';
+import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
 
 const TODAY = '2026-07-26'; // sevenAgo = 2026-07-19, fourteenAgo = 2026-07-12
 
@@ -12,7 +13,16 @@ function problem(over: Partial<Problem> & { id: number }): Problem {
   return { name: `P${over.id}`, domain: 'dsa', interval_level: 0, created_at: `${TODAY} 00:00:00`, ...over } as Problem;
 }
 function store(problems: Problem[], attempts: Attempt[]): StoreData {
-  return { problems, attempts, notes: [], links: [], config_options: [] };
+  return {
+    problems,
+    attempts,
+    notes: [],
+    links: [],
+    config_options: [],
+    domains: LEGACY_DOMAIN_FALLBACKS,
+    domain_fields: [],
+    domain_field_options: [],
+  };
 }
 /** Attempts for one problem across ascending days from `day`; s = struggled flags. */
 function seq(problemId: number, startDay: number, struggles: number[]): Attempt[] {

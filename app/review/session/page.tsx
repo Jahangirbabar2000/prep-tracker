@@ -13,37 +13,14 @@ import CopyLinkButton from '@/components/CopyLinkButton';
 import { useStore, getData, mutate } from '@/lib/store/store';
 import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
-import { cardTags } from '@/lib/cardTags';
+import { cardTagsFromFields, domainPath, isTimedMode, resolveDomain } from '@/lib/domains';
+import { domainPalette } from '@/components/domainVisuals';
 import { useSwipeNav } from '@/lib/useSwipeNav';
-
-const DOMAIN_LABEL: Record<string, string> = {
-  dsa:           'DSA',
-  system_design: 'System Design',
-  frontend:      'Frontend',
-  python:        'Backend',
-  ai:            'AI',
-  lld:           'LLD',
-  behavioral:    'Behavioral',
-};
-
-const DOMAIN_STYLE: Record<string, string> = {
-  dsa:           'bg-blue-500/10    text-blue-400',
-  system_design: 'bg-orange-500/10  text-orange-400',
-  frontend:      'bg-violet-500/10  text-violet-400',
-  python:        'bg-emerald-500/10 text-emerald-400',
-  ai:            'bg-rose-500/10    text-rose-400',
-  lld:           'bg-amber-500/10   text-amber-400',
-  behavioral:    'bg-teal-500/10    text-teal-400',
-};
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; }
-}
-
-function domainPath(domain: string) {
-  return domain === 'system_design' ? '/system-design' : domain === 'python' ? '/backend' : `/${domain}`;
 }
 
 // Find nearest active (not logged, not skipped) card in a given direction, wrapping around.
@@ -110,7 +87,8 @@ function SessionPageInner() {
   }, [ready, data, filterDomain, filterProficiency]);
 
   const card  = allCards[index] ?? null;
-  const isDSA = card?.domain === 'dsa';
+  const domainDefinition = resolveDomain(data.domains, card?.domain ?? '');
+  const isTimed = isTimedMode(domainDefinition.study_mode);
 
   // Attempt history for the card currently being reviewed — newest first,
   // matching lib/store/queries.ts's problemDetail() ordering.
@@ -124,13 +102,13 @@ function SessionPageInner() {
   // Fetch links: eagerly for DSA, lazily on reveal for concept domains. Cached per card.
   useEffect(() => {
     if (!card) return;
-    if (!isDSA && !revealed) return;
+    if (!isTimed && !revealed) return;
     const cached = linksCache.current.get(card.id);
     if (cached) { setLinks(cached); return; }
     const ls = getData().links.filter(l => l.problem_id === card.id) as LinkType[];
     linksCache.current.set(card.id, ls);
     setLinks(ls);
-  }, [revealed, card?.id, isDSA]);
+  }, [revealed, card?.id, isTimed]);
 
   const resetCardState = useCallback(() => {
     setRevealed(false);
@@ -257,7 +235,7 @@ function SessionPageInner() {
         if (e.key === 's' || e.key === 'S') { skipSection(); return; }
       }
 
-      if (isDSA) {
+      if (isTimed) {
         // Y/N set the Solved/Struggled toggle (outside text fields)
         if (!inField && (e.key === 'y' || e.key === 'Y')) { setDsaStruggled(false); return; }
         if (!inField && (e.key === 'n' || e.key === 'N')) { setDsaStruggled(true);  return; }
@@ -274,7 +252,7 @@ function SessionPageInner() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [status, revealed, submitting, advance, advanceDsa, goNext, goPrev, skipSection, isDSA]);
+  }, [status, revealed, submitting, advance, advanceDsa, goNext, goPrev, skipSection, isTimed]);
 
   // Touch swipe navigation (mobile) — mirrors the ← / → keys and the Prev/Next
   // buttons. Horizontally-scrollable answer content (e.g. code blocks) and text
@@ -335,7 +313,8 @@ function SessionPageInner() {
 
   const activeCount = allCards.filter(c => isActive(c.id, loggedIds, skippedIds)).length;
   const progress    = ((allCards.length - activeCount) / (allCards.length || 1)) * 100;
-  const tags        = cardTags(card!);
+  const tags        = cardTagsFromFields(card!, data.domain_fields);
+  const palette     = domainPalette(domainDefinition.color);
   const canGoPrev = findAdjacent(allCards, index, 'prev', loggedIds, skippedIds) !== index;
   const canGoNext = findAdjacent(allCards, index, 'next', loggedIds, skippedIds) !== index;
 
@@ -361,20 +340,20 @@ function SessionPageInner() {
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {/* Domain + category on the left; topic, difficulty + proficiency right-aligned */}
         <div className="flex items-center gap-2 flex-wrap px-6 pt-5">
-          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DOMAIN_STYLE[card!.domain]}`}>
-            {DOMAIN_LABEL[card!.domain]}
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${palette.badge}`}>
+            {domainDefinition.name}
           </span>
           {tags[0] && <span className="text-xs text-muted">{tags[0]}</span>}
 
           <div className="ml-auto flex items-center gap-2 flex-wrap justify-end">
             {tags[1] && <span className="text-xs text-muted">{tags[1]}</span>}
-            {card!.difficulty && (
+            {card!.metadata.difficulty && (
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                card!.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
-                card!.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
+                card!.metadata.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
+                card!.metadata.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
                                                'bg-red-500/10     text-red-400'
               }`}>
-                {card!.difficulty}
+                {card!.metadata.difficulty}
               </span>
             )}
             <ProficiencyBadge
@@ -396,7 +375,7 @@ function SessionPageInner() {
         </div>
 
         {/* ── DSA: practice link + log form ── */}
-        {isDSA ? (
+        {isTimed ? (
           <div className="border-t border-border px-6 py-5 flex flex-col gap-5">
             {links && links.length > 0 && (
               <div className="flex flex-col gap-2">
@@ -462,7 +441,7 @@ function SessionPageInner() {
 
             <div className="flex justify-end">
               <Link
-                href={`/dsa/${card!.id}`}
+                href={`${domainPath(data.domains, card!.domain)}/${card!.id}`}
                 target="_blank"
                 className="text-xs text-muted hover:text-fg transition-colors"
               >
@@ -510,7 +489,7 @@ function SessionPageInner() {
 
                 <div className="flex justify-end">
                   <Link
-                    href={`${domainPath(card!.domain)}/${card!.id}`}
+                    href={`${domainPath(data.domains, card!.domain)}/${card!.id}`}
                     target="_blank"
                     className="text-xs text-muted hover:text-fg transition-colors"
                   >
@@ -584,7 +563,7 @@ function SessionPageInner() {
       </div>
 
       {/* ── Attempt history — standalone card, DSA only ── */}
-      {isDSA && cardAttempts.length > 0 && (
+      {isTimed && cardAttempts.length > 0 && (
         <div className="bg-surface border border-border rounded-2xl p-5">
           <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Attempt History</h2>
           <AttemptHistory
@@ -615,7 +594,7 @@ function SessionPageInner() {
           className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-muted hover:text-fg hover:border-border-strong hover:bg-surface-2 transition-colors cursor-pointer"
         >
           <SkipForward size={14} className="shrink-0" />
-          <span className="truncate">Skip all {DOMAIN_LABEL[card!.domain]}</span>
+          <span className="truncate">Skip all {domainDefinition.name}</span>
           <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">S</kbd>
         </button>
         <button
@@ -642,7 +621,7 @@ function SessionPageInner() {
             problemId={card.id}
             question={card.name}
             answer={card.notes_text}
-            domain={DOMAIN_LABEL[card.domain]}
+            domain={domainDefinition.name}
             tags={tags}
           />
         </div>

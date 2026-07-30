@@ -1,8 +1,14 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { Problem, Attempt, Note, Link } from '@/lib/types';
+import { Problem, Attempt, Note, Link, StudyDomain, DomainField, DomainFieldOption } from '@/lib/types';
 import { idbGet, idbSet } from './idb';
+import {
+  LEGACY_DOMAIN_FALLBACKS,
+  LEGACY_FIELD_FALLBACKS,
+  legacyOptionsFromConfig,
+  normalizeProblem,
+} from '@/lib/domains';
 
 export interface ConfigOption {
   id: number;
@@ -18,6 +24,9 @@ export interface StoreData {
   notes: Note[];
   links: Link[];
   config_options: ConfigOption[];
+  domains: StudyDomain[];
+  domain_fields: DomainField[];
+  domain_field_options: DomainFieldOption[];
 }
 
 export interface StoreState {
@@ -25,7 +34,16 @@ export interface StoreState {
   ready: boolean;
 }
 
-const EMPTY_DATA: StoreData = { problems: [], attempts: [], notes: [], links: [], config_options: [] };
+const EMPTY_DATA: StoreData = {
+  problems: [],
+  attempts: [],
+  notes: [],
+  links: [],
+  config_options: [],
+  domains: LEGACY_DOMAIN_FALLBACKS,
+  domain_fields: LEGACY_FIELD_FALLBACKS,
+  domain_field_options: legacyOptionsFromConfig([]),
+};
 const SERVER_STATE: StoreState = { data: EMPTY_DATA, ready: false };
 const IDB_KEY = 'store';
 
@@ -38,12 +56,19 @@ function getSnapshot() { return state; }
 function getServerSnapshot() { return SERVER_STATE; }
 
 export function normalize(raw: Partial<StoreData> | null | undefined): StoreData {
+  const configOptions = raw?.config_options ?? [];
+  const hasRuntimeFields = !!raw?.domain_fields?.length;
   return {
-    problems: raw?.problems ?? [],
+    problems: (raw?.problems ?? []).map(normalizeProblem),
     attempts: raw?.attempts ?? [],
     notes: raw?.notes ?? [],
     links: raw?.links ?? [],
-    config_options: raw?.config_options ?? [],
+    config_options: configOptions,
+    domains: raw?.domains?.length ? raw.domains : LEGACY_DOMAIN_FALLBACKS,
+    domain_fields: hasRuntimeFields ? raw!.domain_fields! : LEGACY_FIELD_FALLBACKS,
+    domain_field_options: hasRuntimeFields
+      ? raw?.domain_field_options ?? []
+      : legacyOptionsFromConfig(configOptions),
   };
 }
 

@@ -8,7 +8,7 @@ import DomainFilters from './DomainFilters';
 export interface DomainFilterConfig {
   key: string;
   placeholder: string;
-  field: keyof Problem;
+  field: string;
 }
 
 interface Props {
@@ -147,7 +147,7 @@ export default function DomainPageClient({
     for (const fc of filterConfigs) {
       const vals = new Set<string>();
       for (const p of allProblems) {
-        const v = p[fc.field];
+        const v = p.metadata[fc.field];
         if (v != null && String(v) !== '') vals.add(String(v));
       }
       opts[fc.key] = [...vals].sort();
@@ -164,7 +164,7 @@ export default function DomainPageClient({
     // Dropdown filters
     for (const fc of filterConfigs) {
       const val = filters[fc.key];
-      if (val) result = result.filter(p => String(p[fc.field] ?? '') === val);
+      if (val) result = result.filter(p => String(p.metadata[fc.field] ?? '') === val);
     }
     if (filters.proficiency) {
       result = result.filter(p => proficiencyLabel(p) === filters.proficiency);

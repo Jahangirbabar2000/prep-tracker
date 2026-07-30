@@ -22,26 +22,11 @@ export interface TodayAttempt {
   interval_level: number;
   next_due_date: string | null;
   attempt_count: number;
-  difficulty: string | null;
-  pattern_tag: string | null;
-  sd_category: string | null;
-  sd_topic: string | null;
-  fe_bucket: string | null;
-  py_category: string | null;
-  ai_category: string | null;
-  lld_category: string | null;
-  lld_topic: string | null;
-  beh_category: string | null;
+  metadata: Record<string, string>;
 }
 
-const DOMAIN_ORDER: Domain[] = ['dsa', 'python', 'frontend', 'system_design', 'ai', 'lld', 'behavioral'];
-const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD', behavioral: 'Behavioral',
-};
-
-function domainPath(d: string) {
-  return d === 'system_design' ? '/system-design' : `/${d}`;
-}
+import { allDomains, domainPath, isTimedMode, resolveDomain, tagsForMetadata } from '@/lib/domains';
+import { useStore } from '@/lib/store/store';
 function fmtTime(iso: string) {
   return new Date(iso.replace(' ', 'T')).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
@@ -52,7 +37,7 @@ function fmtMins(mins: number): string {
   return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
 }
 function cardTag(a: TodayAttempt) {
-  return a.pattern_tag ?? a.sd_topic ?? a.sd_category ?? a.fe_bucket ?? a.py_category ?? a.ai_category ?? a.beh_category ?? a.lld_topic ?? a.lld_category ?? null;
+  return a.metadata;
 }
 /** "45s/q" for sub-minute velocities, "1.5m/q" above a minute. */
 function fmtVelocity(seconds: number): string {
@@ -67,14 +52,16 @@ const DIFFICULTY_STYLE: Record<string, string> = {
 
 // Flat row used inside a group
 function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
-  const tag = cardTag(a);
-  const isDSA = a.domain === 'dsa';
+  const { data } = useStore();
+  const [tag] = tagsForMetadata(a.domain, cardTag(a), data.domain_fields);
+  const definition = resolveDomain(data.domains, a.domain);
+  const isTimed = isTimedMode(definition.study_mode);
   return (
     <div className={`flex items-center gap-3 px-4 py-2.5 ${!last ? 'border-b border-border' : ''}`}>
       <div className={`w-1 self-stretch rounded-full shrink-0 ${a.struggled ? 'bg-danger/60' : 'bg-accent/40'}`} />
       <div className="flex-1 min-w-0">
         <Link
-          href={`${domainPath(a.domain)}/${a.id}`}
+          href={`${domainPath(data.domains, a.domain)}/${a.id}`}
           className="text-sm font-medium text-fg hover:text-accent transition-colors truncate block"
         >
           {a.name}
@@ -85,9 +72,9 @@ function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
             nextDueDate={a.next_due_date ? fmtDate(a.next_due_date) : null}
             attemptCount={a.attempt_count}
           />
-          {isDSA && a.difficulty && (
-            <span className={`text-xs font-medium ${DIFFICULTY_STYLE[a.difficulty] ?? 'text-muted'}`}>
-              {a.difficulty}
+          {isTimed && a.metadata.difficulty && (
+            <span className={`text-xs font-medium ${DIFFICULTY_STYLE[a.metadata.difficulty] ?? 'text-muted'}`}>
+              {a.metadata.difficulty}
             </span>
           )}
           {tag && <span className="text-xs text-muted">{tag}</span>}
@@ -103,7 +90,7 @@ function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
             <CheckCircle2 size={12} /> Got it
           </span>
         )}
-        {isDSA && a.time_taken_mins > 0 && (
+        {isTimed && a.time_taken_mins > 0 && (
           <span className="inline-flex items-center gap-1 text-[11px] text-muted tabular">
             <Clock size={10} /> {a.time_taken_mins} min
           </span>
@@ -116,13 +103,16 @@ function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
 
 // Collapsible domain group for reviewed items — controlled from parent
 function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; attempts: TodayAttempt[]; open: boolean; onToggle: () => void }) {
+  const { data } = useStore();
+  const definition = resolveDomain(data.domains, domain);
+  const isTimed = isTimedMode(definition.study_mode);
   const struggled = attempts.filter(a => a.struggled).length;
   const gotIt = attempts.length - struggled;
 
   // DSA logs per-attempt solve time; other domains don't. Avg pace for DSA
   // comes from entered times. Session total = logged solve + inferred time
   // between questions (gap surplus beyond the next solve; long breaks excluded).
-  const dsaSession = domain === 'dsa'
+  const dsaSession = isTimed
     ? computeLoggedSessionTime(
         attempts.map(a => ({ attemptedAt: a.attempted_at, timeTakenMins: a.time_taken_mins })),
       )
@@ -130,7 +120,7 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
   const loggedMins = dsaSession?.loggedMins ?? 0;
   const betweenMins = dsaSession?.betweenMins ?? 0;
   const sessionMins = dsaSession?.sessionMins ?? 0;
-  const timedCount = domain === 'dsa'
+  const timedCount = isTimed
     ? attempts.filter(a => a.time_taken_mins > 0).length
     : 0;
   const avgLoggedSeconds = timedCount > 0 ? (loggedMins / timedCount) * 60 : 0;
@@ -149,7 +139,7 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
       >
         <div className="flex items-center gap-2.5 flex-wrap">
           <DomainBadge domain={domain} showIcon={false} />
-          <span className="text-sm font-semibold text-fg">{DOMAIN_LABEL[domain]}</span>
+          <span className="text-sm font-semibold text-fg">{definition.name}</span>
           <span className="text-xs text-muted tabular">{attempts.length} reviewed</span>
           <span className="text-muted/40 text-xs">·</span>
           <span className="text-xs text-accent tabular">{gotIt} got it</span>
@@ -245,9 +235,11 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
 
 // Collapsible domain group for added items — shows all 5 domains, greyed out if empty
 function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: TodayAttempt[] }) {
+  const { data } = useStore();
+  const definition = resolveDomain(data.domains, domain);
   const [open, setOpen] = useState(false);
   const hasItems = attempts.length > 0;
-  const totalMins = domain === 'dsa'
+  const totalMins = isTimedMode(definition.study_mode)
     ? attempts.reduce((s, a) => s + (a.time_taken_mins || 0), 0)
     : 0;
 
@@ -260,7 +252,7 @@ function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: Toda
       >
         <div className="flex items-center gap-2.5 flex-wrap">
           <DomainBadge domain={domain} showIcon={false} />
-          <span className="text-sm font-semibold text-fg">{DOMAIN_LABEL[domain]}</span>
+          <span className="text-sm font-semibold text-fg">{definition.name}</span>
           <span className="text-xs text-muted tabular">{attempts.length} added</span>
           {totalMins > 0 && (
             <>
@@ -357,23 +349,28 @@ interface Props {
 }
 
 export default function HistoryList({ reviewed, added }: Props) {
+  const { data } = useStore();
+  const domainOrder = allDomains(data.domains).map(domain => domain.id);
+  for (const domain of [...reviewed, ...added].map(attempt => attempt.domain)) {
+    if (!domainOrder.includes(domain)) domainOrder.push(domain);
+  }
   // Group reviewed by domain
   const reviewedByDomain: Partial<Record<Domain, TodayAttempt[]>> = {};
   for (const a of reviewed) {
     if (!reviewedByDomain[a.domain]) reviewedByDomain[a.domain] = [];
     reviewedByDomain[a.domain]!.push(a);
   }
-  const activeReviewDomains = DOMAIN_ORDER.filter(d => reviewedByDomain[d]?.length);
+  const activeReviewDomains = domainOrder.filter(d => reviewedByDomain[d]?.length);
 
   // Open state for reviewed domain groups — lifted so we can collapse all at once
   const [reviewOpenMap, setReviewOpenMap] = useState<Partial<Record<Domain, boolean>>>({});
   const anyReviewOpen = activeReviewDomains.some(d => reviewOpenMap[d]);
 
   // Group added by domain — all domains always shown
-  const addedByDomain: Record<Domain, TodayAttempt[]> = {
-    dsa: [], python: [], frontend: [], system_design: [], ai: [], lld: [], behavioral: [],
-  };
-  for (const a of added) addedByDomain[a.domain].push(a);
+  const addedByDomain: Record<Domain, TodayAttempt[]> = Object.fromEntries(
+    domainOrder.map(domain => [domain, []]),
+  );
+  for (const a of added) (addedByDomain[a.domain] ??= []).push(a);
 
   const isEmpty = reviewed.length === 0 && added.length === 0;
   if (isEmpty) return null;
@@ -415,7 +412,7 @@ export default function HistoryList({ reviewed, added }: Props) {
           icon={<Plus size={12} className="text-muted" />}
         >
           <div className="flex flex-col gap-2 pb-1">
-            {DOMAIN_ORDER.map(d => (
+            {domainOrder.map(d => (
               <AddedDomainGroup key={d} domain={d} attempts={addedByDomain[d]} />
             ))}
           </div>

@@ -1,9 +1,59 @@
-export type Domain = 'dsa' | 'system_design' | 'frontend' | 'python' | 'ai' | 'lld' | 'behavioral';
+/**
+ * Domain identifiers are persisted and user-created at runtime. Keep this
+ * alias for call sites that deal in domain IDs, but do not narrow it to the
+ * seven legacy domains.
+ */
+export type Domain = string;
+
+export type StudyMode = 'timed_problem' | 'flashcard' | 'flashcard_practice';
+export type DomainFieldKind = 'text' | 'select';
+export type DomainFieldTagRole = 'none' | 'primary' | 'secondary';
+
+export interface StudyDomain {
+  id: string;
+  slug: string;
+  name: string;
+  short_name: string;
+  study_mode: StudyMode;
+  icon: string;
+  color: string;
+  sort_order: number;
+  item_label: string;
+  log_label: string;
+  log_title: string;
+  empty_message: string;
+  answer_placeholder: string;
+  default_link: string;
+  archived_at: string | null;
+}
+
+export interface DomainField {
+  id: number;
+  domain_id: string;
+  key: string;
+  label: string;
+  kind: DomainFieldKind;
+  placeholder: string;
+  filterable: number;
+  tag_role: DomainFieldTagRole;
+  sort_order: number;
+  archived_at: string | null;
+  legacy_column: string | null;
+}
+
+export interface DomainFieldOption {
+  id: number;
+  field_id: number;
+  value: string;
+  sort_order: number;
+  archived_at: string | null;
+}
 
 export interface Problem {
   id: number;
   name: string;
   domain: Domain;
+  metadata: Record<string, string>;
   // DSA
   platform?: string | null;
   pattern_tag?: string | null;

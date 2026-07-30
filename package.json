@@ -6,6 +6,7 @@
     "dev": "next dev -p 3007",
     "build": "next build",
     "start": "next start -p 3007",
+    "db:migrate": "node scripts/migrate-domains.mjs",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -11,10 +11,12 @@ import ProblemMetaForm from './ProblemMetaForm';
 import AttemptHistory from './AttemptHistory';
 import NoteCard from './NoteCard';
 import AddNoteForm from './AddNoteForm';
-import QuickLogForm from './QuickLogForm';
+import SchemaLogForm from './SchemaLogForm';
 import QuickNotes from './QuickNotes';
 import LinksManager from './LinksManager';
 import DeleteButton from './DeleteButton';
+import { useStore } from '@/lib/store/store';
+import { domainById, isTimedMode, resolveDomain, usesPracticeType } from '@/lib/domains';
 
 interface ProblemDetail extends Problem {
   attempts: Attempt[];
@@ -38,6 +40,10 @@ const sectionTitle = 'text-xs font-semibold text-muted uppercase tracking-wide';
 
 export default function ProblemDetailView({ id, domain, basePath, backLabel }: Props) {
   const router = useRouter();
+  const store = useStore();
+  const domainDefinition = resolveDomain(store.data.domains, domain);
+  const canLog = !!domainById(store.data.domains, domain) && !domainDefinition.archived_at;
+  const isTimed = isTimedMode(domainDefinition.study_mode);
   const [data, setData] = useState<ProblemDetail | null>(null);
   const [showLog, setShowLog] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -58,13 +64,13 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'Escape') router.push(`${basePath}/${id}`);
-      if (e.key === 'l' || e.key === 'L') router.push(`${basePath}/log`);
+      if (canLog && (e.key === 'l' || e.key === 'L')) router.push(`${basePath}/log`);
       if (e.key === 'ArrowLeft'  && next_id) router.push(`${basePath}/${next_id}/edit`);
       if (e.key === 'ArrowRight' && prev_id) router.push(`${basePath}/${prev_id}/edit`);
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [data, basePath, router]);
+  }, [data, basePath, router, canLog]);
 
   if (!data) return <div className="text-sm text-muted">Loading…</div>;
 
@@ -174,17 +180,17 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className={sectionTitle}>Attempt History</h2>
-          <button
+          {canLog && <button
             onClick={() => setShowLog(l => !l)}
             className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors cursor-pointer"
           >
             {showLog ? <><X size={13} /> Cancel</> : <><Plus size={13} /> Log Attempt</>}
-          </button>
+          </button>}
         </div>
-        {showLog && (
+        {canLog && showLog && (
           <div className="mb-4 p-4 border border-border rounded-xl bg-surface">
-            <QuickLogForm
-              defaultDomain={domain}
+            <SchemaLogForm
+              domain={domainDefinition}
               problemId={data.id}
               inline
               onLogged={() => { setShowLog(false); reload(); }}
@@ -193,15 +199,15 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
         )}
         <AttemptHistory
           attempts={data.attempts}
-          showTime={domain === 'dsa'}
-          showPracticeType={domain === 'system_design'}
+          showTime={isTimed}
+          showPracticeType={usesPracticeType(domainDefinition.study_mode)}
           onUpdated={a => setData(d => d ? { ...d, attempts: d.attempts.map(x => x.id === a.id ? a : x) } : d)}
           onDeleted={aid => setData(d => d ? { ...d, attempts: d.attempts.filter(x => x.id !== aid) } : d)}
         />
       </section>
 
       {/* Quick one-liner notes — Python, Frontend & System Design */}
-      {domain !== 'dsa' && (
+      {!isTimed && (
         <section>
           <h2 className={`${sectionTitle} mb-3`}>Notes</h2>
           <QuickNotes
@@ -213,7 +219,7 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
       )}
 
       {/* Full Q&A recall notes — DSA only */}
-      {domain === 'dsa' && (
+      {isTimed && (
         <section>
           <h2 className={`${sectionTitle} mb-3`}>Active Recall Notes</h2>
           <div className="flex flex-col gap-3">

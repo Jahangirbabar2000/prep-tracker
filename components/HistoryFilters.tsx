@@ -1,23 +1,16 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-
-const DOMAINS = [
-  { value: '',             label: 'All domains' },
-  { value: 'dsa',         label: 'DSA' },
-  { value: 'system_design', label: 'System Design' },
-  { value: 'frontend',    label: 'Frontend' },
-  { value: 'python',      label: 'Backend' },
-  { value: 'ai',          label: 'AI' },
-  { value: 'lld',         label: 'LLD' },
-  { value: 'behavioral',  label: 'Behavioral' },
-];
+import { useStore } from '@/lib/store/store';
+import { allDomains } from '@/lib/domains';
 
 const selectCls = 'bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 transition cursor-pointer';
 
 export default function HistoryFilters({ currentDomain, basePath = '/review/history' }: { currentDomain: string; basePath?: string }) {
   const router = useRouter();
   const sp = useSearchParams();
+  const { data } = useStore();
+  const domains = allDomains(data.domains);
 
   function set(key: string, value: string) {
     const params = new URLSearchParams(sp.toString());
@@ -29,7 +22,8 @@ export default function HistoryFilters({ currentDomain, basePath = '/review/hist
   return (
     <div className="flex items-center gap-2 flex-wrap mb-5">
       <select value={currentDomain} onChange={e => set('domain', e.target.value)} className={selectCls}>
-        {DOMAINS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+        <option value="">All domains</option>
+        {domains.map(domain => <option key={domain.id} value={domain.id}>{domain.name}</option>)}
       </select>
     </div>
   );

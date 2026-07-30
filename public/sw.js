@@ -2,7 +2,7 @@
 // works regardless of Turbopack. The app is local-first: pages are static
 // client shells that hydrate from IndexedDB, so caching the shell + the JS/CSS
 // chunks + the /api/sync dump is enough to run fully offline.
-const VER = 'v1';
+const VER = 'v2';
 const CACHES = {
   pages:  `pages-${VER}`,
   assets: `assets-${VER}`,

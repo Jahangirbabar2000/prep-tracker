@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useStore } from '@/lib/store/store';
+import { activeDomains } from '@/lib/domains';
 
 // Core routes to proactively cache on first load so the main flows work offline
 // without having to manually visit each one while online.
-const CORE_ROUTES = ['/', '/dsa', '/system-design', '/frontend', '/backend', '/ai', '/lld', '/behavioral', '/review/session', '/review/history'];
+const STATIC_CORE_ROUTES = ['/', '/review/session', '/review/history', '/stats', '/settings'];
 
 export default function RegisterSW() {
+  const { data } = useStore();
+  const domainRoutes = activeDomains(data.domains).flatMap(domain => [`/${domain.slug}`, `/${domain.slug}/log`]);
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
@@ -44,8 +48,8 @@ export default function RegisterSW() {
 
         // Warm the page cache so core routes open offline after one online visit.
         if (navigator.onLine && 'caches' in window) {
-          const cache = await caches.open('pages-v1');
-          await Promise.all(CORE_ROUTES.map(async route => {
+          const cache = await caches.open('pages-v2');
+          await Promise.all([...STATIC_CORE_ROUTES, ...domainRoutes].map(async route => {
             try {
               const res = await fetch(route, { cache: 'no-store' });
               if (res.ok) await cache.put(route, res.clone());
@@ -54,7 +58,7 @@ export default function RegisterSW() {
         }
       } catch { /* ignore */ }
     })();
-  }, []);
+  }, [domainRoutes.join('|')]);
 
   return null;
 }

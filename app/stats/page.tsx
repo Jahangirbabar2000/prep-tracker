@@ -11,20 +11,8 @@ import { useStore } from '@/lib/store/store';
 import { clientToday } from '@/lib/store/queries';
 import { computeMetrics } from '@/lib/store/metrics';
 import { Domain } from '@/lib/types';
-
-const DOMAIN_DOT: Record<Domain, string> = {
-  dsa:           'bg-blue-500',
-  system_design: 'bg-orange-500',
-  frontend:      'bg-violet-500',
-  python:        'bg-emerald-500',
-  ai:            'bg-rose-500',
-  lld:           'bg-amber-500',
-  behavioral:    'bg-teal-500',
-};
-
-const DOMAIN_LABEL: Record<Domain, string> = {
-  dsa: 'DSA', system_design: 'System Design', frontend: 'Frontend', python: 'Backend', ai: 'AI', lld: 'LLD', behavioral: 'Behavioral',
-};
+import { domainPath, resolveDomain } from '@/lib/domains';
+import { domainPalette } from '@/components/domainVisuals';
 
 const PROFICIENCY_COLOR: Record<string, string> = {
   New:        'bg-surface-2',
@@ -142,7 +130,7 @@ function StatsInner() {
     <div className="max-w-4xl flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold text-fg tracking-tight">
-          Stats {filterDomain && <span className="text-muted font-normal">· {DOMAIN_LABEL[filterDomain]}</span>}
+          Stats {filterDomain && <span className="text-muted font-normal">· {resolveDomain(data.domains, filterDomain).name}</span>}
         </h1>
         <p className="text-sm text-muted mt-1">Whether it&apos;s sticking, whether you&apos;re keeping up, and what keeps slipping.</p>
       </div>
@@ -251,7 +239,7 @@ function StatsInner() {
                 <div className="w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${DOMAIN_DOT[d.domain]}`} style={{ width: `${d.pct}%` }} />
+                    <div className={`h-full rounded-full ${domainPalette(resolveDomain(data.domains, d.domain).color).dot}`} style={{ width: `${d.pct}%` }} />
                   </div>
                 </div>
                 <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
@@ -282,7 +270,7 @@ function StatsInner() {
             {m.leeches.map((c, i) => (
               <Link
                 key={c.id}
-                href={`${c.domain === 'system_design' ? '/system-design' : c.domain === 'python' ? '/backend' : `/${c.domain}`}/${c.id}`}
+                href={`${domainPath(data.domains, c.domain)}/${c.id}`}
                 className={`px-5 py-3 flex items-center gap-3 hover:bg-surface-2 transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
               >
                 <AlertCircle size={14} className="text-danger shrink-0" />
