@@ -9,7 +9,7 @@ import {
   useReducedMotion,
   useTransform,
 } from 'motion/react';
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, type PointerEvent, type ReactNode } from 'react';
 import { findScrollableX, isTextEntry } from '@/lib/useSwipeNav';
 import { resolveCardSwipe, type CardSwipeDirection } from '@/lib/swipeCard';
 
@@ -41,19 +41,18 @@ export default function SwipeableReviewCard({
   // rotation at zero makes this feel like paging through a study deck rather
   // than dismissing a Tinder-style card.
   const y = useTransform(x, value => Math.min(112, Math.abs(value) * 0.16));
-  const nextOpacity = useTransform(x, [-180, -32, 0], [1, 0.72, 0.48]);
-  const previousOpacity = useTransform(x, [0, 32, 180], [0.48, 0.72, 1]);
-  const nextX = useTransform(x, [-180, 0], [0, 18]);
-  const previousX = useTransform(x, [0, 180], [-18, 0]);
+  // Adjacent cards are already positioned directly beneath the active card,
+  // but stay completely hidden until the gesture moves in their direction.
+  const nextOpacity = useTransform(x, [-12, 0], [1, 0]);
+  const previousOpacity = useTransform(x, [0, 12], [0, 1]);
   const dragControls = useDragControls();
   const reduceMotion = useReducedMotion();
-  const [animating, setAnimating] = useState(false);
   const activeAnimation = useRef<ReturnType<typeof animate> | null>(null);
 
   useEffect(() => () => activeAnimation.current?.stop(), []);
 
   function startDrag(event: PointerEvent<HTMLDivElement>) {
-    if (disabled || animating || (!canSwipeLeft && !canSwipeRight)) return;
+    if (disabled || (!canSwipeLeft && !canSwipeRight)) return;
     const target = event.target as Element;
     if (isTextEntry(target) || target.closest(interactiveSelector)) return;
     if (findScrollableX(target, event.currentTarget)) return;
@@ -86,25 +85,10 @@ export default function SwipeableReviewCard({
       return;
     }
     const navigate = direction === 'left' ? onSwipeLeft : onSwipeRight;
-    if (reduceMotion) {
-      x.jump(0);
-      navigate();
-      return;
-    }
-
-    setAnimating(true);
-    const viewport = typeof window === 'undefined' ? 900 : window.innerWidth;
-    const target = direction === 'left' ? -(viewport + 240) : viewport + 240;
     activeAnimation.current?.stop();
-    const controls = animate(x, target, {
-      type: 'spring',
-      stiffness: 240,
-      damping: 28,
-      mass: 0.85,
-      velocity,
-    });
-    activeAnimation.current = controls;
-    void controls.then(() => navigate());
+    // Match the Prev / Next buttons: once a swipe is accepted, switch cards
+    // immediately. The revealed preview provides continuity during the drag.
+    navigate();
   }
 
   function finishDrag(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
@@ -114,12 +98,12 @@ export default function SwipeableReviewCard({
   }
 
   return (
-    <div className="relative isolate px-2 pb-3 sm:px-0">
+    <div className="relative isolate">
       {canSwipeRight && previousPreview && (
         <motion.div
           aria-hidden
-          style={{ x: previousX, opacity: previousOpacity }}
-          className="pointer-events-none absolute inset-x-2 top-2 z-0 -translate-y-0.5 -translate-x-3 sm:inset-x-0"
+          style={{ opacity: previousOpacity }}
+          className="pointer-events-none absolute inset-0 z-0"
         >
           {previousPreview}
         </motion.div>
@@ -127,8 +111,8 @@ export default function SwipeableReviewCard({
       {canSwipeLeft && nextPreview && (
         <motion.div
           aria-hidden
-          style={{ x: nextX, opacity: nextOpacity }}
-          className="pointer-events-none absolute inset-x-2 top-2 z-[1] translate-y-1 translate-x-3 sm:inset-x-0"
+          style={{ opacity: nextOpacity }}
+          className="pointer-events-none absolute inset-0 z-[1]"
         >
           {nextPreview}
         </motion.div>
@@ -148,8 +132,8 @@ export default function SwipeableReviewCard({
         onDragEnd={finishDrag}
         whileDrag={reduceMotion ? undefined : { scale: 0.995 }}
         style={{ x, y }}
-        className={`relative z-10 bg-surface border border-border rounded-2xl overflow-hidden shadow-sm ${
-          disabled || animating ? 'pointer-events-none' : ''
+        className={`relative z-10 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm ${
+          disabled ? 'pointer-events-none' : ''
         }`}
       >
         <div

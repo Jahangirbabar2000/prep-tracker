@@ -612,7 +612,7 @@ function SessionPageInner() {
 
       {/* ── Attempt history — standalone card, DSA only ── */}
       {isTimed && cardAttempts.length > 0 && (
-        <div className="bg-surface border border-border rounded-2xl p-5">
+        <div className="hidden rounded-2xl border border-border bg-surface p-5 md:block">
           <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Attempt History</h2>
           <AttemptHistory
             attempts={cardAttempts}
@@ -624,35 +624,35 @@ function SessionPageInner() {
       )}
 
       {/* ── Navigation + skip section ── */}
-      <div className="flex gap-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2">
         <button
           type="button"
           onClick={goPrev}
           disabled={!canGoPrev}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-muted hover:text-fg hover:border-border-strong hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-2.5 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
           title="Previous question"
         >
           <ChevronLeft size={16} className="md:hidden shrink-0" />
-          <span>Prev</span>
+          <span className="truncate">Prev</span>
           <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">←</kbd>
         </button>
         <button
           type="button"
           onClick={skipSection}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-muted hover:text-fg hover:border-border-strong hover:bg-surface-2 transition-colors cursor-pointer"
+          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-2.5 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg md:gap-2 md:px-4"
         >
           <SkipForward size={14} className="shrink-0" />
-          <span className="truncate">Skip all {domainDefinition.name}</span>
+          <span className="truncate"><span className="md:hidden">Skip {domainDefinition.short_name}</span><span className="hidden md:inline">Skip all {domainDefinition.name}</span></span>
           <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">S</kbd>
         </button>
         <button
           type="button"
           onClick={goNext}
           disabled={!canGoNext}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-medium text-muted hover:text-fg hover:border-border-strong hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-2.5 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
           title="Next question"
         >
-          <span>Next</span>
+          <span className="truncate">Next</span>
           <ChevronRight size={16} className="md:hidden shrink-0" />
           <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">→</kbd>
         </button>
