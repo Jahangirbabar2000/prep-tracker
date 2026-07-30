@@ -94,10 +94,10 @@ const AskAI = forwardRef<AskAIHandle, AskAIProps>(function AskAI(
 
   if (status === 'idle') {
     return (
-      <div className="bg-surface border border-border rounded-2xl px-4 py-4">
+      <div className="rounded-2xl border border-border bg-surface p-5">
         <button
           onClick={open}
-          className="w-full inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-accent bg-accent/5 border border-accent/20 rounded-xl hover:bg-accent/10 transition-colors cursor-pointer"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-accent/20 bg-accent/5 py-3 text-sm font-medium text-accent transition-colors hover:bg-accent/10 cursor-pointer"
         >
           <Sparkles size={16} />
           Ask AI to elaborate

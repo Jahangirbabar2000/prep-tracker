@@ -624,12 +624,12 @@ function SessionPageInner() {
       )}
 
       {/* ── Navigation + skip section ── */}
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2">
+      <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5">
         <button
           type="button"
           onClick={goPrev}
           disabled={!canGoPrev}
-          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-2.5 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
+          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
           title="Previous question"
         >
           <ChevronLeft size={16} className="md:hidden shrink-0" />
@@ -639,7 +639,7 @@ function SessionPageInner() {
         <button
           type="button"
           onClick={skipSection}
-          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-2.5 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg md:gap-2 md:px-4"
+          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg md:gap-2 md:px-4"
         >
           <SkipForward size={14} className="shrink-0" />
           <span className="truncate"><span className="md:hidden">Skip {domainDefinition.short_name}</span><span className="hidden md:inline">Skip all {domainDefinition.name}</span></span>
@@ -649,7 +649,7 @@ function SessionPageInner() {
           type="button"
           onClick={goNext}
           disabled={!canGoNext}
-          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-2.5 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
+          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
           title="Next question"
         >
           <span className="truncate">Next</span>
@@ -662,7 +662,7 @@ function SessionPageInner() {
           whether the answer is revealed. Kept mounted (just hidden) so ⌘C can
           trigger it while hidden; "c" toggles visibility. Keyed per card. */}
       {card && (
-        <div className={showAI ? '' : 'hidden'}>
+        <div className={showAI ? 'mt-1' : 'hidden'}>
           <AskAI
             ref={aiRef}
             key={card.id}
