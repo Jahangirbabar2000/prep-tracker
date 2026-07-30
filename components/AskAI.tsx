@@ -20,10 +20,11 @@ interface AskAIProps {
   answer?: string | null;
   domain?: string;
   tags?: string[];
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 const AskAI = forwardRef<AskAIHandle, AskAIProps>(function AskAI(
-  { problemId, question, answer, domain, tags },
+  { problemId, question, answer, domain, tags, onExpandedChange },
   ref,
 ) {
   const [status, setStatus] = useState<Status>('idle');
@@ -75,14 +76,24 @@ const AskAI = forwardRef<AskAIHandle, AskAIProps>(function AskAI(
     }
   }, [cacheKey, question, answer, domain, tags]);
 
-  const open = () => { if (!started.current) { started.current = true; void run(false); } };
+  const open = () => {
+    if (!started.current) {
+      started.current = true;
+      onExpandedChange?.(true);
+      void run(false);
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     generate() {
-      if (!started.current) { started.current = true; void run(false); }
+      if (!started.current) {
+        started.current = true;
+        onExpandedChange?.(true);
+        void run(false);
+      }
       else { void run(true); }
     },
-  }), [run]);
+  }), [onExpandedChange, run]);
 
   const copy = async () => {
     try {
@@ -107,7 +118,7 @@ const AskAI = forwardRef<AskAIHandle, AskAIProps>(function AskAI(
   }
 
   return (
-    <div className="bg-surface border border-border rounded-2xl px-6 py-5">
+    <div data-testid="ai-elaboration-content" className="bg-surface border border-border rounded-2xl px-6 py-5">
       <div className="flex items-center justify-between mb-3">
         <span className="inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.12em] uppercase text-accent">
           <Sparkles size={13} /> AI · elaborated

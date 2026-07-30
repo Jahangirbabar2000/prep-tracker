@@ -72,7 +72,9 @@ function SessionPageInner() {
 
   const [revealed, setRevealed]   = useState(false);
   const [showAI, setShowAI]       = useState(true);
+  const [aiExpanded, setAiExpanded] = useState(false);
   const aiRef                     = useRef<AskAIHandle>(null);
+  const aiCardRef                 = useRef<HTMLDivElement>(null);
   const [links, setLinks]         = useState<LinkType[] | null>(null);
   const linksCache = useRef<Map<number, LinkType[]>>(new Map());
   const [submitting, setSubmitting] = useState(false);
@@ -129,12 +131,24 @@ function SessionPageInner() {
 
   const resetCardState = useCallback(() => {
     setRevealed(false);
+    setAiExpanded(false);
     setLinks(null);
     setDsaTime('');
     setDsaStruggled(true);
     setNoteOpen(false);
     setNoteInput('');
   }, []);
+
+  useEffect(() => {
+    if (!aiExpanded) return;
+    const frame = requestAnimationFrame(() => {
+      aiCardRef.current?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [aiExpanded]);
 
   const isActive = useCallback((id: number, logged: Set<number>, skipped: Set<number>) =>
     !logged.has(id) && !skipped.has(id),
@@ -335,7 +349,9 @@ function SessionPageInner() {
   const nextCard = canGoNext ? allCards[nextIndex] : null;
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4 overflow-x-clip pb-40 md:pb-0">
+    <div className={`mx-auto flex max-w-xl flex-col gap-4 overflow-x-clip md:pb-0 ${
+      aiExpanded ? 'pb-4' : 'pb-40'
+    }`}>
       {/* Header row */}
       <div className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
@@ -623,11 +639,17 @@ function SessionPageInner() {
         </div>
       )}
 
-      {/* The mobile action zone is fixed independently of card height. Bottom
-          padding on the session keeps scrollable card content clear of it. */}
-      <div className="fixed inset-x-4 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto flex max-h-[calc(100dvh-6rem)] max-w-xl flex-col gap-2.5 overflow-y-auto md:static md:max-h-none md:gap-4 md:overflow-visible">
-        {/* ── Navigation + skip section ── */}
-        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5">
+      {/* Navigation stays docked during normal review. When AI opens it returns
+          to document flow above the explanation so no reading content is ever
+          covered by fixed controls. */}
+      <div
+        data-testid="review-nav-dock"
+        className={`mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5 md:static ${
+          aiExpanded
+            ? 'relative w-full'
+            : 'fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-30'
+        }`}
+      >
           <button
             type="button"
             onClick={goPrev}
@@ -659,23 +681,33 @@ function SessionPageInner() {
             <ChevronRight size={16} className="md:hidden shrink-0" />
             <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">→</kbd>
           </button>
-        </div>
-
-        {/* AI elaboration — kept mounted while hidden so ⌘C can trigger it. */}
-        {card && (
-          <div className={showAI ? '' : 'hidden'}>
-            <AskAI
-              ref={aiRef}
-              key={card.id}
-              problemId={card.id}
-              question={card.name}
-              answer={card.notes_text}
-              domain={domainDefinition.name}
-              tags={tags}
-            />
-          </div>
-        )}
       </div>
+
+      {/* The unopened AI trigger is docked below navigation. Once opened, this
+          same mounted component returns to document flow and the page scrolls
+          to it, so streamed content never overlays the review card. */}
+      {card && (
+        <div
+          ref={aiCardRef}
+          data-testid="ai-elaboration-card"
+          className={!showAI
+            ? 'hidden'
+            : aiExpanded
+              ? 'relative scroll-mt-20 md:mt-0'
+              : 'fixed inset-x-4 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto max-w-xl md:static'}
+        >
+          <AskAI
+            ref={aiRef}
+            key={card.id}
+            problemId={card.id}
+            question={card.name}
+            answer={card.notes_text}
+            domain={domainDefinition.name}
+            tags={tags}
+            onExpandedChange={setAiExpanded}
+          />
+        </div>
+      )}
     </div>
   );
 }

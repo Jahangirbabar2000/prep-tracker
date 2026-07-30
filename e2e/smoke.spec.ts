@@ -124,5 +124,73 @@ test('review card springs back below threshold and exits on a committed swipe', 
   await page.mouse.down();
   await page.mouse.move(startX - 140, startY, { steps: 6 });
   await page.mouse.up();
-  await expect(page.getByText('Swipe animation fixture two')).toBeVisible();
+  await expect(card.getByText('Swipe animation fixture two')).toBeVisible();
+});
+
+test('Ask AI leaves the mobile dock and scrolls into normal page flow', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'mobile layout contract');
+
+  await page.route('**/api/sync', route => route.fulfill({
+    contentType: 'application/json',
+    json: {
+      domains: [{
+        id: 'ai_fixture',
+        slug: 'ai-fixture',
+        name: 'AI Fixture',
+        short_name: 'AI',
+        study_mode: 'flashcard',
+        icon: 'book',
+        color: 'blue',
+        sort_order: 0,
+        item_label: 'Question',
+        log_label: 'Log Question',
+        log_title: 'Log AI Fixture',
+        empty_message: 'Empty',
+        answer_placeholder: 'Answer',
+        default_link: '',
+        archived_at: null,
+      }],
+      domain_fields: [],
+      domain_field_options: [],
+      config_options: [],
+      problems: [{
+        id: 9201,
+        name: 'Why should an AI explanation stay in document flow?',
+        domain: 'ai_fixture',
+        metadata: {},
+        notes_text: 'So long content remains readable.',
+        interval_level: 1,
+        next_due_date: '2000-01-01',
+        created_at: '2000-01-01 00:00:00',
+      }],
+      attempts: [
+        { id: 9301, problem_id: 9201, attempted_at: '2000-01-01 00:00:00', time_taken_mins: 0, struggled: 0, practice_type: null },
+      ],
+      notes: [],
+      links: [],
+    },
+  }));
+  await page.route('**/api/ask', route => route.fulfill({
+    contentType: 'text/plain; charset=utf-8',
+    body: 'A mocked explanation that belongs below the review card.',
+  }));
+
+  await page.goto('/review/session');
+  const aiCard = page.getByTestId('ai-elaboration-card');
+  await expect(aiCard).toBeVisible();
+  await expect(aiCard).toHaveCSS('position', 'fixed');
+
+  await page.getByRole('button', { name: 'Ask AI to elaborate' }).click();
+
+  await expect(page.getByTestId('ai-elaboration-content')).toBeVisible();
+  await expect(page.getByText('A mocked explanation that belongs below the review card.')).toBeVisible();
+  await expect(aiCard).toHaveCSS('position', 'relative');
+  await expect(page.getByTestId('review-nav-dock')).toHaveCSS('position', 'relative');
+
+  const overlap = await page.evaluate(() => {
+    const ai = document.querySelector('[data-testid="ai-elaboration-card"]')!.getBoundingClientRect();
+    const nav = document.querySelector('[data-testid="review-nav-dock"]')!.getBoundingClientRect();
+    return Math.max(0, Math.min(ai.bottom, nav.bottom) - Math.max(ai.top, nav.top));
+  });
+  expect(overlap).toBe(0);
 });
