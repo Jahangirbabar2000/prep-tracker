@@ -335,7 +335,7 @@ function SessionPageInner() {
   const nextCard = canGoNext ? allCards[nextIndex] : null;
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-4 overflow-x-clip">
+    <div className="mx-auto flex min-h-[calc(100dvh_-_7.5rem_-_env(safe-area-inset-top,0px)_-_env(safe-area-inset-bottom,0px))] max-w-xl flex-col gap-4 overflow-x-clip md:min-h-0">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
@@ -623,57 +623,65 @@ function SessionPageInner() {
         </div>
       )}
 
-      {/* ── Navigation + skip section ── */}
-      <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5">
-        <button
-          type="button"
-          onClick={goPrev}
-          disabled={!canGoPrev}
-          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
-          title="Previous question"
-        >
-          <ChevronLeft size={16} className="md:hidden shrink-0" />
-          <span className="truncate">Prev</span>
-          <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">←</kbd>
-        </button>
-        <button
-          type="button"
-          onClick={skipSection}
-          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg md:gap-2 md:px-4"
-        >
-          <SkipForward size={14} className="shrink-0" />
-          <span className="truncate"><span className="md:hidden">Skip {domainDefinition.short_name}</span><span className="hidden md:inline">Skip all {domainDefinition.name}</span></span>
-          <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">S</kbd>
-        </button>
-        <button
-          type="button"
-          onClick={goNext}
-          disabled={!canGoNext}
-          className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
-          title="Next question"
-        >
-          <span className="truncate">Next</span>
-          <ChevronRight size={16} className="md:hidden shrink-0" />
-          <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">→</kbd>
-        </button>
+      <div className="flex min-h-12 flex-1 items-center justify-center px-6 py-5 text-center md:hidden">
+        <p className="text-xs leading-relaxed text-muted/55">
+          You&apos;re building momentum — one card at a time.
+        </p>
       </div>
 
-      {/* AI elaboration — its own card below the nav, available regardless of
-          whether the answer is revealed. Kept mounted (just hidden) so ⌘C can
-          trigger it while hidden; "c" toggles visibility. Keyed per card. */}
-      {card && (
-        <div className={showAI ? 'mt-1' : 'hidden'}>
-          <AskAI
-            ref={aiRef}
-            key={card.id}
-            problemId={card.id}
-            question={card.name}
-            answer={card.notes_text}
-            domain={domainDefinition.name}
-            tags={tags}
-          />
+      {/* Stable mobile action zone: flexible space above absorbs differences in
+          question height so these controls stay near the bottom of the screen. */}
+      <div className="mt-auto flex flex-col gap-5 md:mt-0 md:gap-4">
+        {/* ── Navigation + skip section ── */}
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={!canGoPrev}
+            className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
+            title="Previous question"
+          >
+            <ChevronLeft size={16} className="md:hidden shrink-0" />
+            <span className="truncate">Prev</span>
+            <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">←</kbd>
+          </button>
+          <button
+            type="button"
+            onClick={skipSection}
+            className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg md:gap-2 md:px-4"
+          >
+            <SkipForward size={14} className="shrink-0" />
+            <span className="truncate"><span className="md:hidden">Skip {domainDefinition.short_name}</span><span className="hidden md:inline">Skip all {domainDefinition.name}</span></span>
+            <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">S</kbd>
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!canGoNext}
+            className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-2 py-3 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-2 hover:text-fg disabled:cursor-not-allowed disabled:opacity-30 md:gap-2 md:px-4"
+            title="Next question"
+          >
+            <span className="truncate">Next</span>
+            <ChevronRight size={16} className="md:hidden shrink-0" />
+            <kbd className="hidden md:inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">→</kbd>
+          </button>
         </div>
-      )}
+
+        {/* AI elaboration — kept mounted while hidden so ⌘C can trigger it. */}
+        {card && (
+          <div className={showAI ? '' : 'hidden'}>
+            <AskAI
+              ref={aiRef}
+              key={card.id}
+              problemId={card.id}
+              question={card.name}
+              answer={card.notes_text}
+              domain={domainDefinition.name}
+              tags={tags}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
