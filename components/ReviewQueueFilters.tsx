@@ -76,14 +76,6 @@ export default function ReviewQueueFilters({
         </select>
       )}
 
-      <button
-        type="button"
-        onClick={scrollToBottom}
-        className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
-      >
-        <ArrowDown size={13} /> Go down
-      </button>
-
       {hasFilter && (
         <button
           onClick={() => startTransition(() => router.replace('/', { scroll: false } as never))}
@@ -92,6 +84,15 @@ export default function ReviewQueueFilters({
           Clear
         </button>
       )}
+
+      {/* Flush-right, mirroring the "Go up" button in the forecast footer. */}
+      <button
+        type="button"
+        onClick={scrollToBottom}
+        className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
+      >
+        <ArrowDown size={13} /> Go down
+      </button>
     </div>
   );
 }
