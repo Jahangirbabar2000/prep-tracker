@@ -12,7 +12,7 @@ import {
   navigationShortcutMap,
   normalizeDomainSlug,
   normalizeProblem,
-  usesPracticeType,
+  normalizeStudyMode,
   validateMetadataValues,
 } from './domains';
 
@@ -105,7 +105,13 @@ describe('runtime domains', () => {
   it('keeps workflow behavior behind explicit study-mode extension points', () => {
     expect(isTimedMode('timed_problem')).toBe(true);
     expect(isTimedMode('flashcard')).toBe(false);
-    expect(usesPracticeType('flashcard_practice')).toBe(true);
+  });
+
+  it('coerces the retired flashcard_practice mode to plain flashcard', () => {
+    expect(normalizeStudyMode('flashcard_practice')).toBe('flashcard');
+    expect(normalizeStudyMode('flashcard')).toBe('flashcard');
+    expect(normalizeStudyMode('timed_problem')).toBe('timed_problem');
+    expect(normalizeStudyMode('anything-unknown')).toBe('flashcard');
   });
 
   it('validates metadata keys, types, and managed-select options', () => {

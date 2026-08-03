@@ -9,7 +9,6 @@ import type {
 export const STUDY_MODES: readonly StudyMode[] = [
   'timed_problem',
   'flashcard',
-  'flashcard_practice',
 ] as const;
 
 export const DOMAIN_ICONS = [
@@ -28,7 +27,7 @@ export const RESERVED_DOMAIN_SLUGS = new Set([
 /** Migration-only fallback for legacy IndexedDB snapshots without domains. */
 export const LEGACY_DOMAIN_FALLBACKS: StudyDomain[] = [
   ['dsa', 'dsa', 'DSA', 'DSA', 'timed_problem', 'binary', 'blue', 0],
-  ['system_design', 'system-design', 'System Design', 'SysD', 'flashcard_practice', 'network', 'orange', 1],
+  ['system_design', 'system-design', 'System Design', 'SysD', 'flashcard', 'network', 'orange', 1],
   ['lld', 'lld', 'Low-Level Design', 'LLD', 'flashcard', 'blocks', 'amber', 2],
   ['python', 'backend', 'Backend', 'BE', 'flashcard', 'code', 'emerald', 3],
   ['frontend', 'frontend', 'Frontend', 'FE', 'flashcard', 'layout', 'violet', 4],
@@ -322,6 +321,17 @@ export function isTimedMode(mode: StudyMode): boolean {
   return mode === 'timed_problem';
 }
 
-export function usesPracticeType(mode: StudyMode): boolean {
-  return mode === 'flashcard_practice';
+/**
+ * Coerce a persisted study_mode into a currently-valid one. The retired
+ * `flashcard_practice` (Solo/Mock) mode collapses to plain `flashcard`, so
+ * older domain rows load and render correctly without a DB migration.
+ */
+export function normalizeStudyMode(mode: string): StudyMode {
+  return mode === 'timed_problem' ? 'timed_problem' : 'flashcard';
+}
+
+/** Apply study_mode coercion to a domain as it enters the runtime store. */
+export function normalizeDomain(domain: StudyDomain): StudyDomain {
+  const mode = normalizeStudyMode(domain.study_mode);
+  return mode === domain.study_mode ? domain : { ...domain, study_mode: mode };
 }

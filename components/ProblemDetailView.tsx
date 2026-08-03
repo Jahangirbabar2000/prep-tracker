@@ -16,7 +16,7 @@ import QuickNotes from './QuickNotes';
 import LinksManager from './LinksManager';
 import DeleteButton from './DeleteButton';
 import { useStore } from '@/lib/store/store';
-import { domainById, isTimedMode, resolveDomain, usesPracticeType } from '@/lib/domains';
+import { domainById, isTimedMode, resolveDomain } from '@/lib/domains';
 
 interface ProblemDetail extends Problem {
   attempts: Attempt[];
@@ -200,7 +200,6 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
         <AttemptHistory
           attempts={data.attempts}
           showTime={isTimed}
-          showPracticeType={usesPracticeType(domainDefinition.study_mode)}
           onUpdated={a => setData(d => d ? { ...d, attempts: d.attempts.map(x => x.id === a.id ? a : x) } : d)}
           onDeleted={aid => setData(d => d ? { ...d, attempts: d.attempts.filter(x => x.id !== aid) } : d)}
         />

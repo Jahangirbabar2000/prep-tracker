@@ -119,7 +119,9 @@ export default function Nav() {
           {!compact && (
             <>
               <span className="flex-1 whitespace-nowrap truncate">{label}</span>
-              {shortcut && (
+              {/* Shortcut hint hides when a count is present, so the two never
+                  read as one ambiguous number (e.g. "1 89") or crowd the label. */}
+              {shortcut && badgeN === 0 && (
                 <kbd className="hidden md:inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">
                   {shortcut}
                 </kbd>
@@ -255,7 +257,11 @@ export default function Nav() {
         </div>
 
         <nav className="flex-1 flex flex-col gap-0.5 py-3 px-2 overflow-y-auto">
-          {links.map(({ href, label, Icon, domain, shortcut }) => (
+          {/* Review Queue is the aggregate view; a rule sets it apart from the
+              individual study domains below. */}
+          <SidebarLink {...links[0]} compact={collapsed} />
+          <div className="mx-2 my-1.5 border-t border-border" aria-hidden />
+          {links.slice(1).map(({ href, label, Icon, domain, shortcut }) => (
             <SidebarLink key={href} href={href} label={label} Icon={Icon} domain={domain} shortcut={shortcut} compact={collapsed} />
           ))}
         </nav>
@@ -332,7 +338,9 @@ export default function Nav() {
           </div>
 
           <nav className="flex-1 flex flex-col gap-0.5 py-3 px-2 overflow-y-auto">
-            {links.map(({ href, label, Icon, domain, shortcut }) => (
+            <SidebarLink {...links[0]} onNavigate={() => setMobileOpen(false)} />
+            <div className="mx-2 my-1.5 border-t border-border" aria-hidden />
+            {links.slice(1).map(({ href, label, Icon, domain, shortcut }) => (
               <SidebarLink
                 key={href}
                 href={href}

@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Link2, Plus, X } from 'lucide-react';
 import type { Attempt, Link as LinkType, Note, Problem, StudyDomain } from '@/lib/types';
-import { fieldsForDomain, isTimedMode, optionsForField, usesPracticeType } from '@/lib/domains';
+import { fieldsForDomain, isTimedMode, optionsForField } from '@/lib/domains';
 import { getData, useStore } from '@/lib/store/store';
 import { syncCreatedProblem } from '@/lib/store/createProblem';
 import { pasteAsMarkdown } from '@/lib/htmlToMarkdown';
@@ -38,7 +38,6 @@ export default function SchemaLogForm({ domain, inline, problemId, onLogged }: P
   const [attemptedAt, setAttemptedAt] = useState(today);
   const [timeTaken, setTimeTaken] = useState('');
   const [struggled, setStruggled] = useState(!isTimedMode(domain.study_mode));
-  const [practiceType, setPracticeType] = useState<'solo' | 'mock'>('solo');
   const [linkUrl, setLinkUrl] = useState(domain.default_link);
   const [notes, setNotes] = useState<string[]>([]);
   const [noteInput, setNoteInput] = useState('');
@@ -112,7 +111,6 @@ export default function SchemaLogForm({ domain, inline, problemId, onLogged }: P
           time_taken_mins: isTimedMode(domain.study_mode) ? Number(timeTaken) : 0,
           struggled,
           attempted_at: attemptedAt,
-          practice_type: usesPracticeType(domain.study_mode) ? practiceType : null,
         }),
       });
       if (!attemptResponse.ok) throw new Error('Could not log attempt');
@@ -203,15 +201,6 @@ export default function SchemaLogForm({ domain, inline, problemId, onLogged }: P
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted uppercase tracking-wide">Time (min)</span>
             <input type="number" min={1} value={timeTaken} onChange={event => setTimeTaken(event.target.value)} className={`${inputCls} w-24`} />
-          </label>
-        )}
-        {usesPracticeType(domain.study_mode) && (
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted uppercase tracking-wide">Practice</span>
-            <select value={practiceType} onChange={event => setPracticeType(event.target.value as 'solo' | 'mock')} className={inputCls}>
-              <option value="solo">Solo</option>
-              <option value="mock">Mock</option>
-            </select>
           </label>
         )}
         <label className="flex flex-col gap-1">

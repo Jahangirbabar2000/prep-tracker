@@ -7,6 +7,7 @@ import {
   LEGACY_DOMAIN_FALLBACKS,
   LEGACY_FIELD_FALLBACKS,
   legacyOptionsFromConfig,
+  normalizeDomain,
   normalizeProblem,
 } from '@/lib/domains';
 
@@ -64,7 +65,7 @@ export function normalize(raw: Partial<StoreData> | null | undefined): StoreData
     notes: raw?.notes ?? [],
     links: raw?.links ?? [],
     config_options: configOptions,
-    domains: raw?.domains?.length ? raw.domains : LEGACY_DOMAIN_FALLBACKS,
+    domains: (raw?.domains?.length ? raw.domains : LEGACY_DOMAIN_FALLBACKS).map(normalizeDomain),
     domain_fields: hasRuntimeFields ? raw!.domain_fields! : LEGACY_FIELD_FALLBACKS,
     domain_field_options: hasRuntimeFields
       ? raw?.domain_field_options ?? []

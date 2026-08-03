@@ -25,7 +25,7 @@ const client = createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN });
 
 const domains = [
   ['dsa', 'dsa', 'DSA', 'DSA', 'timed_problem', 'binary', 'blue', 0, 'Problem', 'Log Attempt', 'Log DSA Attempt', 'No problems yet. Log your first attempt to get started.', 'Short context… (markdown supported)'],
-  ['system_design', 'system-design', 'System Design', 'SysD', 'flashcard_practice', 'network', 'orange', 1, 'Question', 'Log Question', 'Log System Design Question', 'No concepts yet. Log your first concept to get started.', 'Key points, tradeoffs, when to use it… (markdown supported)'],
+  ['system_design', 'system-design', 'System Design', 'SysD', 'flashcard', 'network', 'orange', 1, 'Question', 'Log Question', 'Log System Design Question', 'No concepts yet. Log your first concept to get started.', 'Key points, tradeoffs, when to use it… (markdown supported)'],
   ['lld', 'lld', 'Low-Level Design', 'LLD', 'flashcard', 'blocks', 'amber', 2, 'Question', 'Log Question', 'Log LLD Question', 'No concepts yet. Log your first concept to get started.', 'Key classes, interfaces, tradeoffs… (markdown supported)'],
   ['python', 'backend', 'Backend', 'BE', 'flashcard', 'code', 'emerald', 3, 'Question', 'Log Question', 'Log Backend Question', 'No concepts yet. Log your first attempt to get started.', 'Key points, gotchas, syntax… (markdown supported)'],
   ['frontend', 'frontend', 'Frontend', 'FE', 'flashcard', 'layout', 'violet', 4, 'Question', 'Log Question', 'Log Frontend Question', 'No questions yet. Log your first attempt to get started.', 'Key points, gotchas, how it works… (markdown supported)'],

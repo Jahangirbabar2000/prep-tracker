@@ -16,7 +16,7 @@ import CopyLinkButton from './CopyLinkButton';
 import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
-import { cardTagsFromFields, domainById, isTimedMode, resolveDomain, usesPracticeType } from '@/lib/domains';
+import { cardTagsFromFields, domainById, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from './domainVisuals';
 import { useSwipeNav } from '@/lib/useSwipeNav';
 
@@ -411,7 +411,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         <AttemptHistory
           attempts={data.attempts}
           showTime={isTimed}
-          showPracticeType={usesPracticeType(domainDefinition.study_mode)}
           // editAttemptRemote/deleteAttemptRemote already write through to the
           // shared store — `data` picks up the change automatically.
           onUpdated={() => {}}

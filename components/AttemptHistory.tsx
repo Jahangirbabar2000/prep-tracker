@@ -9,14 +9,13 @@ import { deleteAttemptRemote, editAttemptRemote } from '@/lib/store/writeQueue';
 interface Props {
   attempts: Attempt[];
   showTime?: boolean;
-  showPracticeType?: boolean;
   onUpdated: (attempt: Attempt) => void;
   onDeleted: (id: number) => void;
 }
 
 const cellInput = 'bg-background border border-border rounded-md px-2 py-1 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
-export default function AttemptHistory({ attempts, showTime = true, showPracticeType, onUpdated, onDeleted }: Props) {
+export default function AttemptHistory({ attempts, showTime = true, onUpdated, onDeleted }: Props) {
   const [editing, setEditing] = useState<number | null>(null);
   const [fields, setFields] = useState<Partial<Attempt>>({});
 
@@ -26,7 +25,6 @@ export default function AttemptHistory({ attempts, showTime = true, showPractice
       time_taken_mins: a.time_taken_mins,
       struggled: a.struggled,
       attempted_at: a.attempted_at.slice(0, 10),
-      practice_type: a.practice_type ?? undefined,
     });
   }
 
@@ -60,7 +58,6 @@ export default function AttemptHistory({ attempts, showTime = true, showPractice
             <tr className="text-left text-xs text-muted border-b border-border bg-surface-2/50">
               <th className="px-4 py-2.5 font-medium">Date</th>
               {showTime && <th className="px-4 py-2.5 font-medium">Time</th>}
-              {showPracticeType && <th className="px-4 py-2.5 font-medium">Type</th>}
               <th className="px-4 py-2.5 font-medium">Struggled</th>
               <th className="px-4 py-2.5 font-medium text-right">Edit</th>
             </tr>
@@ -89,19 +86,6 @@ export default function AttemptHistory({ attempts, showTime = true, showPractice
                         />
                       </td>
                     )}
-                    {showPracticeType && (
-                      <td className="px-4 py-2">
-                        <select
-                          value={fields.practice_type ?? ''}
-                          onChange={e => setFields(f => ({ ...f, practice_type: e.target.value }))}
-                          className={cellInput}
-                        >
-                          <option value="">—</option>
-                          <option value="solo">Solo</option>
-                          <option value="mock">Mock</option>
-                        </select>
-                      </td>
-                    )}
                     <td className="px-4 py-2">
                       <button
                         onClick={() => setFields(f => ({ ...f, struggled: f.struggled ? 0 : 1 }))}
@@ -123,9 +107,6 @@ export default function AttemptHistory({ attempts, showTime = true, showPractice
                   <>
                     <td className="px-4 py-2.5 text-fg/80 tabular">{fmtDate(a.attempted_at)}</td>
                     {showTime && <td className="px-4 py-2.5 text-fg/80 tabular">{a.time_taken_mins} min</td>}
-                    {showPracticeType && (
-                      <td className="px-4 py-2.5 text-muted capitalize">{a.practice_type ?? '—'}</td>
-                    )}
                     <td className="px-4 py-2.5">
                       {a.struggled ? (
                         <span className="inline-flex items-center gap-1 text-xs text-danger font-medium"><X size={13} /> Yes</span>

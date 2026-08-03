@@ -95,7 +95,6 @@ function CreateDomain({ onClose }: { onClose: () => void }) {
         <select value={studyMode} onChange={event => setStudyMode(event.target.value as StudyMode)} className={inputCls}>
           <option value="flashcard">Flashcard</option>
           <option value="timed_problem">Timed problem</option>
-          <option value="flashcard_practice">Flashcard · Solo/Mock</option>
         </select>
       </label>
       <label className="flex flex-col gap-1">

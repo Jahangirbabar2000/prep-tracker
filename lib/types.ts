@@ -5,7 +5,7 @@
  */
 export type Domain = string;
 
-export type StudyMode = 'timed_problem' | 'flashcard' | 'flashcard_practice';
+export type StudyMode = 'timed_problem' | 'flashcard';
 export type DomainFieldKind = 'text' | 'select';
 export type DomainFieldTagRole = 'none' | 'primary' | 'secondary';
 
