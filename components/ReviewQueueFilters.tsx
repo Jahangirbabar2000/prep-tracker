@@ -2,8 +2,17 @@
 
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
+import { ArrowDown } from 'lucide-react';
 
 const cls = 'bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition cursor-pointer';
+
+// Mirror of scrollToTop in UpcomingForecast — cover both the <main> scroll
+// container (desktop) and the window (mobile) so it works on every layout.
+function scrollToBottom() {
+  const main = document.querySelector('main');
+  if (main) main.scrollTo({ top: main.scrollHeight, behavior: 'smooth' });
+  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+}
 
 interface Props {
   currentDomain: string;
@@ -66,6 +75,14 @@ export default function ReviewQueueFilters({
           ))}
         </select>
       )}
+
+      <button
+        type="button"
+        onClick={scrollToBottom}
+        className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
+      >
+        <ArrowDown size={13} /> Go down
+      </button>
 
       {hasFilter && (
         <button

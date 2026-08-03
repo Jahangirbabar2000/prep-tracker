@@ -36,12 +36,15 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
           )}
           {tag && <span className="text-xs text-muted truncate">{tag}</span>}
         </div>
-        <span className="font-medium text-fg truncate">{item.name}</span>
+        {/* Wrap to two lines instead of truncating — otherwise many questions
+            collapse to the same prefix ("How do you…") on narrow screens. */}
+        <span className="font-medium text-fg leading-snug line-clamp-2">{item.name}</span>
       </div>
 
-      {/* Right: struggled + overdue */}
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="flex items-center gap-2 text-right">
+      {/* Right: struggled + overdue — stacked so it stays narrow on mobile and
+          leaves the title room to breathe. */}
+      <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex flex-col items-end gap-0.5 text-right">
           {item.last_struggled ? (
             <span className="inline-flex items-center gap-1 text-xs text-danger font-medium">
               <AlertTriangle size={12} /> struggled
