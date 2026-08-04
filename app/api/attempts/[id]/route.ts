@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryOne, execute } from '@/lib/db';
-import { computeNextDue } from '@/lib/sr';
-import { Attempt, Problem } from '@/lib/types';
+import { queryOne, queryAll, execute } from '@/lib/db';
+import { replaySchedule } from '@/lib/sr';
+import { Attempt } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
@@ -25,22 +25,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await execute(`UPDATE attempts SET ${setClause} WHERE id = ?`, [...Object.values(fields), id]);
   }
 
-  const [latest, problem] = await Promise.all([
-    queryOne<Attempt>('SELECT * FROM attempts WHERE problem_id = ? ORDER BY attempted_at DESC LIMIT 1', [attempt.problem_id]),
-    queryOne<Problem>('SELECT * FROM problems WHERE id = ?', [attempt.problem_id]),
-  ]);
-
-  if (latest && problem) {
-    const { newLevel, nextDueDate } = computeNextDue(
-      !!latest.struggled,
-      problem.interval_level,
-      new Date(`${String(latest.attempted_at).slice(0, 10)}T12:00:00`),
-    );
-    await execute(
-      'UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?',
-      [newLevel, nextDueDate, attempt.problem_id],
-    );
-  }
+  // Recompute from the full history — editing an old attempt must be able to
+  // demote/promote, which a single-transition update can't do.
+  const all = await queryAll<Attempt>('SELECT id, struggled, attempted_at FROM attempts WHERE problem_id = ?', [attempt.problem_id]);
+  const { level, nextDueDate } = replaySchedule(all);
+  await execute(
+    'UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?',
+    [level, nextDueDate, attempt.problem_id],
+  );
 
   const updated = await queryOne<Attempt>('SELECT * FROM attempts WHERE id = ?', [id]);
   return NextResponse.json(updated);
@@ -54,30 +46,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   await execute('DELETE FROM attempts WHERE id = ?', [id]);
 
-  const latest = await queryOne<Attempt>(
-    'SELECT * FROM attempts WHERE problem_id = ? ORDER BY attempted_at DESC LIMIT 1',
-    [attempt.problem_id],
+  // Replay the remaining attempts (empty history → level 0 / no due date).
+  const all = await queryAll<Attempt>('SELECT id, struggled, attempted_at FROM attempts WHERE problem_id = ?', [attempt.problem_id]);
+  const { level, nextDueDate } = replaySchedule(all);
+  await execute(
+    'UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?',
+    [level, nextDueDate, attempt.problem_id],
   );
-
-  if (latest) {
-    const problem = await queryOne<Problem>('SELECT * FROM problems WHERE id = ?', [attempt.problem_id]);
-    if (problem) {
-      const { newLevel, nextDueDate } = computeNextDue(
-        !!latest.struggled,
-        problem.interval_level,
-        new Date(`${String(latest.attempted_at).slice(0, 10)}T12:00:00`),
-      );
-      await execute(
-        'UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?',
-        [newLevel, nextDueDate, attempt.problem_id],
-      );
-    }
-  } else {
-    await execute(
-      'UPDATE problems SET interval_level = 0, next_due_date = NULL WHERE id = ?',
-      [attempt.problem_id],
-    );
-  }
 
   return NextResponse.json({ ok: true });
 }

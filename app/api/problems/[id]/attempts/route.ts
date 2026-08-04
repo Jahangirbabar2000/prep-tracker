@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryAll, queryOne, execute, localToday, localNow } from '@/lib/db';
-import { computeNextDue } from '@/lib/sr';
+import { replaySchedule } from '@/lib/sr';
 import { Attempt, Problem } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -41,7 +41,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } else {
     attemptedAtStr = `${dateStr} 00:00:00`; // backfilled past date — no time info available
   }
-  const attemptDate = new Date(attemptedAtStr.replace(' ', 'T'));
 
   const attempt = await queryOne<Attempt>(
     `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled, practice_type)
@@ -49,10 +48,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     [id, attemptedAtStr, time_taken_mins, struggled ? 1 : 0, practice_type ?? null],
   );
 
-  const { newLevel, nextDueDate } = computeNextDue(!!struggled, problem.interval_level, attemptDate);
+  // Replay the whole history from level 0 so a backfilled/out-of-order date can't drift the level.
+  const all = await queryAll<Attempt>('SELECT id, struggled, attempted_at FROM attempts WHERE problem_id = ?', [id]);
+  const { level, nextDueDate } = replaySchedule(all);
   await execute(
     'UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?',
-    [newLevel, nextDueDate, id],
+    [level, nextDueDate, id],
   );
 
   return NextResponse.json(attempt, { status: 201 });

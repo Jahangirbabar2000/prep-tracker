@@ -1,6 +1,6 @@
 'use client';
 
-import { computeNextDue } from '@/lib/sr';
+import { replaySchedule } from '@/lib/sr';
 import { Attempt, Problem } from '@/lib/types';
 import { idbGet, idbSet } from './idb';
 import { mutate, getData, replaceAll } from './store';
@@ -36,7 +36,6 @@ export async function logAttempt(input: {
 }): Promise<void> {
   const { problemId, struggled, time_taken_mins } = input;
   const attemptedAt = clientNow();
-  const attemptDate = new Date(attemptedAt.replace(' ', 'T'));
 
   mutate(d => {
     const problem = d.problems.find(p => p.id === problemId);
@@ -52,9 +51,9 @@ export async function logAttempt(input: {
       },
     ];
     if (!problem) return { ...d, attempts };
-    const { newLevel, nextDueDate } = computeNextDue(struggled, problem.interval_level, attemptDate);
+    const { level, nextDueDate } = replaySchedule(attempts.filter(a => a.problem_id === problemId));
     const problems = d.problems.map(p =>
-      p.id === problemId ? { ...p, interval_level: newLevel, next_due_date: nextDueDate } : p,
+      p.id === problemId ? { ...p, interval_level: level, next_due_date: nextDueDate } : p,
     );
     return { ...d, attempts, problems };
   });
@@ -92,26 +91,15 @@ export async function hasQueued(): Promise<boolean> {
   return (await readQueue()).length > 0;
 }
 
-/** Recompute a problem's SR state from its latest remaining attempt — mirrors the
- *  logic in app/api/attempts/[id]/route.ts exactly, so the shared store stays
- *  consistent with what the server just computed, without waiting for a resync. */
+/** Recompute a problem's SR state by replaying its full remaining history —
+ *  mirrors app/api/attempts/[id]/route.ts exactly, so the shared store stays
+ *  consistent with what the server computes, without waiting for a resync.
+ *  Replaying (not a single transition) is what lets an edit/delete of an older
+ *  attempt correctly demote/promote instead of leaving the level stuck. */
 function recomputeProblemSR(problemId: number, attempts: Attempt[], problems: Problem[]): Problem[] {
-  const problem = problems.find(p => p.id === problemId);
-  if (!problem) return problems;
-
-  const latest = attempts
-    .filter(a => a.problem_id === problemId)
-    .sort((x, y) => (x.attempted_at < y.attempted_at ? 1 : x.attempted_at > y.attempted_at ? -1 : y.id - x.id))[0];
-
-  if (latest) {
-    const { newLevel, nextDueDate } = computeNextDue(
-      !!latest.struggled,
-      problem.interval_level,
-      new Date(`${String(latest.attempted_at).slice(0, 10)}T12:00:00`),
-    );
-    return problems.map(p => p.id === problemId ? { ...p, interval_level: newLevel, next_due_date: nextDueDate } : p);
-  }
-  return problems.map(p => p.id === problemId ? { ...p, interval_level: 0, next_due_date: null } : p);
+  if (!problems.some(p => p.id === problemId)) return problems;
+  const { level, nextDueDate } = replaySchedule(attempts.filter(a => a.problem_id === problemId));
+  return problems.map(p => p.id === problemId ? { ...p, interval_level: level, next_due_date: nextDueDate } : p);
 }
 
 /**
