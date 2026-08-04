@@ -1,0 +1,103 @@
+Q: What is a "scarcity problem" in concurrency, and how does it differ from a correctness problem?
+===A===
+Managing **limited resources** when demand exceeds supply — you have 5 connections and 100 requests, so most must wait. Unlike correctness problems, there's no data corruption risk; the danger is a request holding a resource forever (bug or slow query), which blocks everyone else even though the underlying system is healthy.
+
+> "This isn't a correctness issue, it's a capacity issue — I need to manage waiting without the system falling over."
+===END===
+Q: When do you reach for a semaphore vs. a blocking queue?
+===A===
+**Semaphore** when you're only limiting *how many* operations run concurrently and there's no actual object to hand out (e.g. API rate limiting). **Blocking queue** when you need to hand out *specific stateful objects* (e.g. connection objects with open sockets).
+
+> "A semaphore caps concurrency, but where would the actual Connection objects live? That's what the queue solves."
+===END===
+Q: How does a semaphore work, and what's the interview-safe answer for "how does it actually block threads?"
+===A===
+A counter initialized with N permits. `acquire()` decrements it, blocking if it hits zero; `release()` increments it, waking a waiting thread. Don't explain OS internals — say it uses OS primitives to park/wake threads and let the language's Semaphore implementation handle it.
+
+```python
+class APIClient:
+    def __init__(self):
+        self._semaphore = threading.Semaphore(5)
+
+    def make_request(self, endpoint):
+        with self._semaphore:
+            return self._http_client.get(endpoint)
+```
+===END===
+Q: What's the #1 bug interviewers test for with semaphore/pool code, and how do you avoid it?
+===A===
+Forgetting to **release the permit/resource in a finally block**. If an exception is thrown mid-operation without release, the permit leaks forever and eventually the whole pool hangs.
+
+> "I'll wrap the acquire and release in a try/finally so a failed operation still frees the resource."
+===END===
+Q: How do you limit aggregate consumption (e.g. total MB in flight) instead of operation count?
+===A===
+Use a semaphore where **each permit represents one unit of the resource** (e.g. 1 permit = 1MB). Acquire permits equal to the size of what you're consuming, release them when done. This differs from limiting concurrent ops because operations have variable sizes, not a fixed count.
+
+```python
+permits = max(1, (len(data) + MB - 1) // MB)
+# acquire `permits`, do the write, release `permits`
+```
+===END===
+Q: Does a semaphore-based bandwidth/memory limiter give you true rate limiting?
+===A===
+No — it limits **concurrent units in flight**, not a rate over time. True rate limiting (e.g. 100MB/s) needs a time-based algorithm like a **token bucket**, where permits replenish at a fixed rate rather than being a static pool.
+===END===
+Q: Why can't a semaphore alone solve the connection-pool problem?
+===A===
+A semaphore only limits *how many* threads can proceed; it doesn't track *which specific object* each thread gets. A **blocking queue** holds the actual reusable objects — threads `take()` one, use it, and `put()` it back.
+
+```python
+class ConnectionPool:
+    def __init__(self, pool_size):
+        self._pool = queue.Queue(maxsize=pool_size)
+        for _ in range(pool_size):
+            self._pool.put(self._create_connection())
+
+    def acquire(self):
+        return self._pool.get()  # blocks if empty
+
+    def release(self, conn):
+        self._pool.put(conn)
+```
+===END===
+Q: What's the most common mistake when building a blocking-queue resource pool, and why is it dangerous?
+===A===
+Creating an **unbounded queue** (e.g. no maxsize argument). If connections are created on demand and never capped, the queue can grow forever, exhausting the database or memory — always pass an explicit capacity matching the pool size.
+===END===
+Q: Should a resource pool be initialized upfront or lazily, and what's the default interview answer?
+===A===
+Default to **upfront** — create all objects in the constructor. It's simpler, avoids lazy-init race conditions, and gives predictable performance once running. Only go lazy if the interviewer specifically flags startup time as a concern.
+
+> "I'll create all connections in the constructor — simpler, avoids races, and predictable once running."
+===END===
+Q: Why is blocking forever (`take()`) on a resource pool dangerous in a request path?
+===A===
+If all resources are stuck (e.g. a slow query holding a connection), the thread blocks indefinitely even after the upstream caller or load balancer has already given up — the user sees a timeout while your thread sits stuck holding nothing.
+===END===
+Q: What's the fix for indefinite blocking when acquiring a pooled resource?
+===A===
+Use the **timeout variant** (`poll(timeout)` instead of `take()`). If the timeout expires, raise/return an error (e.g. 503) instead of blocking forever, so the caller fails fast rather than hanging.
+
+```python
+def acquire(self):
+    try:
+        return self._pool.get(timeout=self._timeout)
+    except queue.Empty:
+        raise RuntimeError(f"No connection available within {self._timeout}s")
+```
+===END===
+Q: How do you pick a timeout value for resource acquisition?
+===A===
+Base it on expected operation time plus a buffer — e.g. queries run ~100ms, set a ~500ms timeout. Too short fails requests that would've succeeded; too long leaves callers waiting past their own deadline. Stay well under any upstream load balancer or client timeout.
+===END===
+Q: A connection pool shows all connections "in use" but DB throughput is low — what's actually happening, and what's the fix?
+===A===
+Uneven task duration — a few slow operations hold connections for hundreds of ms while fast ones finish in 1ms, so reported utilization doesn't reflect actual work being done. Fix with **work stealing** (per-worker queues where idle workers steal from busy ones) so no single slow task stalls the whole pool.
+
+> "If task durations vary wildly, I'd use work stealing so idle workers pull from busier queues instead of sitting idle."
+===END===
+Q: What are batching and adaptive sizing, and when do you reach for them over basic pooling?
+===A===
+**Batching** amortizes per-operation coordination cost by grouping many small operations under one acquire/release (trades latency for throughput). **Adaptive sizing** grows/shrinks the pool based on demand (e.g. HikariCP, pgbouncer) instead of a fixed size. Reach for these only when the interviewer pushes on *throughput*, not just correctness/capping.
+===END===
