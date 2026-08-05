@@ -33,17 +33,18 @@ function seq(problemId: number, startDay: number, struggles: number[]): Attempt[
 
 describe('replayAttempts', () => {
   it('folds the level up on successes and flags reviews', () => {
+    // The first attempt always lands at level 0, so it is not a promotion.
     const r = replayAttempts(seq(1, 20, [0, 0, 0]));
-    expect(r.map(x => x.levelAfter)).toEqual([1, 2, 3]);
+    expect(r.map(x => x.levelAfter)).toEqual([0, 1, 2]);
     expect(r.map(x => x.isReview)).toEqual([false, true, true]);
-    expect(r.every(x => x.isPromotion)).toBe(true);
+    expect(r.map(x => x.isPromotion)).toEqual([false, true, true]);
   });
 
-  it('does not count a capped success at level 4 (Mastered) as a promotion', () => {
-    const r = replayAttempts(seq(1, 20, [0, 0, 0, 0, 0]));
-    expect(r[4].levelBefore).toBe(4);
-    expect(r[4].levelAfter).toBe(4);
-    expect(r[4].isPromotion).toBe(false);
+  it('does not count a capped success at level 5 (Mastered) as a promotion', () => {
+    const r = replayAttempts(seq(1, 20, [0, 0, 0, 0, 0, 0, 0]));
+    expect(r[6].levelBefore).toBe(5);
+    expect(r[6].levelAfter).toBe(5);
+    expect(r[6].isPromotion).toBe(false);
   });
 
   it('does not count a floored struggle at level 0 as a demotion', () => {
@@ -53,10 +54,10 @@ describe('replayAttempts', () => {
   });
 
   it('flags a lapse when struggling after reaching Familiar+', () => {
-    const r = replayAttempts(seq(1, 20, [0, 0, 1])); // →1 →2 then struggle
-    expect(r[2].levelBefore).toBe(2);
-    expect(r[2].isLapse).toBe(true);
-    expect(r[2].isDemotion).toBe(true);
+    const r = replayAttempts(seq(1, 20, [0, 0, 0, 1])); // →0 →1 →2 then struggle
+    expect(r[3].levelBefore).toBe(2);
+    expect(r[3].isLapse).toBe(true);
+    expect(r[3].isDemotion).toBe(true);
     expect(r.filter(x => x.isLapse).length).toBe(1);
   });
 
@@ -72,7 +73,8 @@ describe('replayAttempts', () => {
 });
 
 describe('computeMetrics — recall & maturity', () => {
-  // P1: s,s,s,s,s,x (07-20..25) → reviews idx1..5: promote,promote,promote,cap,demote
+  // P1: s,s,s,s,s,x (07-20..25) → idx0 lands at level 0 (not a review);
+  //     reviews idx1..5: promote ×4 then demote
   // P2: x,x (07-20..21)         → review idx1: floored (neither)
   const data = store(
     [problem({ id: 1 }), problem({ id: 2 })],
@@ -86,9 +88,9 @@ describe('computeMetrics — recall & maturity', () => {
   });
 
   it('net movement excludes capped successes and floored struggles', () => {
-    expect(m.promotions7d).toBe(3);
+    expect(m.promotions7d).toBe(4);
     expect(m.demotions7d).toBe(1);
-    expect(m.netLevelMovement7d).toBe(2);
+    expect(m.netLevelMovement7d).toBe(3);
   });
 
   it('returns null recall when the window has no reviews', () => {
@@ -127,7 +129,9 @@ describe('computeMetrics — leeches', () => {
   it('ranks by lapse count, most first', () => {
     const data = store(
       [problem({ id: 1 }), problem({ id: 2 })],
-      [...seq(1, 20, [0, 0, 1, 0, 1]), ...seq(2, 20, [0, 0, 1])], // P1: 2 lapses, P2: 1 lapse
+      // A lapse is a struggle from Familiar+ (level >= 2), and the first attempt
+      // now lands at 0 — so each needs three successes before the miss counts.
+      [...seq(1, 20, [0, 0, 0, 1, 0, 1]), ...seq(2, 20, [0, 0, 0, 1])], // P1: 2 lapses, P2: 1 lapse
     );
     const m = computeMetrics(data, TODAY);
     expect(m.leechesAreFallback).toBe(false);

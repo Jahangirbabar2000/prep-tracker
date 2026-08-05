@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Problem } from '@/lib/types';
+import { PROFICIENCY_LABELS, proficiencyLabel } from '@/lib/proficiency';
 import ProblemList from './ProblemList';
 import DomainFilters from './DomainFilters';
 
@@ -19,15 +20,12 @@ interface Props {
   emptyMessage: string;
 }
 
-const PROFICIENCY_ORDER = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
+const PROFICIENCY_ORDER: readonly string[] = PROFICIENCY_LABELS;
 
-function proficiencyLabel(p: Problem): string {
-  if (p.interval_level === 0 && !p.next_due_date) return 'New';
-  if (p.interval_level === 0) return 'Struggling';
-  if (p.interval_level === 1) return 'Learning';
-  if (p.interval_level === 2) return 'Familiar';
-  if (p.interval_level === 3) return 'Confident';
-  return 'Mastered';
+// Shared definition — domainProblems() populates attempt_count, which is what
+// separates a freshly logged "New" card from one that is genuinely "Struggling".
+function labelOf(p: Problem): string {
+  return proficiencyLabel(p.interval_level, !!p.next_due_date, p.attempt_count ?? 0);
 }
 
 function sortedProblems(problems: Problem[], sort: string): Problem[] {
@@ -152,7 +150,7 @@ export default function DomainPageClient({
       }
       opts[fc.key] = [...vals].sort();
     }
-    const profSet = new Set(allProblems.map(proficiencyLabel));
+    const profSet = new Set(allProblems.map(labelOf));
     opts.proficiency = PROFICIENCY_ORDER.filter(l => profSet.has(l));
     return opts;
   }, [allProblems, filterConfigs]);
@@ -167,7 +165,7 @@ export default function DomainPageClient({
       if (val) result = result.filter(p => String(p.metadata[fc.field] ?? '') === val);
     }
     if (filters.proficiency) {
-      result = result.filter(p => proficiencyLabel(p) === filters.proficiency);
+      result = result.filter(p => labelOf(p) === filters.proficiency);
     }
 
     // Search: filter then sort by match quality

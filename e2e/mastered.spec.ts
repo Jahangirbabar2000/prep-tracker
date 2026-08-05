@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // Fixture-driven: every test stubs /api/sync, so none of this touches the real
-// database. Covers the Mastered (level 4) tier end-to-end in the real UI.
+// database. Covers the Mastered (level 5) tier end-to-end in the real UI.
 
 const DOMAIN = {
   id: 'mastered_fixture',
@@ -24,16 +24,15 @@ const DOMAIN = {
 /**
  * One problem per requested level. Since the SR level is replayed from the full
  * attempt history (lib/sr.ts replaySchedule), the fixture must be internally
- * consistent: reaching level N from 0 takes exactly N successful attempts.
- * Giving a "level 3" problem a single attempt would replay to level 1, not 3.
+ * consistent. The first attempt always lands at level 0 whatever its outcome,
+ * so reaching level N takes N+1 attempts — a "level 4" problem needs five.
  */
 function syncPayload(levels: Array<{ id: number; name: string; level: number; due: string | null }>) {
   const attempts = levels.flatMap(l =>
-    // At least one attempt so the item counts as reviewed/queued even at level 0.
-    Array.from({ length: Math.max(l.level, 1) }, (_, k) => ({
+    Array.from({ length: l.level + 1 }, (_, k) => ({
       id: l.id * 10 + k,
       problem_id: l.id,
-      attempted_at: `2000-01-0${k + 1} 00:00:00`,
+      attempted_at: `2000-01-${String(k + 1).padStart(2, '0')} 00:00:00`,
       time_taken_mins: 0,
       struggled: 0,
       practice_type: null,
@@ -67,9 +66,9 @@ async function stubSync(page: Page, payload: unknown) {
   }));
 }
 
-test('a level-4 problem renders the Mastered badge with the ~60 day interval', async ({ page }) => {
+test('a level-5 problem renders the Mastered badge with the ~60 day interval', async ({ page }) => {
   await stubSync(page, syncPayload([
-    { id: 7001, name: 'A deeply retained question', level: 4, due: '2099-01-01' },
+    { id: 7001, name: 'A deeply retained question', level: 5, due: '2099-01-01' },
   ]));
   await page.goto(`/${DOMAIN.slug}/7001`);
 
@@ -79,13 +78,13 @@ test('a level-4 problem renders the Mastered badge with the ~60 day interval', a
 
   // Tooltip opens on hover and reports the real level + interval.
   await badge.hover();
-  await expect(page.getByText('Level 4')).toBeVisible();
+  await expect(page.getByText('Level 5')).toBeVisible();
   await expect(page.getByText('Next review in ~60 days')).toBeVisible();
 });
 
 test('Mastered is the ceiling: success stays, struggle drops to Confident', async ({ page }) => {
   await stubSync(page, syncPayload([
-    { id: 7002, name: 'A ceiling question', level: 4, due: '2099-01-01' },
+    { id: 7002, name: 'A ceiling question', level: 5, due: '2099-01-01' },
   ]));
   await page.goto(`/${DOMAIN.slug}/7002`);
 
@@ -96,28 +95,28 @@ test('Mastered is the ceiling: success stays, struggle drops to Confident', asyn
 
 test('Confident now promises a promotion that the scheduler can actually deliver', async ({ page }) => {
   await stubSync(page, syncPayload([
-    { id: 7003, name: 'A confident question', level: 3, due: '2099-01-01' },
+    { id: 7003, name: 'A confident question', level: 4, due: '2099-01-01' },
   ]));
   await page.goto(`/${DOMAIN.slug}/7003`);
 
   const badge = page.getByRole('button', { name: /Proficiency: Confident/ });
   await expect(badge).toBeVisible();
   await badge.hover();
-  await expect(page.getByText('Level 3')).toBeVisible();
+  await expect(page.getByText('Level 4')).toBeVisible();
   await expect(page.getByText('advances to Mastered')).toBeVisible();
 });
 
 test('logging a success on a Confident problem promotes it to Mastered', async ({ page }) => {
-  // The pre-fix bug: the POST response used to leave the level at 3 forever.
-  // Assert against the request the client actually sends and the state it renders.
+  // Regression: a success at Confident must actually reach Mastered.
+  // Assert against the request the client sends and the state it renders.
   await stubSync(page, syncPayload([
-    { id: 7004, name: 'A promotable question', level: 3, due: '2000-01-01' },
+    { id: 7004, name: 'A promotable question', level: 4, due: '2000-01-01' },
   ]));
 
   let postSeen = false;
   await page.route('**/api/problems/7004/attempts', async route => {
     postSeen = true;
-    // Mirror the server: replay from history → level 4, next due +60d.
+    // Mirror the server: replay from history → Mastered, next due +60d.
     await route.fulfill({
       status: 201,
       contentType: 'application/json',
@@ -145,8 +144,8 @@ test('logging a success on a Confident problem promotes it to Mastered', async (
 
 test('the review-queue level filter offers Mastered and it actually filters', async ({ page }) => {
   await stubSync(page, syncPayload([
-    { id: 7010, name: 'Overdue confident item', level: 3, due: '2000-01-01' },
-    { id: 7011, name: 'Overdue mastered item', level: 4, due: '2000-01-01' },
+    { id: 7010, name: 'Overdue confident item', level: 4, due: '2000-01-01' },
+    { id: 7011, name: 'Overdue mastered item', level: 5, due: '2000-01-01' },
   ]));
   await page.goto('/');
 
@@ -154,7 +153,7 @@ test('the review-queue level filter offers Mastered and it actually filters', as
   await expect(levelFilter).toBeVisible();
   await expect(levelFilter.locator('option', { hasText: 'Mastered' })).toHaveCount(1);
 
-  // Selecting Mastered must show only the level-4 item — the pre-fix
+  // Selecting Mastered must show only the Mastered item — the pre-fix
   // matchesProficiency() had no 'Mastered' case and fell through to
   // `default: return true`, which would have matched everything.
   await levelFilter.selectOption('Mastered');
@@ -164,9 +163,9 @@ test('the review-queue level filter offers Mastered and it actually filters', as
 
 test('Stats proficiency distribution includes a Mastered bucket', async ({ page }) => {
   await stubSync(page, syncPayload([
-    { id: 7020, name: 'Mastered one', level: 4, due: '2099-01-01' },
-    { id: 7021, name: 'Mastered two', level: 4, due: '2099-01-01' },
-    { id: 7022, name: 'Confident one', level: 3, due: '2099-01-01' },
+    { id: 7020, name: 'Mastered one', level: 5, due: '2099-01-01' },
+    { id: 7021, name: 'Mastered two', level: 5, due: '2099-01-01' },
+    { id: 7022, name: 'Confident one', level: 4, due: '2099-01-01' },
   ]));
   await page.goto('/stats');
 

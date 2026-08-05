@@ -10,6 +10,7 @@ import InfoTooltip from '@/components/InfoTooltip';
 import { useStore } from '@/lib/store/store';
 import { clientToday } from '@/lib/store/queries';
 import { computeMetrics } from '@/lib/store/metrics';
+import { PROFICIENCY_LABELS } from '@/lib/proficiency';
 import { Domain } from '@/lib/types';
 import { domainPath, resolveDomain } from '@/lib/domains';
 import { domainPalette } from '@/components/domainVisuals';
@@ -19,6 +20,7 @@ const PROFICIENCY_COLOR: Record<string, string> = {
   Struggling: 'bg-danger',
   Learning:   'bg-orange-500',
   Familiar:   'bg-blue-500',
+  Proficient: 'bg-cyan-500',
   Confident:  'bg-accent',
   Mastered:   'bg-emerald-500',
 };
@@ -123,7 +125,7 @@ function StatsInner() {
   }
 
   const m = computeMetrics(data, clientToday(), filterDomain || undefined);
-  const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
+  const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = [...PROFICIENCY_LABELS];
   const proficiencyTotal = Object.values(m.proficiencyCounts).reduce((a, b) => a + b, 0) || 1;
   const showRecallTrend = m.recallRateRecent !== null && m.recallRatePrior !== null;
 
@@ -180,7 +182,7 @@ function StatsInner() {
           sub={`${m.confidentCount} confident, ${m.masteredCount} mastered`}
           tip={
             <Tip title="Retained">
-              Questions that have stuck — at Familiar, Confident, or Mastered, meaning they&apos;ve survived multiple spaced reviews (intervals of 14–60 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
+              Questions that have stuck — at Familiar or above, meaning they&apos;ve survived multiple spaced reviews (intervals of 7–60 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
             </Tip>
           }
         />

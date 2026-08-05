@@ -11,6 +11,8 @@ import { useStore } from '@/lib/store/store';
 import {
   reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
 } from '@/lib/store/queries';
+import { proficiencyLabel } from '@/lib/proficiency';
+import { QUEUE_PROFICIENCY_OPTIONS } from '@/lib/filters';
 import { computeStreak } from '@/lib/streak';
 import { fmtDateOrToday } from '@/lib/fmt';
 import type { Problem } from '@/lib/types';
@@ -47,19 +49,16 @@ function ReviewQueueInner() {
   }, [router, sessionHref]);
 
   const domainOrder = allDomains(data.domains).map(domain => domain.id);
-  const PROFICIENCY_ORDER = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
-  function levelLabel(l: number) {
-    if (l === 0) return 'Struggling';
-    if (l === 1) return 'Learning';
-    if (l === 2) return 'Familiar';
-    if (l === 3) return 'Confident';
-    return 'Mastered';
-  }
+  // Everything in the queue has a due date and at least one attempt, so "New"
+  // can't appear here — but a card logged once still reads New, not Struggling.
+  const PROFICIENCY_ORDER = QUEUE_PROFICIENCY_OPTIONS;
+  const levelLabel = (it: { interval_level: number; next_due_date?: string | null; attempt_count?: number }) =>
+    proficiencyLabel(it.interval_level, !!it.next_due_date, it.attempt_count ?? 0);
 
   const allQueue = reviewQueue(data, today);
   const items = allQueue.filter(it =>
     (!filterDomain || it.domain === filterDomain) &&
-    (!filterProficiency || matchesProficiency(it, filterProficiency)),
+    (!filterProficiency || matchesProficiency(it, filterProficiency, it.attempt_count)),
   );
 
   // Group the queue by due date (already sorted most-overdue-first) so questions
@@ -76,7 +75,7 @@ function ReviewQueueInner() {
   // picking DSA won't leave stale proficiency options on screen that have zero
   // matches once combined with the domain you actually selected, and vice versa.
   const queueForDomainOptions = allQueue.filter(it =>
-    !filterProficiency || matchesProficiency(it, filterProficiency),
+    !filterProficiency || matchesProficiency(it, filterProficiency, it.attempt_count),
   );
   const queueForProficiencyOptions = allQueue.filter(it =>
     !filterDomain || it.domain === filterDomain,
@@ -86,7 +85,7 @@ function ReviewQueueInner() {
     .filter(d => queueForDomainOptions.some(it => it.domain === d))
     .map(d => ({ value: d, label: resolveDomain(data.domains, d).name }));
   const availableProficiencies = PROFICIENCY_ORDER
-    .filter(p => queueForProficiencyOptions.some(it => levelLabel(it.interval_level) === p));
+    .filter(p => queueForProficiencyOptions.some(it => levelLabel(it) === p));
 
   // Reviewed (re-attempts) today — matches the server's todayCount / todayByDomain.
   const { reviewed } = historyBuckets(data, today);
