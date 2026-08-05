@@ -20,6 +20,7 @@ const PROFICIENCY_COLOR: Record<string, string> = {
   Learning:   'bg-orange-500',
   Familiar:   'bg-blue-500',
   Confident:  'bg-accent',
+  Mastered:   'bg-emerald-500',
 };
 
 const signed = (n: number) => (n > 0 ? `+${n}` : `${n}`);
@@ -122,7 +123,7 @@ function StatsInner() {
   }
 
   const m = computeMetrics(data, clientToday(), filterDomain || undefined);
-  const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident'];
+  const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
   const proficiencyTotal = Object.values(m.proficiencyCounts).reduce((a, b) => a + b, 0) || 1;
   const showRecallTrend = m.recallRateRecent !== null && m.recallRatePrior !== null;
 
@@ -176,10 +177,10 @@ function StatsInner() {
             </span>
           }
           viz={<MicroBar pct={m.totalProblems ? Math.round((m.familiarPlusCount / m.totalProblems) * 100) : 0} tone="accent" />}
-          sub={`${m.confidentCount} confident of ${m.totalProblems}`}
+          sub={`${m.confidentCount} confident, ${m.masteredCount} mastered`}
           tip={
             <Tip title="Retained">
-              Questions that have stuck — at Familiar or Confident, meaning they&apos;ve survived multiple spaced reviews (intervals of 14–30 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
+              Questions that have stuck — at Familiar, Confident, or Mastered, meaning they&apos;ve survived multiple spaced reviews (intervals of 14–60 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
             </Tip>
           }
         />

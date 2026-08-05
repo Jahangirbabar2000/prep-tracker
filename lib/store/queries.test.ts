@@ -92,10 +92,12 @@ describe('matchesProficiency', () => {
     expect(matchesProficiency(problem({ id: 1, interval_level: 0, next_due_date: '2026-07-30' }), 'Struggling')).toBe(true);
   });
 
-  it('maps interval levels 1/2/3 to Learning/Familiar/Confident', () => {
+  it('maps interval levels 1/2/3/4 to Learning/Familiar/Confident/Mastered', () => {
     expect(matchesProficiency(problem({ id: 1, interval_level: 1 }), 'Learning')).toBe(true);
     expect(matchesProficiency(problem({ id: 1, interval_level: 2 }), 'Familiar')).toBe(true);
     expect(matchesProficiency(problem({ id: 1, interval_level: 3 }), 'Confident')).toBe(true);
+    expect(matchesProficiency(problem({ id: 1, interval_level: 4 }), 'Mastered')).toBe(true);
+    expect(matchesProficiency(problem({ id: 1, interval_level: 3 }), 'Mastered')).toBe(false);
   });
 
   it('an unknown/empty filter matches everything', () => {

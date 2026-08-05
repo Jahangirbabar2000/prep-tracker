@@ -58,7 +58,7 @@ export function replayAttempts(attempts: Attempt[]): AttemptReplay[] {
   });
 }
 
-type ProficiencyCounts = Record<'New' | 'Struggling' | 'Learning' | 'Familiar' | 'Confident', number>;
+type ProficiencyCounts = Record<'New' | 'Struggling' | 'Learning' | 'Familiar' | 'Confident' | 'Mastered', number>;
 
 export interface DomainMastery {
   domain: Domain;
@@ -91,6 +91,7 @@ export interface Metrics {
 
   // 3. Maturity
   confidentCount: number;
+  masteredCount: number;
   familiarPlusCount: number;
   promotions7d: number;
   demotions7d: number;
@@ -164,6 +165,7 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
 
   // 3. Maturity
   const confidentCount = problems.filter(p => p.interval_level === 3).length;
+  const masteredCount = problems.filter(p => p.interval_level === 4).length;
   const familiarPlusCount = problems.filter(p => p.interval_level >= 2).length;
   const promotions7d = recentReviews.filter(r => r.isPromotion).length;
   const demotions7d = recentReviews.filter(r => r.isDemotion).length;
@@ -206,7 +208,7 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
   }
 
   // Proficiency snapshot (scoped)
-  const proficiencyCounts: ProficiencyCounts = { New: 0, Struggling: 0, Learning: 0, Familiar: 0, Confident: 0 };
+  const proficiencyCounts: ProficiencyCounts = { New: 0, Struggling: 0, Learning: 0, Familiar: 0, Confident: 0, Mastered: 0 };
   for (const p of problems) proficiencyCounts[proficiencyOf(p)]++;
 
   return {
@@ -220,6 +222,7 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
     oldestOverdueAge,
 
     confidentCount,
+    masteredCount,
     familiarPlusCount,
     promotions7d,
     demotions7d,

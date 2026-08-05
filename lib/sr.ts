@@ -1,11 +1,15 @@
-const INTERVALS = [3, 7, 14, 30]; // days per level 0–3
+// Days per level 0–4. The gap 30→60 (rather than another ~2x bump to ~50-56)
+// mirrors Cepeda et al. (2008): the ideal spacing scales with how long you
+// want the material to stick, roughly 10–20% of the target retention window —
+// for exam/interview prep (months out), that lands squarely on ~60 days.
+const INTERVALS = [3, 7, 14, 30, 60];
 
 export function computeNextDue(
   struggled: boolean,
   currentLevel: number,
   attemptDate: Date = new Date()
 ): { newLevel: number; nextDueDate: string } {
-  const newLevel = struggled ? Math.max(0, currentLevel - 1) : Math.min(currentLevel + 1, 3);
+  const newLevel = struggled ? Math.max(0, currentLevel - 1) : Math.min(currentLevel + 1, 4);
   const due = new Date(attemptDate);
   due.setDate(due.getDate() + INTERVALS[newLevel]);
   return { newLevel, nextDueDate: due.toLocaleDateString('en-CA') };

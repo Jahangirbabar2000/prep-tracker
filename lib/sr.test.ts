@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeNextDue, replaySchedule } from './sr';
 
-// Intervals per level: [3, 7, 14, 30] days for levels 0–3.
+// Intervals per level: [3, 7, 14, 30, 60] days for levels 0–4.
 const at = new Date(2026, 0, 1, 12, 0, 0); // 2026-01-01, local time
 
 describe('computeNextDue', () => {
@@ -9,13 +9,15 @@ describe('computeNextDue', () => {
     expect(computeNextDue(false, 0, at)).toEqual({ newLevel: 1, nextDueDate: '2026-01-08' });
     expect(computeNextDue(false, 1, at)).toEqual({ newLevel: 2, nextDueDate: '2026-01-15' });
     expect(computeNextDue(false, 2, at)).toEqual({ newLevel: 3, nextDueDate: '2026-01-31' });
+    expect(computeNextDue(false, 3, at)).toEqual({ newLevel: 4, nextDueDate: '2026-03-02' });
   });
 
-  it('caps the level at 3 (max interval 30 days)', () => {
-    expect(computeNextDue(false, 3, at)).toEqual({ newLevel: 3, nextDueDate: '2026-01-31' });
+  it('caps the level at 4 (max interval 60 days)', () => {
+    expect(computeNextDue(false, 4, at)).toEqual({ newLevel: 4, nextDueDate: '2026-03-02' });
   });
 
   it('demotes one level when struggled and schedules the shorter interval', () => {
+    expect(computeNextDue(true, 4, at)).toEqual({ newLevel: 3, nextDueDate: '2026-01-31' });
     expect(computeNextDue(true, 3, at)).toEqual({ newLevel: 2, nextDueDate: '2026-01-15' });
     expect(computeNextDue(true, 1, at)).toEqual({ newLevel: 0, nextDueDate: '2026-01-04' });
   });
@@ -74,11 +76,11 @@ describe('replaySchedule', () => {
     expect(firstStruggled.level).toBe(2);
   });
 
-  it('caps at 3 across a long success streak', () => {
+  it('caps at 4 (Mastered) across a long success streak', () => {
     const r = replaySchedule([
       a(1, '2026-01-01', 0), a(2, '2026-01-02', 0), a(3, '2026-01-03', 0),
-      a(4, '2026-01-04', 0), a(5, '2026-01-05', 0),
+      a(4, '2026-01-04', 0), a(5, '2026-01-05', 0), a(6, '2026-01-06', 0),
     ]);
-    expect(r.level).toBe(3);
+    expect(r.level).toBe(4);
   });
 });

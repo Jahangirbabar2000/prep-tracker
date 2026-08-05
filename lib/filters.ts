@@ -5,10 +5,11 @@ export function proficiencyClause(p: string): string {
   if (p === 'Learning')   return " AND interval_level = 1";
   if (p === 'Familiar')   return " AND interval_level = 2";
   if (p === 'Confident')  return " AND interval_level = 3";
+  if (p === 'Mastered')   return " AND interval_level = 4";
   return '';
 }
 
-export const PROFICIENCY_OPTIONS = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident'];
+export const PROFICIENCY_OPTIONS = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
 
 /** Same options but without "New" — for review queue where all items already have next_due_date */
-export const QUEUE_PROFICIENCY_OPTIONS = ['Struggling', 'Learning', 'Familiar', 'Confident'];
+export const QUEUE_PROFICIENCY_OPTIONS = ['Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];

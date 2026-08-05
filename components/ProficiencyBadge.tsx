@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { isStrugglingState, projectSuccess, projectStruggle } from '@/lib/proficiency';
 
 interface Level {
   label: string;
@@ -50,8 +51,8 @@ const LEVELS: Record<number, Level> = {
   },
   4: {
     label:       'Mastered',
-    description: 'Long-term retention achieved. Keep it fresh with monthly checks.',
-    interval:    'Next review in ~30 days',
+    description: 'Deeply retained — reviews are now rare.',
+    interval:    'Next review in ~60 days',
     pill:        'bg-emerald-500/10 text-emerald-500',
     dot:         'bg-emerald-500',
   },
@@ -76,11 +77,21 @@ export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: P
   const [pos, setPos] = useState<{ top: number; left: number; arrowLeft: number; placement: 'top' | 'bottom' } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  const isStruggling = level === 0 && !!nextDueDate && (attemptCount ?? 0) >= 2;
-  const cfg = isStruggling ? STRUGGLING : LEVELS[Math.min(Math.max(level, 0), 4)];
+  const cappedLevel = Math.min(Math.max(level, 0), 4);
+  const isStruggling = isStrugglingState(cappedLevel, !!nextDueDate, attemptCount ?? 0);
+  const cfg = isStruggling ? STRUGGLING : LEVELS[cappedLevel];
 
-  const struggleResult = isStruggling ? 'stays at Struggling' : level <= 1 ? 'stays at Learning' : `drops to ${LEVELS[level - 1]?.label}`;
-  const successResult  = isStruggling ? 'advances to Learning' : level >= 4 ? 'stays at Mastered' : `advances to ${LEVELS[level + 1]?.label}`;
+  // Project one more attempt forward — never promises a transition the
+  // scheduler (lib/sr.ts) doesn't actually make, e.g. Confident is the ceiling.
+  const success = projectSuccess(cappedLevel, cfg.label);
+  const struggle = isStruggling
+    ? { label: 'Struggling', changed: false }
+    : projectStruggle(cappedLevel, attemptCount ?? 0, cfg.label);
+
+  const successResult  = success.changed ? `advances to ${success.label}` : `stays at ${success.label}`;
+  const struggleResult = isStruggling
+    ? 'stays at Struggling'
+    : struggle.changed ? `drops to ${struggle.label}` : `stays at ${struggle.label}`;
 
   function show() {
     const el = btnRef.current;

@@ -39,11 +39,11 @@ describe('replayAttempts', () => {
     expect(r.every(x => x.isPromotion)).toBe(true);
   });
 
-  it('does not count a capped success at level 3 as a promotion', () => {
-    const r = replayAttempts(seq(1, 20, [0, 0, 0, 0]));
-    expect(r[3].levelBefore).toBe(3);
-    expect(r[3].levelAfter).toBe(3);
-    expect(r[3].isPromotion).toBe(false);
+  it('does not count a capped success at level 4 (Mastered) as a promotion', () => {
+    const r = replayAttempts(seq(1, 20, [0, 0, 0, 0, 0]));
+    expect(r[4].levelBefore).toBe(4);
+    expect(r[4].levelAfter).toBe(4);
+    expect(r[4].isPromotion).toBe(false);
   });
 
   it('does not count a floored struggle at level 0 as a demotion', () => {
@@ -72,23 +72,23 @@ describe('replayAttempts', () => {
 });
 
 describe('computeMetrics — recall & maturity', () => {
-  // P1: s,s,s,s,x (07-20..24) → reviews idx1..4: promote,promote,cap,demote
-  // P2: x,x (07-20..21)       → review idx1: floored (neither)
+  // P1: s,s,s,s,s,x (07-20..25) → reviews idx1..5: promote,promote,promote,cap,demote
+  // P2: x,x (07-20..21)         → review idx1: floored (neither)
   const data = store(
     [problem({ id: 1 }), problem({ id: 2 })],
-    [...seq(1, 20, [0, 0, 0, 0, 1]), ...seq(2, 20, [1, 1])],
+    [...seq(1, 20, [0, 0, 0, 0, 0, 1]), ...seq(2, 20, [1, 1])],
   );
   const m = computeMetrics(data, TODAY);
 
   it('recall rate counts reviews only (first attempts excluded)', () => {
-    expect(m.reviewCountRecent).toBe(5);      // 4 from P1 + 1 from P2
-    expect(m.recallRateRecent).toBe(60);      // 3 of 5 not struggled
+    expect(m.reviewCountRecent).toBe(6);      // 5 from P1 + 1 from P2
+    expect(m.recallRateRecent).toBe(67);      // 4 of 6 not struggled
   });
 
   it('net movement excludes capped successes and floored struggles', () => {
-    expect(m.promotions7d).toBe(2);
+    expect(m.promotions7d).toBe(3);
     expect(m.demotions7d).toBe(1);
-    expect(m.netLevelMovement7d).toBe(1);
+    expect(m.netLevelMovement7d).toBe(2);
   });
 
   it('returns null recall when the window has no reviews', () => {
