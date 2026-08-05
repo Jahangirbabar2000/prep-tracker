@@ -24,7 +24,9 @@ function loadEnvFile(path) {
 loadEnvFile('.env.local');
 
 const DRY = process.argv.includes('--dry');
-const INTERVALS = [3, 7, 14, 30];
+// Must stay in sync with lib/sr.ts — levels 0-4, Mastered capped at 60 days.
+const INTERVALS = [3, 7, 14, 30, 60];
+const MAX_LEVEL = INTERVALS.length - 1;
 
 // Mirror of lib/sr.ts replaySchedule.
 function replaySchedule(attempts) {
@@ -32,7 +34,7 @@ function replaySchedule(attempts) {
     a.attempted_at < b.attempted_at ? -1 : a.attempted_at > b.attempted_at ? 1 : a.id - b.id);
   let level = 0, nextDueDate = null;
   for (const a of ordered) {
-    level = a.struggled ? Math.max(0, level - 1) : Math.min(level + 1, 3);
+    level = a.struggled ? Math.max(0, level - 1) : Math.min(level + 1, MAX_LEVEL);
     const d = new Date(String(a.attempted_at).slice(0, 10) + 'T12:00:00');
     d.setDate(d.getDate() + INTERVALS[level]);
     nextDueDate = d.toLocaleDateString('en-CA');
