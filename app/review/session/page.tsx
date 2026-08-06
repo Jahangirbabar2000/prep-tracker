@@ -181,7 +181,7 @@ function SessionPageInner() {
     resetCardState();
   }, [card, allCards, index, loggedIds, skippedIds, isActive, resetCardState]);
 
-  const advance = useCallback(async (struggled: boolean, timeTakenMins = 0) => {
+  const advance = useCallback(async (struggled: boolean, timeTakenMins = 0, direction: 'next' | 'prev' = 'next') => {
     if (!card || submitting) return;
     setSubmitting(true);
 
@@ -200,13 +200,13 @@ function SessionPageInner() {
 
     const hasActive = allCards.some(c => isActive(c.id, newLoggedIds, skippedIds));
     if (!hasActive) { setStatus('done'); return; }
-    const next = findAdjacent(allCards, index, 'next', newLoggedIds, skippedIds);
-    setIndex(next);
+    const target = findAdjacent(allCards, index, direction, newLoggedIds, skippedIds);
+    setIndex(target);
     resetCardState();
   }, [card, allCards, index, loggedIds, skippedIds, submitting, isActive, resetCardState]);
 
-  const advanceDsa = useCallback(() => {
-    advance(dsaStruggled, parseInt(dsaTime) || 0);
+  const advanceDsa = useCallback((direction: 'next' | 'prev' = 'next') => {
+    advance(dsaStruggled, parseInt(dsaTime) || 0, direction);
   }, [advance, dsaStruggled, dsaTime]);
 
   async function saveNote() {
@@ -270,13 +270,21 @@ function SessionPageInner() {
         // Y/N set the Solved/Struggled toggle (outside text fields)
         if (!inField && (e.key === 'y' || e.key === 'Y')) { setDsaStruggled(false); return; }
         if (!inField && (e.key === 'n' || e.key === 'N')) { setDsaStruggled(true);  return; }
-        // Enter submits — works both outside fields and from inside the minutes input
-        if (e.key === 'Enter' && !submitting) { e.preventDefault(); advanceDsa(); return; }
+        // Enter submits — works both outside fields and from inside the minutes input.
+        // ⌘/Ctrl+Enter does the same log but steps back instead of forward, so a
+        // struggled review of a much-earlier card doesn't leave you jumping forward.
+        if (e.key === 'Enter' && !submitting) {
+          e.preventDefault();
+          advanceDsa(e.metaKey || e.ctrlKey ? 'prev' : 'next');
+          return;
+        }
       } else {
         if (inField) return;
         if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); setRevealed(r => !r); }
         if (revealed && !submitting) {
-          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') advance(false);
+          if (e.key === 'y' || e.key === 'Y' || e.key === 'Enter') {
+            advance(false, 0, e.key === 'Enter' && (e.metaKey || e.ctrlKey) ? 'prev' : 'next');
+          }
           if (e.key === 'n' || e.key === 'N') advance(true);
         }
       }
@@ -495,11 +503,12 @@ function SessionPageInner() {
                 </div>
               </div>
               <button
-                onClick={advanceDsa}
+                onClick={() => advanceDsa()}
                 disabled={submitting || !dsaTime.trim()}
+                title="⌘/Ctrl+Enter logs and goes back instead of forward"
                 className="py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                {submitting ? 'Saving…' : <span>Log & Next → <span className="hidden md:inline opacity-50 font-normal text-xs">Enter</span></span>}
+                {submitting ? 'Saving…' : <span>Log & Next → <span className="hidden md:inline opacity-50 font-normal text-xs">Enter · ⌘Enter back</span></span>}
               </button>
             </div>
 
@@ -576,9 +585,10 @@ function SessionPageInner() {
                   <button
                     onClick={() => advance(false)}
                     disabled={submitting}
+                    title="⌘/Ctrl+Enter logs and goes back instead of forward"
                     className="flex-1 py-2.5 bg-accent/10 border border-accent/30 text-accent text-sm font-semibold rounded-lg hover:bg-accent/20 disabled:opacity-40 transition-colors cursor-pointer"
                   >
-                    ✓ Got it <span className="hidden md:inline text-xs font-normal opacity-50 ml-1">Y</span>
+                    ✓ Got it <span className="hidden md:inline text-xs font-normal opacity-50 ml-1">Y · ⌘⏎ back</span>
                   </button>
                 </div>
               </div>
