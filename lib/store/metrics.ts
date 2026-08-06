@@ -77,7 +77,7 @@ export interface DayActivity {
  * `today` are included so the grid stays rectangular (weeks * 7 cells) but
  * flagged `future` for the UI to render as empty rather than "0 activity".
  */
-export function dailyActivity(attempts: Pick<Attempt, 'attempted_at'>[], today: string, weeks = 26): DayActivity[] {
+export function dailyActivity(attempts: Pick<Attempt, 'attempted_at'>[], today: string, weeks = 53): DayActivity[] {
   const dow = new Date(`${today}T00:00:00Z`).getUTCDay(); // 0 = Sun
   const weekStart = addDays(today, -dow);
   const gridStart = addDays(weekStart, -(weeks - 1) * 7);
@@ -148,7 +148,7 @@ export interface Metrics {
   // Kept snapshot
   proficiencyCounts: ProficiencyCounts;
 
-  // 7. Activity heatmap — last 26 Sun–Sat weeks (~6 months), scoped to the domain filter
+  // 7. Activity heatmap — last 53 Sun–Sat weeks, scoped to the domain filter
   activityByDay: DayActivity[];
 
   // Empty-state context
