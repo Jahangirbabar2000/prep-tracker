@@ -65,6 +65,35 @@ export function replayAttempts(attempts: Attempt[]): AttemptReplay[] {
   });
 }
 
+export interface DayActivity {
+  date: string;   // YYYY-MM-DD
+  count: number;  // total attempts logged that day
+  future: boolean; // after `today` — grid padding, render blank
+}
+
+/**
+ * Total-attempt counts per day for a GitHub-style heatmap: `weeks` full
+ * Sun–Sat columns ending with the week containing `today`. Days after
+ * `today` are included so the grid stays rectangular (weeks * 7 cells) but
+ * flagged `future` for the UI to render as empty rather than "0 activity".
+ */
+export function dailyActivity(attempts: Pick<Attempt, 'attempted_at'>[], today: string, weeks = 53): DayActivity[] {
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay(); // 0 = Sun
+  const weekStart = addDays(today, -dow);
+  const gridStart = addDays(weekStart, -(weeks - 1) * 7);
+
+  const counts = new Map<string, number>();
+  for (const a of attempts) {
+    const d = dateOf(a.attempted_at);
+    counts.set(d, (counts.get(d) ?? 0) + 1);
+  }
+
+  return Array.from({ length: weeks * 7 }, (_, i) => {
+    const date = addDays(gridStart, i);
+    return { date, count: counts.get(date) ?? 0, future: date > today };
+  });
+}
+
 type ProficiencyCounts = Record<ProficiencyLabel, number>;
 
 export interface DomainMastery {
@@ -118,6 +147,9 @@ export interface Metrics {
 
   // Kept snapshot
   proficiencyCounts: ProficiencyCounts;
+
+  // 7. Activity heatmap — last 53 Sun–Sat weeks, scoped to the domain filter
+  activityByDay: DayActivity[];
 
   // Empty-state context
   totalProblems: number;
@@ -250,6 +282,8 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
     leechesAreFallback,
 
     proficiencyCounts,
+
+    activityByDay: dailyActivity(attempts, today),
 
     totalProblems: problems.length,
     attemptedProblems: byProblem.size,

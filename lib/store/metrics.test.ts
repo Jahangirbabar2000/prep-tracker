@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { replayAttempts, computeMetrics } from './metrics';
+import { replayAttempts, computeMetrics, dailyActivity } from './metrics';
 import type { StoreData } from './store';
 import type { Attempt, Problem } from '@/lib/types';
 import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
@@ -239,5 +239,33 @@ describe('computeMetrics — window boundaries & correctness', () => {
     );
     const dsa = computeMetrics(data, TODAY).masteryByDomain.find(d => d.domain === 'dsa')!;
     expect(dsa).toMatchObject({ total: 3, familiarPlus: 1, pct: 33, attempts: 2 }); // round(1/3*100)
+  });
+});
+
+describe('dailyActivity', () => {
+  it('builds a rectangular weeks*7 grid ending in the week containing today, with future days flagged', () => {
+    const days = dailyActivity([], TODAY, 3); // 3 weeks = 21 cells
+    expect(days).toHaveLength(21);
+    expect(days[days.length - 1].date >= TODAY).toBe(true); // grid runs through Saturday of this week
+    expect(days.some(d => d.date === TODAY)).toBe(true);
+    expect(days.filter(d => d.future).every(d => d.date > TODAY)).toBe(true);
+    expect(days.filter(d => !d.future).every(d => d.date <= TODAY)).toBe(true);
+  });
+
+  it('counts total attempts per day, not distinct problems', () => {
+    const atts = [
+      attempt({ id: 1, problem_id: 1, attempted_at: `${TODAY} 09:00:00` }),
+      attempt({ id: 2, problem_id: 2, attempted_at: `${TODAY} 10:00:00` }),
+      attempt({ id: 3, problem_id: 1, attempted_at: '2026-07-25 09:00:00' }),
+    ];
+    const days = dailyActivity(atts, TODAY, 2);
+    expect(days.find(d => d.date === TODAY)?.count).toBe(2);
+    expect(days.find(d => d.date === '2026-07-25')?.count).toBe(1);
+  });
+
+  it('starts the grid on a Sunday and ends on a Saturday', () => {
+    const days = dailyActivity([], TODAY, 4);
+    expect(new Date(`${days[0].date}T00:00:00Z`).getUTCDay()).toBe(0);
+    expect(new Date(`${days[days.length - 1].date}T00:00:00Z`).getUTCDay()).toBe(6);
   });
 });
