@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import type { DayActivity } from '@/lib/store/metrics';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -23,6 +26,16 @@ function cellStyle(count: number): React.CSSProperties {
 }
 
 export default function ActivityHeatmap({ days }: { days: DayActivity[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Chronological order (oldest -> newest) reads naturally left-to-right, but
+  // "today" should be what you see first — anchor the scroll position to the
+  // right edge on load, so scrolling *back* (left) is what reveals the past.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [days]);
+
   const weeks: DayActivity[][] = [];
   for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
 
@@ -39,7 +52,7 @@ export default function ActivityHeatmap({ days }: { days: DayActivity[] }) {
   const totalCount = days.reduce((s, d) => s + (d.future ? 0 : d.count), 0);
 
   return (
-    <div className="overflow-x-auto pb-1">
+    <div ref={scrollRef} className="overflow-x-auto pb-1">
       <div className="inline-flex flex-col gap-1 min-w-full">
         <div className="flex gap-[3px] pl-7">
           {monthLabels.map((label, i) => (
