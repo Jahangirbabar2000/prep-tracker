@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store/store';
 import { allDomains } from '@/lib/domains';
 
-const selectCls = 'bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 transition cursor-pointer';
+const selectCls = 'bg-surface border border-border rounded-lg px-3 py-1.5 text-base sm:text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 transition cursor-pointer';
 
 export default function HistoryFilters({ currentDomain, basePath = '/review/history' }: { currentDomain: string; basePath?: string }) {
   const router = useRouter();

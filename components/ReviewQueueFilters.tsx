@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { ArrowDown } from 'lucide-react';
 
-const cls = 'bg-surface border border-border rounded-lg px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition cursor-pointer';
+// text-base (16px) on mobile avoids iOS Safari's auto-zoom-on-focus for
+// sub-16px form controls, and just reads more comfortably on a phone.
+const cls = 'bg-surface border border-border rounded-lg px-3 py-2 text-base sm:text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition cursor-pointer';
 
 // Mirror of scrollToTop in UpcomingForecast — cover both the <main> scroll
 // container (desktop) and the window (mobile) so it works on every layout.
@@ -85,13 +87,16 @@ export default function ReviewQueueFilters({
         </button>
       )}
 
-      {/* Flush-right, mirroring the "Go up" button in the forecast footer. */}
+      {/* Flush-right, mirroring the "Go up" button in the forecast footer.
+          Icon-only on mobile so it stays on the same row as the selects
+          instead of wrapping onto a lonely line of its own. */}
       <button
         type="button"
         onClick={scrollToBottom}
-        className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-2.5 py-1 transition-colors cursor-pointer"
+        title="Go down"
+        className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-2.5 py-1.5 sm:py-1 transition-colors cursor-pointer"
       >
-        <ArrowDown size={13} /> Go down
+        <ArrowDown size={13} /> <span className="hidden sm:inline">Go down</span>
       </button>
     </div>
   );

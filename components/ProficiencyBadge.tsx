@@ -106,8 +106,15 @@ export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: P
     if (!el) return;
     const rect = el.getBoundingClientRect();
 
-    // Prefer above the badge; flip below if there isn't roughly enough room.
-    const placement: 'top' | 'bottom' = rect.top > 200 ? 'top' : 'bottom';
+    // Prefer whichever side actually has room for the tooltip (~220px tall),
+    // defaulting to below. A fixed pixel threshold broke on mobile, where the
+    // badge itself often sits close to the top of the screen — that flipped
+    // the tooltip upward into the sticky topbar with nowhere to render.
+    const TOOLTIP_EST_HEIGHT = 220;
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placement: 'top' | 'bottom' =
+      spaceAbove > TOOLTIP_EST_HEIGHT + GAP && spaceAbove > spaceBelow ? 'top' : 'bottom';
 
     // Right-align to the badge by default, then clamp so it never runs off either edge.
     const idealLeft = rect.right - TOOLTIP_WIDTH;

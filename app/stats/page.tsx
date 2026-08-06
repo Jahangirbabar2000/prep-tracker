@@ -238,18 +238,19 @@ function StatsInner() {
           </h2>
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             {m.masteryByDomain.map((d, i) => (
-              <div key={d.domain} className={`px-5 py-3.5 flex items-center gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
-                <div className="w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
+              <div key={d.domain} className={`px-4 sm:px-5 py-2.5 sm:py-3.5 flex items-center gap-3 sm:gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
+                <div className="w-20 sm:w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${domainPalette(resolveDomain(data.domains, d.domain).color).dot}`} style={{ width: `${d.pct}%` }} />
                   </div>
                 </div>
-                <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
-                  <span className="text-fg font-medium">{d.familiarPlus}</span>/{d.total} retained
-                </div>
-                <div className="text-xs text-muted tabular shrink-0 w-24 text-right">
-                  {d.attempts} attempts
+                {/* Collapsed to one compact block on mobile — "retained" and
+                    "attempts" as separate labeled columns didn't fit. */}
+                <div className="text-xs text-muted tabular shrink-0 text-right">
+                  <span className="text-fg font-medium">{d.familiarPlus}</span>/{d.total}
+                  <span className="hidden sm:inline"> retained</span>
+                  <span className="hidden sm:inline"> · {d.attempts} attempts</span>
                 </div>
               </div>
             ))}

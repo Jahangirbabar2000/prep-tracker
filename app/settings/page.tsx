@@ -24,7 +24,7 @@ import {
 import { mutate, useStore } from '@/lib/store/store';
 import { domainIcon, domainPalette } from '@/components/domainVisuals';
 
-const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
+const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-base sm:text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 const buttonCls = 'inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-border hover:border-border-strong transition-colors disabled:opacity-40';
 
 async function jsonRequest<T>(url: string, method: string, body: unknown): Promise<T> {
@@ -293,6 +293,7 @@ function FieldEditor({
 function DomainEditor({ domain, onMove }: { domain: StudyDomain; onMove: (direction: -1 | 1) => void }) {
   const { data } = useStore();
   const [open, setOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldKind, setNewFieldKind] = useState<'text' | 'select'>('select');
   const [error, setError] = useState('');
@@ -368,16 +369,12 @@ function DomainEditor({ domain, onMove }: { domain: StudyDomain; onMove: (direct
               <input defaultValue={domain.name} onBlur={event => { if (event.target.value.trim() !== domain.name) void update({ name: event.target.value }); }} className={inputCls} />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-muted">Short name</span>
-              <input defaultValue={domain.short_name} onBlur={event => { if (event.target.value.trim() !== domain.short_name) void update({ short_name: event.target.value }); }} className={inputCls} maxLength={12} />
-            </label>
-            <label className="flex flex-col gap-1">
               <span className="text-xs text-muted">Study mode</span>
               <select value={domain.study_mode} onChange={event => void update({ study_mode: event.target.value })} className={inputCls}>
                 {STUDY_MODES.map(mode => <option key={mode} value={mode}>{mode.replaceAll('_', ' ')}</option>)}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
+            <label className="flex flex-col gap-1 sm:col-span-2">
               <span className="text-xs text-muted">Icon / color</span>
               <div className="flex gap-2">
                 <select value={domain.icon} onChange={event => void update({ icon: event.target.value })} className={`${inputCls} flex-1`}>
@@ -388,31 +385,49 @@ function DomainEditor({ domain, onMove }: { domain: StudyDomain; onMove: (direct
                 </select>
               </div>
             </label>
-            <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-muted">Default resource link</span>
-              <input defaultValue={domain.default_link} onBlur={event => { if (event.target.value.trim() !== domain.default_link) void update({ default_link: event.target.value }); }} className={inputCls} placeholder="https://…" />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-muted">Log button label</span>
-              <input defaultValue={domain.log_label} onBlur={event => { if (event.target.value.trim() !== domain.log_label) void update({ log_label: event.target.value }); }} className={inputCls} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-muted">Log page title</span>
-              <input defaultValue={domain.log_title} onBlur={event => { if (event.target.value.trim() !== domain.log_title) void update({ log_title: event.target.value }); }} className={inputCls} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-muted">Item label</span>
-              <input defaultValue={domain.item_label} onBlur={event => { if (event.target.value.trim() !== domain.item_label) void update({ item_label: event.target.value }); }} className={inputCls} />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-muted">Empty-state message</span>
-              <input defaultValue={domain.empty_message} onBlur={event => { if (event.target.value.trim() !== domain.empty_message) void update({ empty_message: event.target.value }); }} className={inputCls} />
-            </label>
-            <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-muted">Answer placeholder</span>
-              <input defaultValue={domain.answer_placeholder} onBlur={event => { if (event.target.value !== domain.answer_placeholder) void update({ answer_placeholder: event.target.value }); }} className={inputCls} />
-            </label>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(v => !v)}
+            className="self-start inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg transition-colors"
+          >
+            {showAdvanced ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+            {showAdvanced ? 'Hide' : 'Show'} more options
+          </button>
+
+          {showAdvanced && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted">Short name</span>
+                <input defaultValue={domain.short_name} onBlur={event => { if (event.target.value.trim() !== domain.short_name) void update({ short_name: event.target.value }); }} className={inputCls} maxLength={12} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted">Default resource link</span>
+                <input defaultValue={domain.default_link} onBlur={event => { if (event.target.value.trim() !== domain.default_link) void update({ default_link: event.target.value }); }} className={inputCls} placeholder="https://…" />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted">Log button label</span>
+                <input defaultValue={domain.log_label} onBlur={event => { if (event.target.value.trim() !== domain.log_label) void update({ log_label: event.target.value }); }} className={inputCls} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted">Log page title</span>
+                <input defaultValue={domain.log_title} onBlur={event => { if (event.target.value.trim() !== domain.log_title) void update({ log_title: event.target.value }); }} className={inputCls} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted">Item label</span>
+                <input defaultValue={domain.item_label} onBlur={event => { if (event.target.value.trim() !== domain.item_label) void update({ item_label: event.target.value }); }} className={inputCls} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-muted">Empty-state message</span>
+                <input defaultValue={domain.empty_message} onBlur={event => { if (event.target.value.trim() !== domain.empty_message) void update({ empty_message: event.target.value }); }} className={inputCls} />
+              </label>
+              <label className="flex flex-col gap-1 sm:col-span-2">
+                <span className="text-xs text-muted">Answer placeholder</span>
+                <input defaultValue={domain.answer_placeholder} onBlur={event => { if (event.target.value !== domain.answer_placeholder) void update({ answer_placeholder: event.target.value }); }} className={inputCls} />
+              </label>
+            </div>
+          )}
 
           <div>
             <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Custom fields</h3>
@@ -461,14 +476,14 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto py-8 px-4 pb-10 md:pb-8">
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-fg tracking-tight">Settings</h1>
           <p className="text-sm text-muted mt-1">Create domains, choose their study workflow, and configure their fields.</p>
         </div>
         <button
           onClick={async () => { await fetch('/api/auth', { method: 'DELETE' }); window.location.assign('/login'); }}
-          className="shrink-0 inline-flex items-center gap-1.5 text-sm text-muted hover:text-danger border border-border rounded-lg px-3 py-1.5 transition-colors"
+          className="self-start shrink-0 inline-flex items-center gap-1.5 text-sm text-muted hover:text-danger border border-border rounded-lg px-3 py-1.5 transition-colors"
         >
           <LogOut size={15} /> Log out
         </button>
