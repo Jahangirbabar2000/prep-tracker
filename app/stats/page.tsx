@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { TrendingDown, TrendingUp, Minus, AlertCircle, Target, Inbox, GraduationCap, Flame, type LucideIcon } from 'lucide-react';
+import ActivityHeatmap from '@/components/ActivityHeatmap';
 import DomainBadge from '@/components/DomainBadge';
 import HistoryFilters from '@/components/HistoryFilters';
 import InfoTooltip from '@/components/InfoTooltip';
@@ -200,6 +201,14 @@ function StatsInner() {
           }
         />
       </div>
+
+      {/* Activity heatmap */}
+      <section>
+        <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Activity</h2>
+        <div className="bg-surface border border-border rounded-xl px-4 sm:px-5 py-4">
+          <ActivityHeatmap days={m.activityByDay} />
+        </div>
+      </section>
 
       {/* Proficiency distribution */}
       <section>
