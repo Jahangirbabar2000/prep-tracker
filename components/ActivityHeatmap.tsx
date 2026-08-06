@@ -81,7 +81,7 @@ export default function ActivityHeatmap({ days }: { days: DayActivity[] }) {
           ))}
         </div>
         <div className="flex items-center gap-1.5 pl-7 mt-0.5">
-          <span className="text-[11px] text-muted">{totalCount} attempts in the last 6 months</span>
+          <span className="text-[11px] text-muted">{totalCount} attempts in the last year</span>
           <span className="ml-auto flex items-center gap-1 text-[10px] text-muted">
             Less
             {LEVEL_MIX.map((pct, i) => (
