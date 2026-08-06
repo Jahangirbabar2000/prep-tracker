@@ -238,12 +238,14 @@ export default function Nav() {
           'flex items-center h-14 border-b border-border shrink-0',
           collapsed ? 'justify-center px-2' : 'px-3',
         ].join(' ')}>
-          <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
-            <Binary size={16} />
-          </span>
-          {!collapsed && (
-            <span className="font-semibold text-fg text-sm whitespace-nowrap flex-1 ml-2.5">Jahangir&apos;s Prep</span>
-          )}
+          <Link href="/" className="flex items-center flex-1 min-w-0 rounded-md hover:opacity-80 transition-opacity">
+            <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
+              <Binary size={16} />
+            </span>
+            {!collapsed && (
+              <span className="font-semibold text-fg text-sm whitespace-nowrap truncate ml-2.5">Jahangir&apos;s Prep</span>
+            )}
+          </Link>
           <button
             onClick={toggleCollapse}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -281,12 +283,12 @@ export default function Nav() {
           >
             <Menu size={22} />
           </button>
-          <span className="flex items-center gap-2 font-semibold text-fg truncate">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-fg truncate hover:opacity-80 transition-opacity">
             <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
               <Binary size={16} />
             </span>
             <span className="truncate">Jahangir&apos;s Prep</span>
-          </span>
+          </Link>
         </div>
         <div className="flex items-center shrink-0">
           <span className="mr-1.5"><SyncStatus compact /></span>
@@ -323,10 +325,16 @@ export default function Nav() {
           aria-label="Navigation"
         >
           <div className="flex items-center gap-2 h-14 px-3 border-b border-border shrink-0">
-            <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
-              <Binary size={16} />
-            </span>
-            <span className="font-semibold text-fg text-sm flex-1 truncate">Jahangir&apos;s Prep</span>
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+            >
+              <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
+                <Binary size={16} />
+              </span>
+              <span className="font-semibold text-fg text-sm truncate">Jahangir&apos;s Prep</span>
+            </Link>
             <button
               type="button"
               onClick={() => setMobileOpen(false)}

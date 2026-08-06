@@ -10,6 +10,7 @@ import InfoTooltip from '@/components/InfoTooltip';
 import { useStore } from '@/lib/store/store';
 import { clientToday } from '@/lib/store/queries';
 import { computeMetrics } from '@/lib/store/metrics';
+import { PROFICIENCY_LABELS } from '@/lib/proficiency';
 import { Domain } from '@/lib/types';
 import { domainPath, resolveDomain } from '@/lib/domains';
 import { domainPalette } from '@/components/domainVisuals';
@@ -19,6 +20,7 @@ const PROFICIENCY_COLOR: Record<string, string> = {
   Struggling: 'bg-danger',
   Learning:   'bg-orange-500',
   Familiar:   'bg-blue-500',
+  Proficient: 'bg-cyan-500',
   Confident:  'bg-accent',
   Mastered:   'bg-emerald-500',
 };
@@ -123,7 +125,7 @@ function StatsInner() {
   }
 
   const m = computeMetrics(data, clientToday(), filterDomain || undefined);
-  const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = ['New', 'Struggling', 'Learning', 'Familiar', 'Confident', 'Mastered'];
+  const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = [...PROFICIENCY_LABELS];
   const proficiencyTotal = Object.values(m.proficiencyCounts).reduce((a, b) => a + b, 0) || 1;
   const showRecallTrend = m.recallRateRecent !== null && m.recallRatePrior !== null;
 
@@ -180,7 +182,7 @@ function StatsInner() {
           sub={`${m.confidentCount} confident, ${m.masteredCount} mastered`}
           tip={
             <Tip title="Retained">
-              Questions that have stuck — at Familiar, Confident, or Mastered, meaning they&apos;ve survived multiple spaced reviews (intervals of 14–60 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
+              Questions that have stuck — at Familiar or above, meaning they&apos;ve survived multiple spaced reviews (intervals of 7–60 days). &ldquo;+N 7d&rdquo; is promotions minus demotions this week: getting a review right moves an item up a level, struggling moves it down. Positive means things are graduating to longer intervals.
             </Tip>
           }
         />
@@ -236,18 +238,19 @@ function StatsInner() {
           </h2>
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             {m.masteryByDomain.map((d, i) => (
-              <div key={d.domain} className={`px-5 py-3.5 flex items-center gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
-                <div className="w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
+              <div key={d.domain} className={`px-4 sm:px-5 py-2.5 sm:py-3.5 flex items-center gap-3 sm:gap-4 ${i > 0 ? 'border-t border-border' : ''}`}>
+                <div className="w-20 sm:w-32 shrink-0"><DomainBadge domain={d.domain} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${domainPalette(resolveDomain(data.domains, d.domain).color).dot}`} style={{ width: `${d.pct}%` }} />
                   </div>
                 </div>
-                <div className="text-xs text-muted tabular shrink-0 w-28 text-right">
-                  <span className="text-fg font-medium">{d.familiarPlus}</span>/{d.total} retained
-                </div>
-                <div className="text-xs text-muted tabular shrink-0 w-24 text-right">
-                  {d.attempts} attempts
+                {/* Collapsed to one compact block on mobile — "retained" and
+                    "attempts" as separate labeled columns didn't fit. */}
+                <div className="text-xs text-muted tabular shrink-0 text-right">
+                  <span className="text-fg font-medium">{d.familiarPlus}</span>/{d.total}
+                  <span className="hidden sm:inline"> retained</span>
+                  <span className="hidden sm:inline"> · {d.attempts} attempts</span>
                 </div>
               </div>
             ))}

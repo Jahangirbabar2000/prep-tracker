@@ -9,7 +9,8 @@
 
 import { Attempt, Domain } from '@/lib/types';
 import { StoreData } from './store';
-import { computeNextDue } from '@/lib/sr';
+import { computeNextDue, MAX_LEVEL } from '@/lib/sr';
+import { PROFICIENCY_LABELS, type ProficiencyLabel } from '@/lib/proficiency';
 import { computeStreak } from '@/lib/streak';
 import { reviewQueue, proficiencyOf } from './queries';
 import { allDomains } from '@/lib/domains';
@@ -30,11 +31,15 @@ export interface AttemptReplay {
   levelAfter: number;
   isReview: boolean;    // any attempt that is NOT the first for its problem
   isLapse: boolean;     // struggled while already matured (levelBefore >= 2)
-  isPromotion: boolean; // actual level increase (a capped success at 3 is not one)
+  isPromotion: boolean; // actual level increase (a capped success at the top is not one)
   isDemotion: boolean;  // actual level decrease (a floored struggle at 0 is not one)
 }
 
-/** Annotate a single problem's attempts by replaying the SR level from 0. */
+/**
+ * Annotate a single problem's attempts by replaying the SR level from 0.
+ * Mirrors lib/sr.ts replaySchedule, including the rule that the first attempt
+ * always lands at level 0 — so it is never counted as a promotion.
+ */
 export function replayAttempts(attempts: Attempt[]): AttemptReplay[] {
   const ordered = [...attempts].sort((x, y) =>
     x.attempted_at < y.attempted_at ? -1 : x.attempted_at > y.attempted_at ? 1 : x.id - y.id,
@@ -43,7 +48,9 @@ export function replayAttempts(attempts: Attempt[]): AttemptReplay[] {
   return ordered.map((attempt, index) => {
     const struggled = !!attempt.struggled;
     const levelBefore = level;
-    const { newLevel } = computeNextDue(struggled, levelBefore, new Date(attempt.attempted_at.replace(' ', 'T')));
+    const newLevel = index === 0
+      ? 0
+      : computeNextDue(struggled, levelBefore, new Date(attempt.attempted_at.replace(' ', 'T'))).newLevel;
     level = newLevel;
     return {
       attempt,
@@ -58,7 +65,7 @@ export function replayAttempts(attempts: Attempt[]): AttemptReplay[] {
   });
 }
 
-type ProficiencyCounts = Record<'New' | 'Struggling' | 'Learning' | 'Familiar' | 'Confident' | 'Mastered', number>;
+type ProficiencyCounts = Record<ProficiencyLabel, number>;
 
 export interface DomainMastery {
   domain: Domain;
@@ -164,8 +171,8 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
   const oldestOverdueAge = dueCount ? Math.max(...q.map(i => i.days_overdue)) : 0;
 
   // 3. Maturity
-  const confidentCount = problems.filter(p => p.interval_level === 3).length;
-  const masteredCount = problems.filter(p => p.interval_level === 4).length;
+  const confidentCount = problems.filter(p => p.interval_level === 4).length;
+  const masteredCount = problems.filter(p => p.interval_level === MAX_LEVEL).length;
   const familiarPlusCount = problems.filter(p => p.interval_level >= 2).length;
   const promotions7d = recentReviews.filter(r => r.isPromotion).length;
   const demotions7d = recentReviews.filter(r => r.isDemotion).length;
@@ -208,8 +215,10 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
   }
 
   // Proficiency snapshot (scoped)
-  const proficiencyCounts: ProficiencyCounts = { New: 0, Struggling: 0, Learning: 0, Familiar: 0, Confident: 0, Mastered: 0 };
-  for (const p of problems) proficiencyCounts[proficiencyOf(p)]++;
+  const proficiencyCounts = Object.fromEntries(
+    PROFICIENCY_LABELS.map(l => [l, 0]),
+  ) as ProficiencyCounts;
+  for (const p of problems) proficiencyCounts[proficiencyOf(p, byProblem.get(p.id)?.length ?? 0)]++;
 
   return {
     recallRateRecent: recallRate(recentReviews),

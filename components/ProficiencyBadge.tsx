@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isStrugglingState, projectSuccess, projectStruggle } from '@/lib/proficiency';
+import { MAX_LEVEL } from '@/lib/sr';
 
 interface Level {
   label: string;
@@ -14,8 +15,8 @@ interface Level {
 
 const STRUGGLING: Level = {
   label:       'Struggling',
-  description: "Tried but not clicking yet — keep at it, it'll stick.",
-  interval:    'Next review in ~3 days',
+  description: "Tried but not clicking yet — back tomorrow, and daily until it sticks.",
+  interval:    'Next review tomorrow',
   pill:        'bg-danger/10 text-danger',
   dot:         'bg-danger',
 };
@@ -23,33 +24,40 @@ const STRUGGLING: Level = {
 const LEVELS: Record<number, Level> = {
   0: {
     label:       'New',
-    description: 'Not yet reviewed — log an attempt to start tracking.',
-    interval:    'No review scheduled yet',
+    description: 'Just logged — the first review lands tomorrow, while it is still fresh.',
+    interval:    'Next review tomorrow',
     pill:        'bg-muted/15 text-muted',
     dot:         'bg-muted',
   },
   1: {
     label:       'Learning',
     description: 'Still building familiarity — comes back soon to reinforce memory.',
-    interval:    'Next review in ~7 days',
+    interval:    'Next review in ~3 days',
     pill:        'bg-orange-500/10 text-orange-500',
     dot:         'bg-orange-500',
   },
   2: {
     label:       'Familiar',
     description: 'You know it, but it needs more repetition to stick long-term.',
-    interval:    'Next review in ~14 days',
+    interval:    'Next review in ~7 days',
     pill:        'bg-blue-500/10 text-blue-500',
     dot:         'bg-blue-500',
   },
   3: {
+    label:       'Proficient',
+    description: 'Coming back reliably — the spacing is starting to widen.',
+    interval:    'Next review in ~14 days',
+    pill:        'bg-cyan-500/10 text-cyan-500',
+    dot:         'bg-cyan-500',
+  },
+  4: {
     label:       'Confident',
     description: 'Solid recall — review spacing is widening nicely.',
     interval:    'Next review in ~30 days',
     pill:        'bg-accent/10 text-accent',
     dot:         'bg-accent',
   },
-  4: {
+  5: {
     label:       'Mastered',
     description: 'Deeply retained — reviews are now rare.',
     interval:    'Next review in ~60 days',
@@ -77,7 +85,7 @@ export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: P
   const [pos, setPos] = useState<{ top: number; left: number; arrowLeft: number; placement: 'top' | 'bottom' } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  const cappedLevel = Math.min(Math.max(level, 0), 4);
+  const cappedLevel = Math.min(Math.max(level, 0), MAX_LEVEL);
   const isStruggling = isStrugglingState(cappedLevel, !!nextDueDate, attemptCount ?? 0);
   const cfg = isStruggling ? STRUGGLING : LEVELS[cappedLevel];
 
@@ -98,8 +106,15 @@ export default function ProficiencyBadge({ level, nextDueDate, attemptCount }: P
     if (!el) return;
     const rect = el.getBoundingClientRect();
 
-    // Prefer above the badge; flip below if there isn't roughly enough room.
-    const placement: 'top' | 'bottom' = rect.top > 200 ? 'top' : 'bottom';
+    // Prefer whichever side actually has room for the tooltip (~220px tall),
+    // defaulting to below. A fixed pixel threshold broke on mobile, where the
+    // badge itself often sits close to the top of the screen — that flipped
+    // the tooltip upward into the sticky topbar with nowhere to render.
+    const TOOLTIP_EST_HEIGHT = 220;
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placement: 'top' | 'bottom' =
+      spaceAbove > TOOLTIP_EST_HEIGHT + GAP && spaceAbove > spaceBelow ? 'top' : 'bottom';
 
     // Right-align to the badge by default, then clamp so it never runs off either edge.
     const idealLeft = rect.right - TOOLTIP_WIDTH;

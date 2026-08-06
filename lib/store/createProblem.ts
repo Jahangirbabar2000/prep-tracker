@@ -1,6 +1,6 @@
 'use client';
 
-import { computeNextDue } from '@/lib/sr';
+import { replaySchedule } from '@/lib/sr';
 import { Problem, Attempt, Link, Note } from '@/lib/types';
 import { mutate } from './store';
 
@@ -27,17 +27,15 @@ export function syncCreatedProblem(input: {
 
   mutate(d => {
     // The attempt POST already recomputed interval_level/next_due_date server-side,
-    // but its response only returns the attempt — mirror the same computeNextDue
-    // call here so the problem's SR fields match what the server just wrote.
-    const { newLevel, nextDueDate } = computeNextDue(
-      !!attempt.struggled,
-      problem.interval_level,
-      new Date(`${String(attempt.attempted_at).slice(0, 10)}T12:00:00`),
-    );
-    const finalProblem: Problem = { ...problem, interval_level: newLevel, next_due_date: nextDueDate };
+    // but its response only returns the attempt — replay the same full history
+    // here so the problem's SR fields match what the server just wrote. Replaying
+    // (rather than stepping from the stored level) also gets the first-attempt
+    // rule right: a brand-new card lands at level 0, due in 1 day.
+    const attempts = [...d.attempts.filter(a => a.id !== attempt.id), attempt];
+    const { level, nextDueDate } = replaySchedule(attempts.filter(a => a.problem_id === problem.id));
+    const finalProblem: Problem = { ...problem, interval_level: level, next_due_date: nextDueDate };
 
     const problems = [...d.problems.filter(p => p.id !== finalProblem.id), finalProblem];
-    const attempts = [...d.attempts.filter(a => a.id !== attempt.id), attempt];
     const newLinkIds = new Set(links.map(l => l.id));
     const newNoteIds = new Set(notes.map(n => n.id));
     const mergedLinks = [...d.links.filter(l => !newLinkIds.has(l.id)), ...links];

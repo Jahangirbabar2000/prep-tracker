@@ -3,7 +3,7 @@
 A personal, local-first interview-prep tracker built around three evidence-based learning pillars:
 
 - **Pattern recognition** — every problem/concept is tagged by pattern or category.
-- **Spaced repetition** — items are scheduled on fixed intervals by level: **3 → 7 → 14 → 30 days** (levels 0–3). A successful review promotes an item to the next level (longer interval); struggling drops it back a level (shorter interval). The Review Queue surfaces everything due, most overdue first.
+- **Spaced repetition** — items are scheduled on fixed intervals by level: **1 → 3 → 7 → 14 → 30 → 60 days** (levels 0–5). A card's first review always lands the next day, while the material is still fresh; from there a successful review promotes it to the next level (longer interval) and struggling drops it back a level (shorter interval), so a card you keep missing walks back down to the 1-day step and repeats daily until it sticks. The Review Queue surfaces everything due, most overdue first.
 - **Active recall** — answers stay hidden until you reveal them; you self-grade each attempt as "Got it" or "Struggled."
 
 It is a **tracker**, not a study tool — studying happens externally. The app logs attempts, stores links to source material, schedules reviews, and quizzes you.
@@ -27,7 +27,7 @@ Three study-mode templates are built in:
 
 ## Features
 
-- **Review Queue** — everything due across all domains, grouped by due date, most overdue first. Filter by domain and proficiency (New / Struggling / Learning / Familiar / Confident); the progress ring and headline scope to the active filter.
+- **Review Queue** — everything due across all domains, grouped by due date, most overdue first. Filter by domain and proficiency (New / Struggling / Learning / Familiar / Proficient / Confident / Mastered); the progress ring and headline scope to the active filter.
 - **Daily progress + streak** — a progress ring for today's workload and a running day streak.
 - **7-day forecast** — a mini bar chart of upcoming review load per day, with per-domain totals.
 - **Fast logging** — sub-15-second attempt logging with optional backdating, notes, classification, and links.

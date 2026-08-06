@@ -86,18 +86,24 @@ describe('reviewQueue', () => {
 });
 
 describe('matchesProficiency', () => {
-  it('distinguishes New (never scheduled) from Struggling (scheduled at level 0)', () => {
-    expect(matchesProficiency(problem({ id: 1, interval_level: 0, next_due_date: null }), 'New')).toBe(true);
-    expect(matchesProficiency(problem({ id: 1, interval_level: 0, next_due_date: '2026-07-30' }), 'New')).toBe(false);
-    expect(matchesProficiency(problem({ id: 1, interval_level: 0, next_due_date: '2026-07-30' }), 'Struggling')).toBe(true);
+  it('distinguishes New from Struggling by attempt count, not by having a due date', () => {
+    const unscheduled = problem({ id: 1, interval_level: 0, next_due_date: null });
+    const loggedOnce = problem({ id: 1, interval_level: 0, next_due_date: '2026-07-30' });
+    expect(matchesProficiency(unscheduled, 'New', 0)).toBe(true);
+    // A first log now always sets a due date — that alone must not read Struggling.
+    expect(matchesProficiency(loggedOnce, 'New', 1)).toBe(true);
+    expect(matchesProficiency(loggedOnce, 'Struggling', 1)).toBe(false);
+    expect(matchesProficiency(loggedOnce, 'Struggling', 2)).toBe(true);
+    expect(matchesProficiency(loggedOnce, 'New', 2)).toBe(false);
   });
 
-  it('maps interval levels 1/2/3/4 to Learning/Familiar/Confident/Mastered', () => {
+  it('maps interval levels 1–5 to Learning/Familiar/Proficient/Confident/Mastered', () => {
     expect(matchesProficiency(problem({ id: 1, interval_level: 1 }), 'Learning')).toBe(true);
     expect(matchesProficiency(problem({ id: 1, interval_level: 2 }), 'Familiar')).toBe(true);
-    expect(matchesProficiency(problem({ id: 1, interval_level: 3 }), 'Confident')).toBe(true);
-    expect(matchesProficiency(problem({ id: 1, interval_level: 4 }), 'Mastered')).toBe(true);
-    expect(matchesProficiency(problem({ id: 1, interval_level: 3 }), 'Mastered')).toBe(false);
+    expect(matchesProficiency(problem({ id: 1, interval_level: 3 }), 'Proficient')).toBe(true);
+    expect(matchesProficiency(problem({ id: 1, interval_level: 4 }), 'Confident')).toBe(true);
+    expect(matchesProficiency(problem({ id: 1, interval_level: 5 }), 'Mastered')).toBe(true);
+    expect(matchesProficiency(problem({ id: 1, interval_level: 4 }), 'Mastered')).toBe(false);
   });
 
   it('an unknown/empty filter matches everything', () => {
