@@ -354,8 +354,6 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                   <p className="text-sm text-muted italic">No answer saved yet.</p>
                 )}
 
-                <AskAI problemId={data.id} question={data.name} answer={data.notes_text} domain={domainDefinition.name} tags={tags} />
-
                 {links && links.length > 0 && (
                   <div className="flex flex-wrap gap-3">
                     {links.map(l => (
@@ -404,6 +402,13 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
           </div>
         )}
       </div>
+
+      {/* Ask AI — its own standalone card, same as the review queue's
+          ai-elaboration-card, not nested inside the main card. AskAI renders
+          its own bg-surface/border/rounded-2xl chrome, so no wrapper here. */}
+      {!isTimed && revealed && (
+        <AskAI problemId={data.id} question={data.name} answer={data.notes_text} domain={domainDefinition.name} tags={tags} />
+      )}
 
       {/* Attempt history — desktop only */}
       <section className="hidden md:block">
