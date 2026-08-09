@@ -17,9 +17,8 @@ import { computeStreak } from '@/lib/streak';
 import { fmtDateOrToday } from '@/lib/fmt';
 import type { Problem } from '@/lib/types';
 import { allDomains, resolveDomain } from '@/lib/domains';
+import { buildForecastWeeks, UPCOMING_MAX_WEEKS, UPCOMING_WEEK_DAYS } from '@/lib/upcoming';
 import { domainPalette } from '@/components/domainVisuals';
-
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function ReviewQueueInner() {
   const sp = useSearchParams();
@@ -93,7 +92,8 @@ function ReviewQueueInner() {
   const todayByDomain: Record<string, number> = {};
   for (const r of reviewed) todayByDomain[r.domain] = (todayByDomain[r.domain] ?? 0) + 1;
 
-  const upcomingRows = forecast(data, today, clientDaysFromNow(7));
+  // Look a couple of months ahead so the forecast can page past the first week.
+  const upcomingRows = forecast(data, today, clientDaysFromNow(UPCOMING_MAX_WEEKS * UPCOMING_WEEK_DAYS));
 
   const conceptDue = items.length;
 
@@ -117,29 +117,7 @@ function ReviewQueueInner() {
     d => (todayByDomain[d] ?? 0) + (pendingByDomain[d] ?? 0) > 0,
   );
 
-  const byDate: Record<string, number> = {};
-  const byDateDomain: Record<string, Record<string, number>> = {};
-  const domainTotals: Record<string, number> = {};
-  for (const row of upcomingRows) {
-    byDate[row.date] = (byDate[row.date] ?? 0) + row.count;
-    byDateDomain[row.date] ??= {};
-    byDateDomain[row.date][row.domain] = (byDateDomain[row.date][row.domain] ?? 0) + row.count;
-    domainTotals[row.domain] = (domainTotals[row.domain] ?? 0) + row.count;
-  }
-  const totalUpcoming = Object.values(domainTotals).reduce((s, n) => s + n, 0);
-
-  const slots = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i + 1);
-    const dateKey = d.toLocaleDateString('en-CA');
-    return {
-      dateKey,
-      label:      i === 0 ? 'Tomorrow' : DAYS[d.getDay()],
-      shortLabel: i === 0 ? 'Tmrw'     : DAYS[d.getDay()],
-      total:      byDate[dateKey] ?? 0,
-      domains:    byDateDomain[dateKey] ?? {},
-    };
-  });
+  const upcomingWeeks = buildForecastWeeks(upcomingRows, today);
 
   if (!ready) return <ReviewQueueSkeleton />;
 
@@ -297,11 +275,7 @@ function ReviewQueueInner() {
         </div>
       )}
 
-      <UpcomingForecast
-        slots={slots}
-        domainTotals={domainTotals}
-        totalUpcoming={totalUpcoming}
-      />
+      <UpcomingForecast weeks={upcomingWeeks} />
     </div>
   );
 }
