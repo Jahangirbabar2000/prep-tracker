@@ -56,6 +56,8 @@
 .bg-surface          { background-color: var(--surface); }
 .bg-surface-2        { background-color: var(--surface-2); }
 .bg-border           { background-color: var(--border); }
+.bg-border-strong    { background-color: var(--border-strong); }
+.bg-border-strong\/60{ background-color: color-mix(in srgb, var(--border-strong) 60%, transparent); }
 .text-fg             { color: var(--fg); }
 .text-muted          { color: var(--muted); }
 .border-border       { border-color: var(--border); }
