@@ -181,7 +181,6 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
                 <p className="text-[11px] text-muted leading-relaxed">
                   <span className="text-fg font-medium tabular">~{fmtMins(estimatedMins)}</span> estimated — based on your
                   median pace of <span className="tabular">{fmtVelocity(velocity.medianDeltaSeconds)}</span> across {attempts.length} attempts.
-                  {' '}This domain doesn&apos;t log a per-attempt time, so there&apos;s no logged total to compare against.
                 </p>
               ) : null}
             </div>
@@ -227,11 +226,30 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
 function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: TodayAttempt[] }) {
   const { data } = useStore();
   const definition = resolveDomain(data.domains, domain);
+  const isTimed = isTimedMode(definition.study_mode);
   const [open, setOpen] = useState(false);
   const hasItems = attempts.length > 0;
-  const totalMins = isTimedMode(definition.study_mode)
-    ? attempts.reduce((s, a) => s + (a.time_taken_mins || 0), 0)
-    : 0;
+
+  const struggled = attempts.filter(a => a.struggled).length;
+  const gotIt = attempts.length - struggled;
+  const gotItPct = attempts.length ? Math.round((gotIt / attempts.length) * 100) : 0;
+
+  // Same dual estimate as DomainGroup: logged solve time for timed domains,
+  // otherwise a passive velocity estimate from inter-attempt gaps.
+  const dsaSession = isTimed
+    ? computeLoggedSessionTime(
+        attempts.map(a => ({ attemptedAt: a.attempted_at, timeTakenMins: a.time_taken_mins })),
+      )
+    : null;
+  const loggedMins = dsaSession?.loggedMins ?? 0;
+  const betweenMins = dsaSession?.betweenMins ?? 0;
+  const sessionMins = dsaSession?.sessionMins ?? 0;
+  const timedCount = isTimed ? attempts.filter(a => a.time_taken_mins > 0).length : 0;
+  const avgLoggedSeconds = timedCount > 0 ? (loggedMins / timedCount) * 60 : 0;
+  const showBetweenRange = loggedMins > 0 && betweenMins > 0;
+
+  const velocity = computeStudyVelocity(attempts.map(a => a.attempted_at));
+  const estimatedMins = Math.round(velocity.totalActiveSeconds / 60);
 
   return (
     <div className={`border border-border rounded-xl overflow-hidden bg-surface transition-opacity ${!hasItems ? 'opacity-40' : ''}`}>
@@ -240,25 +258,63 @@ function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: Toda
         className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${hasItems ? 'hover:bg-surface-2 cursor-pointer' : 'cursor-default'}`}
         aria-expanded={hasItems ? open : undefined}
       >
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <DomainBadge domain={domain} showIcon={false} />
-          <span className="text-sm font-semibold text-fg">{definition.name}</span>
-          <span className="text-xs text-muted tabular">{attempts.length} added</span>
-          {totalMins > 0 && (
-            <>
-              <span className="text-muted/40 text-xs">·</span>
-              <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
-                <Clock size={11} /> {fmtMins(totalMins)}
-              </span>
-            </>
-          )}
+          <span className="text-sm font-semibold text-fg truncate">{definition.name}</span>
         </div>
-        {hasItems && (
-          <ChevronDown
-            size={14}
-            className="text-muted shrink-0 ml-2 transition-transform duration-200"
-            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-          />
+        {hasItems ? (
+          <div className="flex items-center gap-3 shrink-0 ml-2">
+            <InfoTooltip content={
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-fg font-medium">Breakdown</p>
+                <p className="text-[11px] text-muted leading-relaxed">
+                  <span className="text-fg font-medium tabular">{attempts.length}</span> added —{' '}
+                  <span className="text-accent font-medium tabular">{gotIt} got it</span>,{' '}
+                  <span className="text-danger font-medium tabular">{struggled} struggled</span>.
+                </p>
+                {loggedMins > 0 ? (
+                  <>
+                    <p className="text-[11px] text-muted leading-relaxed">
+                      <span className="text-fg font-medium tabular">{fmtMins(loggedMins)}</span> logged — the sum of the solve
+                      time you entered per attempt
+                      {' '}(<span className="tabular">{fmtVelocity(avgLoggedSeconds)}</span> average).
+                    </p>
+                    {showBetweenRange ? (
+                      <p className="text-[11px] text-muted leading-relaxed">
+                        <span className="text-fg font-medium tabular">+{fmtMins(betweenMins)}</span> between questions —
+                        wall-clock gaps beyond each next solve (long breaks excluded). Session total{' '}
+                        <span className="text-fg font-medium tabular">~{fmtMins(sessionMins)}</span>.
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted leading-relaxed">
+                        No extra time detected between questions (gaps match solve times, or only one timed attempt).
+                      </p>
+                    )}
+                  </>
+                ) : velocity.sampleSize > 0 ? (
+                  <p className="text-[11px] text-muted leading-relaxed">
+                    <span className="text-fg font-medium tabular">~{fmtMins(estimatedMins)}</span> estimated — based on your
+                    median pace of <span className="tabular">{fmtVelocity(velocity.medianDeltaSeconds)}</span> across {attempts.length} attempts.
+                  </p>
+                ) : null}
+              </div>
+            }>
+              <span className="inline-flex items-center gap-1.5 text-xs tabular">
+                <span className={`font-semibold ${recallTone(gotItPct)}`}>{gotItPct}%</span>
+                <span className="text-muted">got it</span>
+                <span className="text-muted/40">·</span>
+                <span className="text-muted">{attempts.length} added</span>
+                {(loggedMins > 0 || velocity.sampleSize > 0) && <Clock size={11} className="text-muted/70 ml-0.5" />}
+              </span>
+            </InfoTooltip>
+            <ChevronDown
+              size={14}
+              className="text-muted shrink-0 transition-transform duration-200"
+              style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+            />
+          </div>
+        ) : (
+          <span className="text-xs text-muted tabular shrink-0 ml-2">0 added</span>
         )}
       </button>
 
