@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'rea
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, SkipForward } from 'lucide-react';
-import { ReviewQueueItem, Link as LinkType } from '@/lib/types';
+import { ReviewQueueItem, Link as LinkType, StudyDomain, DomainField } from '@/lib/types';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 import AskAI, { type AskAIHandle } from '@/components/AskAI';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
@@ -41,19 +41,74 @@ function findAdjacent(
   return from;
 }
 
+// Mid-swipe peek at the adjacent card. For flashcard-style domains this
+// mirrors the real card's header exactly (badges, difficulty, proficiency,
+// question) so there's no visual mismatch the instant it becomes active —
+// it just doesn't render the reveal-answer area, matching how a freshly
+// arrived-at card actually starts (collapsed). DSA/timed cards keep the
+// original lightweight stub; their compact single-row layout doesn't have
+// this mismatch problem.
 function CardPreview({
   card,
-  domainName,
+  domains,
+  domainFields,
 }: {
   card: ReviewQueueItem;
-  domainName: string;
+  domains: StudyDomain[];
+  domainFields: DomainField[];
 }) {
+  const domainDefinition = resolveDomain(domains, card.domain);
+
+  if (isTimedMode(domainDefinition.study_mode)) {
+    return (
+      <div className="min-h-40 overflow-hidden rounded-2xl border border-border bg-surface-2 px-6 pb-6 pt-5 shadow-sm">
+        <p className="text-xs font-medium text-muted">{domainDefinition.name}</p>
+        <p className="mt-4 line-clamp-3 text-lg font-semibold leading-snug text-fg/80">
+          {card.name}
+        </p>
+      </div>
+    );
+  }
+
+  const tags = cardTagsFromFields(card, domainFields);
+  const palette = domainPalette(domainDefinition.color);
+
   return (
-    <div className="min-h-40 overflow-hidden rounded-2xl border border-border bg-surface-2 px-6 pb-6 pt-5 shadow-sm">
-      <p className="text-xs font-medium text-muted">{domainName}</p>
-      <p className="mt-4 line-clamp-3 text-lg font-semibold leading-snug text-fg/80">
-        {card.name}
-      </p>
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div className="flex items-start gap-2 px-4 pt-5 sm:px-6">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${palette.badge}`}>
+            {domainDefinition.name}
+          </span>
+          {tags[0] && <span className="text-xs text-muted">{tags[0]}</span>}
+          {tags[1] && <span className="text-xs text-muted">{tags[1]}</span>}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {card.metadata.difficulty && (
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              card.metadata.difficulty === 'Easy'   ? 'bg-emerald-500/10 text-emerald-400' :
+              card.metadata.difficulty === 'Medium' ? 'bg-amber-500/10   text-amber-400'   :
+                                             'bg-red-500/10     text-red-400'
+            }`}>
+              {card.metadata.difficulty}
+            </span>
+          )}
+          <ProficiencyBadge
+            level={card.interval_level}
+            nextDueDate={card.next_due_date ?? null}
+            attemptCount={card.attempt_count ?? 0}
+          />
+        </div>
+      </div>
+
+      <div className="px-4 pb-6 pt-4 sm:px-6">
+        <p className="text-lg font-semibold text-fg leading-snug">{card.name}</p>
+        {(card.attempt_count ?? 0) > 0 && (
+          <p className="text-xs text-muted mt-1">
+            {card.attempt_count} attempt{card.attempt_count === 1 ? '' : 's'} before
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -386,16 +441,10 @@ function SessionPageInner() {
         canSwipeLeft={canGoNext}
         canSwipeRight={canGoPrev}
         nextPreview={nextCard ? (
-          <CardPreview
-            card={nextCard}
-            domainName={resolveDomain(data.domains, nextCard.domain).name}
-          />
+          <CardPreview card={nextCard} domains={data.domains} domainFields={data.domain_fields} />
         ) : undefined}
         previousPreview={previousCard ? (
-          <CardPreview
-            card={previousCard}
-            domainName={resolveDomain(data.domains, previousCard.domain).name}
-          />
+          <CardPreview card={previousCard} domains={data.domains} domainFields={data.domain_fields} />
         ) : undefined}
         disabled={submitting}
         onSwipeLeft={goNext}
