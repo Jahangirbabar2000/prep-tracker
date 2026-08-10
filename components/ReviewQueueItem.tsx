@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ReviewQueueItem as RQI } from '@/lib/types';
 import DomainBadge from './DomainBadge';
+import ProficiencyBadge from './ProficiencyBadge';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { cardTagsFromFields, domainPath } from '@/lib/domains';
 import { useStore } from '@/lib/store/store';
@@ -46,6 +47,11 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
               'bg-surface-2 text-muted'
             }`}>{difficulty}</span>
           )}
+          <ProficiencyBadge
+            level={item.interval_level}
+            nextDueDate={item.next_due_date ?? null}
+            attemptCount={item.attempt_count ?? 0}
+          />
           <div className="flex flex-col items-end gap-0.5">
             {item.last_struggled ? (
               <span className="inline-flex items-center gap-1 text-xs text-danger font-medium">
