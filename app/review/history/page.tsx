@@ -60,6 +60,8 @@ function HistoryInner() {
   const totalReviewed = reviewed.length;
   const struggled     = reviewed.filter(a => a.struggled).length;
   const gotIt         = totalReviewed - struggled;
+  const recallPct     = totalReviewed ? Math.round((gotIt / totalReviewed) * 100) : 0;
+  const recallTone    = recallPct >= 80 ? 'text-accent' : recallPct >= 50 ? 'text-amber-500' : 'text-danger';
   const totalMins     = totalTimeSpentMins(reviewed, data.domains);
   const domainOrder = allDomains(data.domains).map(domain => domain.id);
 
@@ -115,6 +117,10 @@ function HistoryInner() {
                   <p className="text-2xl font-bold text-danger tabular">{struggled}</p>
                   <p className="text-xs text-muted mt-0.5">struggled</p>
                 </div>
+              </div>
+              <div className="flex items-center justify-center gap-2 pt-3 border-t border-border">
+                <span className={`text-xl font-bold tabular ${recallTone}`}>{recallPct}%</span>
+                <span className="text-xs text-muted">recall</span>
               </div>
               {totalMins > 0 && (
                 <div className="flex items-center justify-center gap-2 pt-3 border-t border-border">
