@@ -50,6 +50,13 @@ const DIFFICULTY_STYLE: Record<string, string> = {
   Hard:   'text-red-400',
 };
 
+/** Recall-rate color — same rough bands as the Stats page's recall card. */
+function recallTone(pct: number): string {
+  if (pct >= 80) return 'text-accent';
+  if (pct >= 50) return 'text-amber-500';
+  return 'text-danger';
+}
+
 // Flat row used inside a group
 function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
   const { data } = useStore();
@@ -108,6 +115,7 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
   const isTimed = isTimedMode(definition.study_mode);
   const struggled = attempts.filter(a => a.struggled).length;
   const gotIt = attempts.length - struggled;
+  const recallPct = attempts.length ? Math.round((gotIt / attempts.length) * 100) : 0;
 
   // DSA logs per-attempt solve time; other domains don't. Avg pace for DSA
   // comes from entered times. Session total = logged solve + inferred time
@@ -137,24 +145,21 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-2 transition-colors cursor-pointer"
         aria-expanded={open}
       >
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <DomainBadge domain={domain} showIcon={false} />
-          <span className="text-sm font-semibold text-fg">{definition.name}</span>
-          <span className="text-xs text-muted tabular">{attempts.length} reviewed</span>
-          <span className="text-muted/40 text-xs">·</span>
-          <span className="text-xs text-accent tabular">{gotIt} got it</span>
-          {struggled > 0 && (
-            <>
-              <span className="text-muted/40 text-xs">·</span>
-              <span className="text-xs text-danger tabular">{struggled} struggled</span>
-            </>
-          )}
-          {loggedMins > 0 && (
-            <>
-              <span className="text-muted/40 text-xs">·</span>
-              <InfoTooltip content={
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs text-fg font-medium">Time spent</p>
+          <span className="text-sm font-semibold text-fg truncate">{definition.name}</span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 ml-2">
+          <InfoTooltip content={
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-fg font-medium">Breakdown</p>
+              <p className="text-[11px] text-muted leading-relaxed">
+                <span className="text-fg font-medium tabular">{attempts.length}</span> reviewed —{' '}
+                <span className="text-accent font-medium tabular">{gotIt} got it</span>,{' '}
+                <span className="text-danger font-medium tabular">{struggled} struggled</span>.
+              </p>
+              {loggedMins > 0 ? (
+                <>
                   <p className="text-[11px] text-muted leading-relaxed">
                     <span className="text-fg font-medium tabular">{fmtMins(loggedMins)}</span> logged — the sum of the solve
                     time you entered per attempt
@@ -171,45 +176,30 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
                       No extra time detected between questions (gaps match solve times, or only one timed attempt).
                     </p>
                   )}
-                </div>
-              }>
-                <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
-                  <Clock size={11} />{' '}
-                  {showBetweenRange
-                    ? `~${loggedMins}–${sessionMins} min`
-                    : fmtMins(loggedMins)}
-                </span>
-              </InfoTooltip>
-              <span className="text-xs text-muted/70 tabular">({fmtVelocity(avgLoggedSeconds)})</span>
-            </>
-          )}
-          {/* Domains without per-attempt times — estimate from inter-attempt gaps only. */}
-          {loggedMins === 0 && velocity.sampleSize > 0 && (
-            <>
-              <span className="text-muted/40 text-xs">·</span>
-              <InfoTooltip content={
-                <div className="flex flex-col gap-2">
-                  <p className="text-xs text-fg font-medium">Time spent (estimated)</p>
-                  <p className="text-[11px] text-muted leading-relaxed">
-                    <span className="text-fg font-medium tabular">~{fmtMins(estimatedMins)}</span> — based on your median pace
-                    of <span className="tabular">{fmtVelocity(velocity.medianDeltaSeconds)}</span> across {attempts.length} attempts.
-                    {' '}This domain doesn&apos;t log a per-attempt time, so there&apos;s no logged total to compare against.
-                  </p>
-                </div>
-              }>
-                <span className="inline-flex items-center gap-1 text-xs text-muted tabular">
-                  <Clock size={11} /> ~{fmtMins(estimatedMins)}
-                </span>
-              </InfoTooltip>
-              <span className="text-xs text-muted/70 tabular">({fmtVelocity(velocity.medianDeltaSeconds)})</span>
-            </>
-          )}
+                </>
+              ) : velocity.sampleSize > 0 ? (
+                <p className="text-[11px] text-muted leading-relaxed">
+                  <span className="text-fg font-medium tabular">~{fmtMins(estimatedMins)}</span> estimated — based on your
+                  median pace of <span className="tabular">{fmtVelocity(velocity.medianDeltaSeconds)}</span> across {attempts.length} attempts.
+                  {' '}This domain doesn&apos;t log a per-attempt time, so there&apos;s no logged total to compare against.
+                </p>
+              ) : null}
+            </div>
+          }>
+            <span className="inline-flex items-center gap-1.5 text-xs tabular">
+              <span className={`font-semibold ${recallTone(recallPct)}`}>{recallPct}%</span>
+              <span className="text-muted">recall</span>
+              <span className="text-muted/40">·</span>
+              <span className="text-muted">{attempts.length} reviewed</span>
+              {(loggedMins > 0 || velocity.sampleSize > 0) && <Clock size={11} className="text-muted/70 ml-0.5" />}
+            </span>
+          </InfoTooltip>
+          <ChevronDown
+            size={14}
+            className="text-muted shrink-0 transition-transform duration-200"
+            style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          />
         </div>
-        <ChevronDown
-          size={14}
-          className="text-muted shrink-0 ml-2 transition-transform duration-200"
-          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
-        />
       </button>
 
       <div
