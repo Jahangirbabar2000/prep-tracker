@@ -24,7 +24,11 @@
 **A:** An eigenvector $x$ of $A$ satisfies $Ax = \lambda x$ (x stays on the same line as $Ax$); scalar $\lambda$ is the eigenvalue. $\lambda$ is an eigenvalue iff $(A - \lambda I)$ is singular, i.e., solve the **characteristic polynomial** $\det(A - \lambda I) = 0$ (n solutions for $n\times n$). For each $\lambda$, find eigenvectors by solving $(A - \lambda I)x = 0$.
 
 **Q:** State the three Kolmogorov axioms of probability.
-**A:** (1) **Non-negativity**: $P(A) \ge 0$. (2) **Normalization**: $P(\Omega) = 1$. (3) **Countable additivity** (σ-additivity): for mutually exclusive $A_1, A_2, \dots$, $P(\bigcup_{i=1}^{\infty} A_i) = \sum_{i=1}^{\infty} P(A_i)$. Derivable: $P(\emptyset)=0$, $P(A^c)=1-P(A)$, and monotonicity $A\subseteq B \Rightarrow P(A)\le P(B)$.
+**A:**
+
+1. **Non-negativity**: $P(A) \ge 0$.
+2. **Normalization**: $P(\Omega) = 1$.
+3. **Countable additivity** (σ-additivity): for mutually exclusive $A_1, A_2, \dots$, $P(\bigcup_{i=1}^{\infty} A_i) = \sum_{i=1}^{\infty} P(A_i)$. Derivable: $P(\emptyset)=0$, $P(A^c)=1-P(A)$, and monotonicity $A\subseteq B \Rightarrow P(A)\le P(B)$.
 
 **Q:** Give the sum rule and product rule of probability.
 **A:** **Sum rule** (marginalization): $p(X) = \sum_Y p(X, Y)$. **Product rule**: $p(X, Y) = p(Y|X)\,p(X)$.
@@ -156,7 +160,10 @@
 **A:** $p(C_1\mid x)=\frac{p(x\mid C_1)p(C_1)}{p(x\mid C_1)p(C_1)+p(x\mid C_2)p(C_2)}=\frac{1}{1+\exp(-a)}=\sigma(a)$, where the **log-odds** $a=\ln\frac{p(x\mid C_1)p(C_1)}{p(x\mid C_2)p(C_2)}$. Decision: $a\ge 0\Leftrightarrow\sigma(a)\ge 0.5\Leftrightarrow p(C_1\mid x)\ge p(C_2\mid x)$.
 
 **Q:** What two key assumptions define **Linear Discriminant Analysis (LDA)**?
-**A:** (1) Each class-conditional density $p(x\mid C_k)$ is **Gaussian**: $f_k(x)=\frac{1}{(2\pi)^{p/2}|\Sigma_k|^{1/2}}e^{-\frac{1}{2}(x-\mu_k)^T\Sigma_k^{-1}(x-\mu_k)}$. (2) **Equal covariances** across classes: $\forall k:\Sigma_k=\Sigma$. Under these assumptions the problem becomes **linear**.
+**A:**
+
+1. Each class-conditional density $p(x\mid C_k)$ is **Gaussian**: $f_k(x)=\frac{1}{(2\pi)^{p/2}|\Sigma_k|^{1/2}}e^{-\frac{1}{2}(x-\mu_k)^T\Sigma_k^{-1}(x-\mu_k)}$.
+2. **Equal covariances** across classes: $\forall k:\Sigma_k=\Sigma$. Under these assumptions the problem becomes **linear**.
 
 **Q:** What happens to LDA's decision boundaries when class **covariances are not equal**?
 **A:** The decision boundaries (hypersurfaces) are **no longer linear** — they become curved/quadratic.
@@ -204,7 +211,11 @@
 ## 3. Neural Network Fundamentals
 
 **Q:** What are the three defining components of an Artificial Neural Network (ANN)?
-**A:** (1) **Units** (also called nodes or "neurons"), each with an associated function; (2) **Connections** — weighted links between units; (3) a **Learning algorithm** that typically modifies connection weights (and sometimes the units or network topology). Note: conventional ANNs are **NOT models of biological brains**.
+**A:**
+
+1. **Units** (also called nodes or "neurons"), each with an associated function;
+2. **Connections** — weighted links between units;
+3. a **Learning algorithm** that typically modifies connection weights (and sometimes the units or network topology). Note: conventional ANNs are **NOT models of biological brains**.
 
 **Q:** Distinguish layered, feedforward, and fully/arbitrarily connected ANN topologies.
 **A:** **Fully/arbitrarily connected** = most general; any unit may connect to any unit. **Layered** = units grouped into layers; may include retrograde connections (within layers or to previous layers). **Feedforward** = layered with **only forward connections** (input→output, layer i to layer i+1), no cycles.
@@ -225,7 +236,10 @@
 **A:** **Given** P input patterns x(p) with targets t(p) and the perceptron learning rule (WLOG learning rate = 1): **If** there exists a weight vector w* such that f(x(p)·w*) = t(p) for all patterns (i.e. the data is linearly separable), **then** for any starting w the algorithm **converges to a correct weight vector in a finite number of update steps**.
 
 **Q:** What are the two main limitations of the perceptron?
-**A:** (1) **Convergence is finite but the number of updates may be large**; (2) it **cannot solve simple non-linearly-separable problems** — the classic example is **XOR**.
+**A:**
+
+1. **Convergence is finite but the number of updates may be large**;
+2. it **cannot solve simple non-linearly-separable problems** — the classic example is **XOR**.
 
 **Q:** Give the sigmoid activation and its derivative.
 **A:** **f(x) = 1/(1 + e^{−mx})**, with derivative **f'(x) = m·f(x)·[1 − f(x)]** (m is a slope/gain parameter).
@@ -266,7 +280,10 @@
 **A:** All ReLU variants use $h_i=\max(0,z_i)+\alpha_i\min(0,z_i)$: **absolute-value** ($\alpha_i=-1$), **leaky ReLU** ($\alpha_i\approx0.01$), **PReLU** ($\alpha_i$ learnable). A **maxout** unit outputs the max over a group of $k$ linear pieces, $g(z)_i=\max_{j\in\mathbb G^{(i)}} z_j$ — it **learns a piecewise-linear convex activation** (can reproduce ReLU/abs/leaky), at the cost of $k$ weight vectors per unit. *[Goodfellow p.193–194]*
 
 **Q:** Describe the **weight-space symmetries** of a two-layer tanh network, and what they imply about its minima.
-**A:** (1) **Sign-flip**: flipping all weights+bias into a hidden unit is undone by flipping its outgoing weights (tanh is odd) → $2^M$. (2) **Interchange**: permuting the $M$ hidden units leaves the map unchanged → $M!$. Total $M!\,2^M$ equivalent weight vectors give the identical function — so a net has enormously many local minima, but the symmetry-induced ones all have **equal cost** (a harmless form of non-convexity). *[Bishop p.185–186]*
+**A:**
+
+1. **Sign-flip**: flipping all weights+bias into a hidden unit is undone by flipping its outgoing weights (tanh is odd) → $2^M$.
+2. **Interchange**: permuting the $M$ hidden units leaves the map unchanged → $M!$. Total $M!\,2^M$ equivalent weight vectors give the identical function — so a net has enormously many local minima, but the symmetry-induced ones all have **equal cost** (a harmless form of non-convexity). *[Bishop p.185–186]*
 
 **Q:** What is the quantitative argument for why **depth beats width**?
 **A:** A deep ReLU network divides input space into a number of linear regions that is **exponential in depth** but only **polynomial in width**. Representing the same function with a shallow (two-layer) network would require an **exponential number of hidden units**. *[Bishop p.187; Goodfellow p.198–200]*
@@ -363,7 +380,12 @@ for k = l, l-1, ..., 1:
 **A:** One backprop pass gives all $\partial E_n/\partial w_{ji}$ in **$O(W)$**; numerical differentiation perturbs each of $W$ weights and re-runs an $O(W)$ forward pass → **$O(W^2)$** (used only to *check* an implementation). Central difference: $\dfrac{E_n(w+\epsilon)-E_n(w-\epsilon)}{2\epsilon}+O(\epsilon^2)$ — accuracy $O(\epsilon^2)$ vs $O(\epsilon)$ for one-sided. *[Bishop p.239]*
 
 **Q:** List the **four ways** to evaluate a gradient and the main drawback of symbolic differentiation.
-**A:** (1) **Manual** backprop, (2) **numerical** finite differences, (3) **symbolic** (computer algebra), (4) **automatic** differentiation. Symbolic differentiation suffers **"expression swell"** — e.g. $f=uv\Rightarrow f'=u'v+uv'$ duplicates sub-expressions, so derivatives can grow exponentially — and it cannot handle control flow. *[Bishop p.244–246]*
+**A:**
+
+1. **Manual** backprop,
+2. **numerical** finite differences,
+3. **symbolic** (computer algebra),
+4. **automatic** differentiation. Symbolic differentiation suffers **"expression swell"** — e.g. $f=uv\Rightarrow f'=u'v+uv'$ duplicates sub-expressions, so derivatives can grow exponentially — and it cannot handle control flow. *[Bishop p.244–246]*
 
 ---
 
@@ -392,7 +414,10 @@ $$v \leftarrow \alpha v - \epsilon \nabla_\theta \left(\frac{1}{m}\sum_{i=1}^m L
 $v$ is the **velocity**, $\alpha$ the momentum parameter, $\epsilon$ the learning rate.
 
 **Q:** What two optimization problems is momentum designed to mitigate?
-**A:** (1) **Poor conditioning of the Hessian matrix**, and (2) **variance in the stochastic gradient**. Intuition: it prevents "overshooting" the minimum and smooths the path.
+**A:**
+
+1. **Poor conditioning of the Hessian matrix**, and
+2. **variance in the stochastic gradient**. Intuition: it prevents "overshooting" the minimum and smooths the path.
 
 **Q:** How does **Nesterov momentum** differ from standard momentum? Give the velocity update.
 **A:** The gradient is evaluated **after applying the current velocity** (at the "interim" point $\theta + \alpha v$), acting as a correction factor:
@@ -414,7 +439,10 @@ $$v \leftarrow \alpha v - \epsilon\nabla_\theta\left[\frac{1}{m}\sum_{i=1}^m L(f
 **A:** Accumulate: $r \leftarrow \rho r + (1-\rho)\, g\odot g$. Update: $\Delta\theta = -\dfrac{\epsilon}{\sqrt{\delta + r}}\odot g$ (element-wise), then $\theta \leftarrow \theta + \Delta\theta$. $\delta \approx 10^{-6}$ stabilizes division.
 
 **Q:** What is **Adam** (Kingma & Ba, 2014) a combination of, and what are its two distinctive features?
-**A:** Adam ("**adaptive moments**") combines **RMSProp and momentum**. Distinctive features: (1) momentum incorporated directly as an **exponentially-weighted estimate of the first-order moment** of the gradient (applied to rescaled gradients — no clear theoretical justification); (2) **bias corrections** to the first- and second-moment estimates to account for their initialization at the origin.
+**A:** Adam ("**adaptive moments**") combines **RMSProp and momentum**. Distinctive features:
+
+1. momentum incorporated directly as an **exponentially-weighted estimate of the first-order moment** of the gradient (applied to rescaled gradients — no clear theoretical justification);
+2. **bias corrections** to the first- and second-moment estimates to account for their initialization at the origin.
 
 **Q:** Give Adam's biased moment updates and their bias corrections.
 **A:** With $t \leftarrow t+1$:
@@ -474,7 +502,10 @@ $\delta$ is a small constant (e.g. $10^{-8}$) for **numerical stability**. All a
 ## 6. CNNs & Architectures
 
 **Q:** Why is "naive" use of an MLP (pixel intensities fed row-after-row) inadequate for non-trivial image tasks?
-**A:** Two issues: (1) **non-robustness to shifts, scaling, and distortions**, and (2) it **ignores the spatial structure** in image data.
+**A:** Two issues:
+
+1. **non-robustness to shifts, scaling, and distortions**, and
+2. it **ignores the spatial structure** in image data.
 
 **Q:** How do CNNs differ fundamentally from the traditional hand-crafted-feature pipeline (e.g., SIFT/HOG)?
 **A:** CNNs use **raw input data directly** and **dispense with the feature-extraction stage** — no "feature engineering" / no human-designed features. Multiple layers learn low-level → mid-level → object-ID representations that are **increasingly invariant**.
@@ -483,7 +514,12 @@ $\delta$ is a small constant (e.g. $10^{-8}$) for **numerical stability**. All a
 **A:** $S(i,j) = (I * K)(i,j) = \sum_m \sum_n I(m,n)\,K(i-m, j-n)$. Here $S$ = **feature map**, $I$ = **input**, $K$ = **kernel (filter)**.
 
 **Q:** What are the four roles/benefits of convolution in a CNN?
-**A:** (1) **Sparse interactions**, (2) **parameter sharing**, (3) **equivariant representations**, and (4) a **mechanism for variable-size inputs**.
+**A:**
+
+1. **Sparse interactions**,
+2. **parameter sharing**,
+3. **equivariant representations**, and
+4. a **mechanism for variable-size inputs**.
 
 **Q:** Explain **sparse interactions** in CNNs and the parameter/complexity savings vs. a fully-connected layer.
 **A:** A fully-connected layer with $m$ inputs, $n$ outputs uses $m\times n$ parameters, $O(m\times n)$ per example. A CNN kernel is **smaller than the input**, so each output connects to only $k$ inputs → $k\times n$ parameters, $O(k\times n)$ runtime. With $k \ll m$ this saves memory, improves statistical efficiency, and needs fewer operations.
@@ -594,7 +630,11 @@ $\delta$ is a small constant (e.g. $10^{-8}$) for **numerical stability**. All a
 **A:** GRU (**Gated Recurrent Unit**) is a **simplified LSTM**. Differences: a **single gating unit — the update gate $u$ (or $z$)** — controls both forgetting and input gating (instead of separate forget + input gates); a **single state-vector $h$** (instead of LSTM's $c$ and $h$); plus a **reset gate $r$** controlling how much of the previous state affects the main layer.
 
 **Q:** State the three motivations ("why") for the **attention mechanism**.
-**A:** (1) Take the **entire encoder context** into account; (2) **update context dynamically** during decoding; (3) keep context a **fixed-size vector**.
+**A:**
+
+1. Take the **entire encoder context** into account;
+2. **update context dynamically** during decoding;
+3. keep context a **fixed-size vector**.
 
 **Q:** How are attention scores turned into weights $\alpha_{ij}$?
 **A:** By **softmax** over all encoder states $j$: $\alpha_{ij} = \text{softmax}\big(score(h_{i-1}^d, h_j^e)\big) = \dfrac{\exp(score(h_{i-1}^d, h_j^e))}{\sum_k \exp(score(h_{i-1}^d, h_k^e))}$. The $\alpha_{ij}$ express the **proportional relevance** of each encoder state $j$ to decoder state $i$.
