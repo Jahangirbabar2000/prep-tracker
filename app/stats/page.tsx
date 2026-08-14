@@ -15,6 +15,7 @@ import { PROFICIENCY_LABELS } from '@/lib/proficiency';
 import { Domain } from '@/lib/types';
 import { domainPath, resolveDomain } from '@/lib/domains';
 import { domainPalette } from '@/components/domainVisuals';
+import { MarkdownInline } from '@/components/MarkdownRenderer';
 
 const PROFICIENCY_COLOR: Record<string, string> = {
   New:        'bg-surface-2',
@@ -287,7 +288,7 @@ function StatsInner() {
                 className={`px-5 py-3 flex items-center gap-3 hover:bg-surface-2 transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
               >
                 <AlertCircle size={14} className="text-danger shrink-0" />
-                <span className="text-sm text-fg flex-1 truncate">{c.name}</span>
+                <span className="text-sm text-fg flex-1 truncate"><MarkdownInline content={c.name} /></span>
                 <DomainBadge domain={c.domain} showIcon={false} />
                 <span className="text-xs text-danger font-semibold tabular shrink-0">
                   {c.lapseCount > 0 ? `${c.lapseCount}× lapsed` : `${c.attemptCount}× attempted`}

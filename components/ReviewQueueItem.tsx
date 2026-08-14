@@ -7,6 +7,7 @@ import ProficiencyBadge from './ProficiencyBadge';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { cardTagsFromFields, domainPath } from '@/lib/domains';
 import { useStore } from '@/lib/store/store';
+import { MarkdownInline } from './MarkdownRenderer';
 
 // Matches ProblemListRow's difficulty treatment — text-only, theme-aware,
 // so it reads the same wherever a DSA difficulty shows up in the app.
@@ -46,7 +47,7 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
         </div>
         {/* Wrap to two lines instead of truncating — otherwise many questions
             collapse to the same prefix ("How do you…") on narrow screens. */}
-        <span className="font-medium text-fg leading-snug line-clamp-2">{item.name}</span>
+        <span className="font-medium text-fg leading-snug line-clamp-2"><MarkdownInline content={item.name} /></span>
       </div>
 
       {/* Right: proficiency + struggled + overdue — stacked so it stays

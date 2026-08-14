@@ -10,7 +10,7 @@ import { Domain } from '@/lib/types';
 import AttemptHistory from './AttemptHistory';
 import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
-import MarkdownRenderer from './MarkdownRenderer';
+import MarkdownRenderer, { MarkdownInline } from './MarkdownRenderer';
 import AskAI from './AskAI';
 import CopyLinkButton from './CopyLinkButton';
 import { useStore, mutate } from '@/lib/store/store';
@@ -264,9 +264,9 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         </div>
 
         {/* Question */}
-        <p className="px-6 pt-4 pb-5 text-lg font-semibold text-fg leading-snug">
-          {data.name}
-        </p>
+        <div className="px-6 pt-4 pb-5 text-lg font-semibold text-fg leading-snug">
+          <MarkdownInline content={data.name} />
+        </div>
 
         {/* ── DSA: compact single-row ── */}
         {isTimed ? (

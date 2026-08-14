@@ -9,6 +9,7 @@ import InfoTooltip from './InfoTooltip';
 import { fmtDate } from '@/lib/fmt';
 import { Domain } from '@/lib/types';
 import { computeLoggedSessionTime, computeStudyVelocity } from '@/lib/studyVelocity';
+import { MarkdownInline } from './MarkdownRenderer';
 
 export interface TodayAttempt {
   attempt_id: number;
@@ -71,7 +72,7 @@ function AttemptRow({ a, last }: { a: TodayAttempt; last: boolean }) {
           href={`${domainPath(data.domains, a.domain)}/${a.id}`}
           className="text-sm font-medium text-fg hover:text-accent transition-colors truncate block"
         >
-          {a.name}
+          <MarkdownInline content={a.name} />
         </Link>
         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <ProficiencyBadge

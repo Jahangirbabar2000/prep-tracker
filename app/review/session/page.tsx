@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType, StudyDomain, DomainField } from '@/lib/types';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
+import MarkdownRenderer, { MarkdownInline } from '@/components/MarkdownRenderer';
 import AskAI, { type AskAIHandle } from '@/components/AskAI';
 import ProficiencyBadge from '@/components/ProficiencyBadge';
 import AttemptHistory from '@/components/AttemptHistory';
@@ -64,7 +64,7 @@ function CardPreview({
       <div className="min-h-40 overflow-hidden rounded-2xl border border-border bg-surface-2 px-6 pb-6 pt-5 shadow-sm">
         <p className="text-xs font-medium text-muted">{domainDefinition.name}</p>
         <p className="mt-4 line-clamp-3 text-lg font-semibold leading-snug text-fg/80">
-          {card.name}
+          <MarkdownInline content={card.name} />
         </p>
       </div>
     );
@@ -102,7 +102,7 @@ function CardPreview({
       </div>
 
       <div className="px-4 pb-6 pt-4 sm:px-6">
-        <p className="text-lg font-semibold text-fg leading-snug">{card.name}</p>
+        <p className="text-lg font-semibold text-fg leading-snug"><MarkdownInline content={card.name} /></p>
         {(card.attempt_count ?? 0) > 0 && (
           <p className="text-xs text-muted mt-1">
             {card.attempt_count} attempt{card.attempt_count === 1 ? '' : 's'} before
@@ -487,7 +487,7 @@ function SessionPageInner() {
           className="cursor-grab px-4 pb-6 pt-4 active:cursor-grabbing sm:px-6"
           style={{ touchAction: 'pan-y' }}
         >
-          <p className="text-lg font-semibold text-fg leading-snug">{card!.name}</p>
+          <p className="text-lg font-semibold text-fg leading-snug"><MarkdownInline content={card!.name} /></p>
           {(card!.attempt_count ?? 0) > 0 && (
             <p className="text-xs text-muted mt-1">
               {card!.attempt_count} attempt{card!.attempt_count === 1 ? '' : 's'} before

@@ -88,6 +88,7 @@ for (const line of lines) {
     continue;
   }
   if (/^###\s+—\s*From the books\s*—/.test(line)) continue; // subheading only, same topic
+  if (/^-{3,}\s*$/.test(line.trim()) && mode === 'a') { flushCard(); continue; } // "---" section divider, not part of the answer
 
   const qMatch = line.match(/^\*\*Q:\*\*\s*(.*)$/);
   if (qMatch) {
