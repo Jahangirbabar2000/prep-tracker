@@ -1,15 +1,16 @@
-// One-off seed: creates a "Deep Learning" custom domain and seeds it with the
-// exam-prep flashcards in scripts/deep-learning-cards.md, parsed from the
-// "## N. Topic Name" / "**Q:** ... **A:** ..." markdown structure.
+// One-off seed: creates a "Machine Learning" custom domain and seeds it with
+// flashcards extracted from AI_ML_Interview_Guide.docx (ML fundamentals, LLMs,
+// probability/stats, Python/ML frameworks, data engineering).
 //
 // Cards are inserted with ZERO attempts (interval_level 0, next_due_date NULL
 // — "New") — by design they never appear in the main Review Queue, so this
-// stays fully separate from SDE prep. Study them from the Deep Learning
-// domain page; marking one struggled schedules its own repeat. Archive the
-// domain after the exam to remove it in one action.
+// stays fully separate from SDE prep, matching the Deep Learning domain's
+// pattern. Study them from the Machine Learning domain page; marking one
+// struggled schedules its own repeat.
 //
-//   node scripts/seed-deep-learning.mjs
+//   node scripts/seed-machine-learning.mjs <path-to-cards.json>
 //
+// <path-to-cards.json> is a JSON array of { section, topic, q, a }.
 // Safe to re-run: domain/field/options are reused if they already exist;
 // problems are skipped by exact question-name match.
 import { createClient } from '@libsql/client';
@@ -33,15 +34,15 @@ function loadEnvFile(path) {
 loadEnvFile('.env.local');
 
 const DOMAIN = {
-  slug: 'deep-learning',
-  name: 'Deep Learning',
-  short_name: 'DL',
+  slug: 'machine-learning',
+  name: 'Machine Learning',
+  short_name: 'ML',
   study_mode: 'flashcard',
-  icon: 'graduation-cap',
-  color: 'cyan',
+  icon: 'brain-circuit',
+  color: 'violet',
   item_label: 'Question',
   log_label: 'Log Question',
-  log_title: 'Log Deep Learning Question',
+  log_title: 'Log Machine Learning Question',
   empty_message: 'No questions yet. Log your first to get started.',
   answer_placeholder: 'Write the answer… (markdown supported)',
   default_link: '',
@@ -58,59 +59,20 @@ function easternNow(offsetSeconds = 0) {
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
-// ── Parse scripts/deep-learning-cards.md ────────────────────────────────────
-const raw = readFileSync('scripts/deep-learning-cards.md', 'utf8');
-const lines = raw.split('\n');
+const jsonPath = process.argv[2];
+if (!jsonPath) throw new Error('Usage: node seed-machine-learning.mjs <path-to-cards.json>');
+const parsed = JSON.parse(readFileSync(jsonPath, 'utf8'));
 
-const topics = [];      // ordered topic names, first-seen order
-const cards = [];       // { topic, q, a }
-let currentTopic = null;
-let mode = null;        // 'q' | 'a' | null
-let qBuf = '';
-let aBuf = [];
-
-function flushCard() {
-  if (mode === 'a' && currentTopic && qBuf) {
-    const answer = aBuf.join('\n').replace(/\s+$/, '');
-    cards.push({ topic: currentTopic, q: qBuf.trim(), a: answer });
-  }
-  qBuf = '';
-  aBuf = [];
-  mode = null;
+const topics = [];
+const cards = [];
+for (const c of parsed) {
+  if (!c.topic) continue;
+  if (!topics.includes(c.topic)) topics.push(c.topic);
+  cards.push({ topic: c.topic, q: c.q.trim(), a: c.a.trim() });
 }
 
-for (const line of lines) {
-  const topicMatch = line.match(/^##\s+\d+\.\s+(.+)$/);
-  if (topicMatch) {
-    flushCard();
-    currentTopic = topicMatch[1].trim();
-    if (!topics.includes(currentTopic)) topics.push(currentTopic);
-    continue;
-  }
-  if (/^###\s+—\s*From the books\s*—/.test(line)) continue; // subheading only, same topic
-  if (/^-{3,}\s*$/.test(line.trim()) && mode === 'a') { flushCard(); continue; } // "---" section divider, not part of the answer
-
-  const qMatch = line.match(/^\*\*Q:\*\*\s*(.*)$/);
-  if (qMatch) {
-    flushCard();
-    mode = 'q';
-    qBuf = qMatch[1];
-    continue;
-  }
-  const aMatch = line.match(/^\*\*A:\*\*\s*(.*)$/);
-  if (aMatch && mode === 'q') {
-    mode = 'a';
-    aBuf.push(aMatch[1]);
-    continue;
-  }
-  if (mode === 'a') {
-    aBuf.push(line);
-  }
-}
-flushCard();
-
-console.log(`Parsed ${cards.length} cards across ${topics.length} topics.`);
-if (cards.length === 0) throw new Error('Parsed 0 cards — check deep-learning-cards.md formatting.');
+console.log(`Loaded ${cards.length} cards across ${topics.length} topics.`);
+if (cards.length === 0) throw new Error('Loaded 0 cards — check the input JSON.');
 
 // ── DB setup ─────────────────────────────────────────────────────────────
 const db = createClient({ url: process.env.TURSO_DATABASE_URL, authToken: process.env.TURSO_AUTH_TOKEN });

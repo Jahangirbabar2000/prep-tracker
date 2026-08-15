@@ -8,6 +8,7 @@ import ProficiencyBadge from './ProficiencyBadge';
 import { cardTagsFromFields, resolveDomain } from '@/lib/domains';
 import { useStore } from '@/lib/store/store';
 import { domainPalette } from './domainVisuals';
+import { MarkdownInline } from './MarkdownRenderer';
 
 interface Props {
   problem: Problem & { avg_time?: number | null };
@@ -43,7 +44,7 @@ export default function ProblemListRow({ problem: p, basePath }: Props) {
       <div className="flex-1 min-w-0">
         {/* Row 1: name + difficulty */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-fg truncate">{p.name}</span>
+          <span className="font-medium text-fg truncate"><MarkdownInline content={p.name} /></span>
           {difficulty && (
             <span className={`text-xs font-medium tabular ${DIFFICULTY_STYLE[difficulty] ?? 'text-muted'}`}>
               {difficulty}
