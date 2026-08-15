@@ -6,19 +6,19 @@ import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, Pencil, Plus } from 'lucide-react';
 import { fmtDate } from '@/lib/fmt';
 import ProficiencyBadge from './ProficiencyBadge';
-import { Domain } from '@/lib/types';
+import { Domain, Problem, StudyDomain, DomainField } from '@/lib/types';
 import AttemptHistory from './AttemptHistory';
 import QuickNotes from './QuickNotes';
 import NoteCard from './NoteCard';
 import MarkdownRenderer, { MarkdownInline } from './MarkdownRenderer';
 import AskAI from './AskAI';
 import CopyLinkButton from './CopyLinkButton';
+import SwipeableReviewCard from './SwipeableReviewCard';
 import { useStore, mutate } from '@/lib/store/store';
-import { problemDetail, clientToday } from '@/lib/store/queries';
+import { problemDetail, clientToday, attemptCountFor } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 import { cardTagsFromFields, domainById, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from './domainVisuals';
-import { useSwipeNav } from '@/lib/useSwipeNav';
 
 interface Props {
   id: string;
@@ -67,6 +67,55 @@ function ProblemViewSkeleton() {
       <div className="hidden md:block">
         <div className="h-3 w-28 bg-surface-2 rounded mb-3" />
         <div className="h-16 w-full bg-surface-2 rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+// Mid-swipe peek at the adjacent card — mirrors the real card's header
+// exactly (badges, tags, proficiency, question) so there's no visual mismatch
+// the instant it becomes active. Matches the equivalent CardPreview in the
+// review session; unlike there, this header layout is already identical
+// between DSA/timed and flashcard domains, so one preview covers both.
+function ProblemPreview({
+  problem,
+  domains,
+  domainFields,
+  attemptCount,
+}: {
+  problem: Problem;
+  domains: StudyDomain[];
+  domainFields: DomainField[];
+  attemptCount: number;
+}) {
+  const domainDefinition = resolveDomain(domains, problem.domain);
+  const palette = domainPalette(domainDefinition.color);
+  const tags = cardTagsFromFields(problem, domainFields);
+
+  return (
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-6 pt-5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ring-1 ring-inset ${palette.badge}`}>
+            {domainDefinition.name}
+          </span>
+          {tags.map((t, i) => (
+            <span key={`${t}-${i}`} className="text-xs text-muted truncate">
+              {i > 0 && <span className="text-muted/40 mx-1">·</span>}
+              {t}
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-col items-end gap-0.5 shrink-0">
+          <ProficiencyBadge
+            level={problem.interval_level}
+            nextDueDate={problem.next_due_date ? fmtDate(problem.next_due_date) : null}
+            attemptCount={attemptCount}
+          />
+        </div>
+      </div>
+      <div className="px-6 pt-4 pb-5 text-lg font-semibold text-fg leading-snug">
+        <MarkdownInline content={problem.name} />
       </div>
     </div>
   );
@@ -166,17 +215,17 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
     return () => window.removeEventListener('keydown', onKey);
   }, [data, revealed, submitting, lastResult, logAttempt, basePath, router, isTimed, id, canLog]);
 
-  // Touch swipe navigation — horizontally-scrollable answer content (code
-  // blocks) and text fields keep priority for the gesture; see useSwipeNav.
-  useSwipeNav({
-    enabled: !!data,
-    onSwipeLeft: () => { if (data?.prev_id) router.push(`${basePath}/${data.prev_id}`); },
-    onSwipeRight: () => { if (data?.next_id) router.push(`${basePath}/${data.next_id}`); },
-  });
-
   if (!data) return <ProblemViewSkeleton />;
 
   const tags = cardTagsFromFields(data, store.data.domain_fields);
+  // Same animated drag-to-navigate card used in the review session — dragging
+  // in either direction peeks the adjacent problem before committing to it.
+  // Direction naming matches SwipeableReviewCard's convention (left ⇒ "next",
+  // right ⇒ "previous"), which here maps onto the pre-existing prev/next
+  // semantics: swipe left goes to prev_id, swipe right goes to next_id (same
+  // as the arrow keys and chevrons above).
+  const prevProblem = data.prev_id ? store.data.problems.find(p => p.id === data.prev_id) ?? null : null;
+  const nextProblem = data.next_id ? store.data.problems.find(p => p.id === data.next_id) ?? null : null;
 
   return (
     <div className="max-w-5xl flex flex-col gap-6">
@@ -235,9 +284,36 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
       </div>
 
       {/* Card */}
+      <SwipeableReviewCard
+        key={data.id}
+        canSwipeLeft={!!data.prev_id}
+        canSwipeRight={!!data.next_id}
+        nextPreview={prevProblem ? (
+          <ProblemPreview
+            problem={prevProblem}
+            domains={store.data.domains}
+            domainFields={store.data.domain_fields}
+            attemptCount={attemptCountFor(store.data, prevProblem.id)}
+          />
+        ) : undefined}
+        previousPreview={nextProblem ? (
+          <ProblemPreview
+            problem={nextProblem}
+            domains={store.data.domains}
+            domainFields={store.data.domain_fields}
+            attemptCount={attemptCountFor(store.data, nextProblem.id)}
+          />
+        ) : undefined}
+        onSwipeLeft={() => { if (data.prev_id) router.push(`${basePath}/${data.prev_id}`); }}
+        onSwipeRight={() => { if (data.next_id) router.push(`${basePath}/${data.next_id}`); }}
+      >
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         {/* Domain + tag + proficiency */}
-        <div className="flex items-center justify-between gap-2 px-6 pt-5">
+        <div
+          data-swipe-handle="true"
+          className="flex items-center justify-between gap-2 px-6 pt-5"
+          style={{ touchAction: 'pan-y' }}
+        >
           <div className="flex items-center gap-2 min-w-0">
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ring-1 ring-inset ${palette.badge}`}>
               {domainDefinition.name}
@@ -264,7 +340,11 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         </div>
 
         {/* Question */}
-        <div className="px-6 pt-4 pb-5 text-lg font-semibold text-fg leading-snug">
+        <div
+          data-swipe-handle="true"
+          className="px-6 pt-4 pb-5 text-lg font-semibold text-fg leading-snug"
+          style={{ touchAction: 'pan-y' }}
+        >
           <MarkdownInline content={data.name} />
         </div>
 
@@ -402,6 +482,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
           </div>
         )}
       </div>
+      </SwipeableReviewCard>
 
       {/* Ask AI — its own standalone card, same as the review queue's
           ai-elaboration-card, not nested inside the main card. AskAI renders
