@@ -109,6 +109,36 @@ describe('matchesProficiency', () => {
   it('an unknown/empty filter matches everything', () => {
     expect(matchesProficiency(problem({ id: 1, interval_level: 2 }), '')).toBe(true);
   });
+
+  it('falls back to the item\'s own attempt_count when none is passed', () => {
+    const struggling = problem({
+      id: 1, interval_level: 0, next_due_date: '2026-07-20', attempt_count: 3,
+    });
+    // Omitting the count used to default it to 0, which made Struggling
+    // unmatchable — the review session filtered itself down to nothing.
+    expect(matchesProficiency(struggling, 'Struggling')).toBe(true);
+    expect(matchesProficiency(struggling, 'New')).toBe(false);
+  });
+
+  it('filters a real queue down to the struggling cards (session start path)', () => {
+    const data = store(
+      [
+        problem({ id: 1, interval_level: 0, next_due_date: '2026-07-20' }), // struggling: 2 attempts
+        problem({ id: 2, interval_level: 0, next_due_date: '2026-07-22' }), // logged once -> New
+        problem({ id: 3, interval_level: 3, next_due_date: '2026-07-21' }), // Proficient
+      ],
+      [
+        attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-10T09:00:00', struggled: 1 }),
+        attempt({ id: 2, problem_id: 1, attempted_at: '2026-07-15T09:00:00', struggled: 1 }),
+        attempt({ id: 3, problem_id: 2, attempted_at: '2026-07-15T09:00:00' }),
+        attempt({ id: 4, problem_id: 3, attempted_at: '2026-07-15T09:00:00' }),
+      ],
+    );
+    const queue = reviewQueue(data, TODAY);
+    expect(queue.filter(it => matchesProficiency(it, 'Struggling')).map(i => i.id)).toEqual([1]);
+    expect(queue.filter(it => matchesProficiency(it, 'New')).map(i => i.id)).toEqual([2]);
+    expect(queue.filter(it => matchesProficiency(it, 'Proficient')).map(i => i.id)).toEqual([3]);
+  });
 });
 
 describe('todayStats', () => {

@@ -153,7 +153,7 @@ function SessionPageInner() {
     initialized.current = true;
     const items = reviewQueue(data, clientToday()).filter(it =>
       (!filterDomain || it.domain === filterDomain) &&
-      (!filterProficiency || matchesProficiency(it, filterProficiency)),
+      (!filterProficiency || matchesProficiency(it, filterProficiency, it.attempt_count)),
     );
     if (items.length === 0) { setStatus('empty'); return; }
     setAllCards(items);
