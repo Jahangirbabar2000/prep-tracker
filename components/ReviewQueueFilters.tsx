@@ -106,7 +106,7 @@ export default function ReviewQueueFilters({
         className={cls}
       >
         {QUEUE_ORDER_OPTIONS.map(o => (
-          <option key={o.value} value={o.value}>Order: {o.label}</option>
+          <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
 
