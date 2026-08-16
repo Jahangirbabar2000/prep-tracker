@@ -707,10 +707,15 @@ function SessionPageInner() {
       )}
 
       {/* Navigation stays docked only for a compact, unrevealed flashcard.
-          Expanded answers and AI content keep every control in document flow. */}
+          Expanded answers and AI content keep every control in document flow.
+          `mx-auto max-w-xl` center this against the viewport while it's
+          `fixed` on mobile — but auto margins on a flex item make it shrink
+          to content width instead of stretching, so once `md:static` returns
+          it to normal flex flow on desktop, `md:mx-0 md:max-w-none` cancels
+          them out and lets it stretch to match the card above. */}
       <div
         data-testid="review-nav-dock"
-        className={`mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5 md:static ${
+        className={`mx-auto grid max-w-xl grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)_minmax(0,1fr)] gap-2.5 md:static md:mx-0 md:max-w-none ${
           controlsInFlow
             ? 'relative w-full'
             : 'fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-30'
@@ -751,7 +756,10 @@ function SessionPageInner() {
 
       {/* The unopened AI trigger is docked below navigation. Once opened, this
           same mounted component returns to document flow and the page scrolls
-          to it, so streamed content never overlays the review card. */}
+          to it, so streamed content never overlays the review card.
+          Same fixed→static desktop fix as the nav dock above: cancel the
+          `mx-auto max-w-xl` centering at `md:` so the button stretches full
+          width instead of shrinking to its own content. */}
       {card && (
         <div
           ref={aiCardRef}
@@ -760,7 +768,7 @@ function SessionPageInner() {
             ? 'hidden'
             : controlsInFlow
               ? `relative md:mt-0 ${aiExpanded ? 'scroll-mt-20' : ''}`
-              : 'fixed inset-x-4 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto max-w-xl md:static'}
+              : 'fixed inset-x-4 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 mx-auto max-w-xl md:static md:mx-0 md:max-w-none'}
         >
           <AskAI
             ref={aiRef}
