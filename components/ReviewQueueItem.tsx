@@ -3,9 +3,19 @@
 import Link from 'next/link';
 import { ReviewQueueItem as RQI } from '@/lib/types';
 import DomainBadge from './DomainBadge';
+import ProficiencyBadge from './ProficiencyBadge';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { cardTagsFromFields, domainPath } from '@/lib/domains';
 import { useStore } from '@/lib/store/store';
+import { MarkdownInline } from './MarkdownRenderer';
+
+// Matches ProblemListRow's difficulty treatment — text-only, theme-aware,
+// so it reads the same wherever a DSA difficulty shows up in the app.
+const DIFFICULTY_STYLE: Record<string, string> = {
+  Easy:   'text-emerald-500 dark:text-emerald-400',
+  Medium: 'text-amber-500  dark:text-amber-400',
+  Hard:   'text-red-500    dark:text-red-400',
+};
 
 export default function ReviewQueueItem({ item }: { item: RQI }) {
   const { data } = useStore();
@@ -22,30 +32,33 @@ export default function ReviewQueueItem({ item }: { item: RQI }) {
       {/* Overdue urgency bar */}
       <div className={`w-1 self-stretch rounded-full ${item.days_overdue > 3 ? 'bg-danger/70' : 'bg-accent/40'}`} />
 
-      {/* Left: domain + category, then title. Difficulty (DSA only) moves to
-          the right column instead — the left side was too crowded on mobile. */}
+      {/* Left: domain + category + difficulty (DSA only), then title.
+          Difficulty sits here — same row as the category tag — rather than
+          stacked on the right, matching where ProblemListRow puts it. */}
       <div className="flex flex-col gap-1 min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <DomainBadge domain={item.domain} />
           {tag && <span className="text-xs text-muted truncate">{tag}</span>}
+          {difficulty && (
+            <span className={`text-xs font-medium tabular ${DIFFICULTY_STYLE[difficulty] ?? 'text-muted'}`}>
+              {difficulty}
+            </span>
+          )}
         </div>
         {/* Wrap to two lines instead of truncating — otherwise many questions
             collapse to the same prefix ("How do you…") on narrow screens. */}
-        <span className="font-medium text-fg leading-snug line-clamp-2">{item.name}</span>
+        <span className="font-medium text-fg leading-snug line-clamp-2"><MarkdownInline content={item.name} /></span>
       </div>
 
-      {/* Right: difficulty + struggled + overdue — stacked so it stays narrow
-          on mobile and leaves the title room to breathe. */}
+      {/* Right: proficiency + struggled + overdue — stacked so it stays
+          narrow on mobile and leaves the title room to breathe. */}
       <div className="flex items-center gap-2.5 shrink-0">
         <div className="flex flex-col items-end gap-1 text-right">
-          {difficulty && (
-            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-md ${
-              difficulty === 'Easy'   ? 'bg-green-500/10 text-green-500' :
-              difficulty === 'Medium' ? 'bg-yellow-500/10 text-yellow-500' :
-              difficulty === 'Hard'   ? 'bg-red-500/10 text-red-500' :
-              'bg-surface-2 text-muted'
-            }`}>{difficulty}</span>
-          )}
+          <ProficiencyBadge
+            level={item.interval_level}
+            nextDueDate={item.next_due_date ?? null}
+            attemptCount={item.attempt_count ?? 0}
+          />
           <div className="flex flex-col items-end gap-0.5">
             {item.last_struggled ? (
               <span className="inline-flex items-center gap-1 text-xs text-danger font-medium">

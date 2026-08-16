@@ -17,6 +17,7 @@ import LinksManager from './LinksManager';
 import DeleteButton from './DeleteButton';
 import { useStore } from '@/lib/store/store';
 import { domainById, isTimedMode, resolveDomain } from '@/lib/domains';
+import { MarkdownInline } from './MarkdownRenderer';
 
 interface ProblemDetail extends Problem {
   attempts: Attempt[];
@@ -141,7 +142,7 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
               onClick={() => { setNameVal(data.name); setEditingName(true); }}
               title="Click to edit"
             >
-              {data.name}
+              <MarkdownInline content={data.name} />
             </h1>
           )}
           <div className="flex items-center gap-2 mt-1.5">
