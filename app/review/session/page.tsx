@@ -12,6 +12,7 @@ import AttemptHistory from '@/components/AttemptHistory';
 import CopyLinkButton from '@/components/CopyLinkButton';
 import { useStore, getData, mutate } from '@/lib/store/store';
 import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/queries';
+import { parseQueueOrder } from '@/lib/filters';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 import { cardTagsFromFields, domainPath, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from '@/components/domainVisuals';
@@ -117,6 +118,9 @@ function SessionPageInner() {
   const sp = useSearchParams();
   const filterDomain      = sp.get('domain')      ?? '';
   const filterProficiency = sp.get('proficiency') ?? '';
+  // Inherited from the queue's own order control, so the session walks the
+  // cards in the same direction the list reads.
+  const filterOrder       = parseQueueOrder(sp.get('order'));
 
   const [status, setStatus]         = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
   const [allCards, setAllCards]     = useState<ReviewQueueItem[]>([]);
@@ -151,14 +155,14 @@ function SessionPageInner() {
   useEffect(() => {
     if (!ready || initialized.current) return;
     initialized.current = true;
-    const items = reviewQueue(data, clientToday()).filter(it =>
+    const items = reviewQueue(data, clientToday(), filterOrder).filter(it =>
       (!filterDomain || it.domain === filterDomain) &&
       (!filterProficiency || matchesProficiency(it, filterProficiency, it.attempt_count)),
     );
     if (items.length === 0) { setStatus('empty'); return; }
     setAllCards(items);
     setStatus('ready');
-  }, [ready, data, filterDomain, filterProficiency]);
+  }, [ready, data, filterDomain, filterProficiency, filterOrder]);
 
   const card  = allCards[index] ?? null;
   const domainDefinition = resolveDomain(data.domains, card?.domain ?? '');

@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { ArrowDown } from 'lucide-react';
+import { DEFAULT_QUEUE_ORDER, QUEUE_ORDER_OPTIONS } from '@/lib/filters';
+import type { QueueOrder } from '@/lib/store/queries';
 
 // text-base (16px) on mobile avoids iOS Safari's auto-zoom-on-focus for
 // sub-16px form controls, and just reads more comfortably on a phone.
@@ -19,6 +21,7 @@ function scrollToBottom() {
 interface Props {
   currentDomain: string;
   currentProficiency: string;
+  currentOrder: QueueOrder;
   availableDomains: { value: string; label: string }[];
   availableProficiencies: string[];
 }
@@ -26,23 +29,38 @@ interface Props {
 export default function ReviewQueueFilters({
   currentDomain,
   currentProficiency,
+  currentOrder,
   availableDomains,
   availableProficiencies,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  function push(domain: string, proficiency: string) {
+  // Rebuilt from the current props each time (rather than from the live URL) so
+  // unknown params stay dropped, as before. Keyed rather than positional —
+  // three positional args across three controls is a missed-argument bug
+  // waiting to happen. Mirrors set() in HistoryFilters.
+  function set(key: 'domain' | 'proficiency' | 'order', value: string) {
+    const next = {
+      domain: currentDomain,
+      proficiency: currentProficiency,
+      order: currentOrder as string,
+      [key]: value,
+    };
     const params = new URLSearchParams();
-    if (domain)      params.set('domain', domain);
-    if (proficiency) params.set('proficiency', proficiency);
+    if (next.domain)      params.set('domain', next.domain);
+    if (next.proficiency) params.set('proficiency', next.proficiency);
+    // The default order stays out of the URL, matching the domain pages.
+    if (next.order !== DEFAULT_QUEUE_ORDER) params.set('order', next.order);
     const qs = params.toString();
     startTransition(() => {
       router.replace(qs ? `/?${qs}` : '/', { scroll: false } as never);
     });
   }
 
-  const hasFilter = !!currentDomain || !!currentProficiency;
+  // A non-default order counts for "Clear" (which resets everything) but the
+  // two dropdowns are what "filtering" means here.
+  const hasFilter = !!currentDomain || !!currentProficiency || currentOrder !== DEFAULT_QUEUE_ORDER;
 
   if (availableDomains.length === 0) return null;
 
@@ -53,7 +71,7 @@ export default function ReviewQueueFilters({
           name="domain"
           aria-label="Filter by domain"
           value={currentDomain}
-          onChange={e => push(e.target.value, currentProficiency)}
+          onChange={e => set('domain', e.target.value)}
           className={cls}
         >
           <option value="">All domains</option>
@@ -68,7 +86,7 @@ export default function ReviewQueueFilters({
           name="proficiency"
           aria-label="Filter by level"
           value={currentProficiency}
-          onChange={e => push(currentDomain, e.target.value)}
+          onChange={e => set('proficiency', e.target.value)}
           className={cls}
         >
           <option value="">All levels</option>
@@ -77,6 +95,20 @@ export default function ReviewQueueFilters({
           ))}
         </select>
       )}
+
+      {/* Always rendered — it's a sort, not a filter, so there's no "only one
+          option available" case that would make it pointless. */}
+      <select
+        name="order"
+        aria-label="Sort order"
+        value={currentOrder}
+        onChange={e => set('order', e.target.value)}
+        className={cls}
+      >
+        {QUEUE_ORDER_OPTIONS.map(o => (
+          <option key={o.value} value={o.value}>Order: {o.label}</option>
+        ))}
+      </select>
 
       {hasFilter && (
         <button

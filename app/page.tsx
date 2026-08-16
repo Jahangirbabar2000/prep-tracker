@@ -12,13 +12,19 @@ import {
   reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
 } from '@/lib/store/queries';
 import { proficiencyLabel } from '@/lib/proficiency';
-import { QUEUE_PROFICIENCY_OPTIONS } from '@/lib/filters';
+import { DEFAULT_QUEUE_ORDER, parseQueueOrder, QUEUE_PROFICIENCY_OPTIONS } from '@/lib/filters';
+import type { QueueOrder } from '@/lib/store/queries';
 import { computeStreak } from '@/lib/streak';
 import { fmtDateOrToday } from '@/lib/fmt';
 import type { Problem } from '@/lib/types';
 import { allDomains, resolveDomain } from '@/lib/domains';
 import { buildForecastWeeks, UPCOMING_MAX_WEEKS, UPCOMING_WEEK_DAYS } from '@/lib/upcoming';
 import { domainPalette } from '@/components/domainVisuals';
+
+// One definition so the live page and the loading skeleton can't drift. The
+// leading clause is asserted by e2e/smoke.spec.ts — only the tail is dynamic.
+const queueSubtitle = (order: QueueOrder) =>
+  `Everything due across all domains, ${order === 'due-soon' ? 'least' : 'most'} overdue first.`;
 
 function ReviewQueueInner() {
   const sp = useSearchParams();
@@ -27,10 +33,14 @@ function ReviewQueueInner() {
   const today = clientToday();
   const filterDomain      = sp.get('domain')      ?? '';
   const filterProficiency = sp.get('proficiency') ?? '';
+  const filterOrder       = parseQueueOrder(sp.get('order'));
 
   const sessionParams = new URLSearchParams();
   if (filterDomain)      sessionParams.set('domain', filterDomain);
   if (filterProficiency) sessionParams.set('proficiency', filterProficiency);
+  // Carrying the order here is what makes the session walk the queue the same
+  // way the list reads — both Start Session links and the Enter shortcut use it.
+  if (filterOrder !== DEFAULT_QUEUE_ORDER) sessionParams.set('order', filterOrder);
   const sessionQS = sessionParams.toString();
   const sessionHref = sessionQS ? `/review/session?${sessionQS}` : '/review/session';
 
@@ -54,14 +64,18 @@ function ReviewQueueInner() {
   const levelLabel = (it: { interval_level: number; next_due_date?: string | null; attempt_count?: number }) =>
     proficiencyLabel(it.interval_level, !!it.next_due_date, it.attempt_count ?? 0);
 
-  const allQueue = reviewQueue(data, today);
+  const allQueue = reviewQueue(data, today, filterOrder);
   const items = allQueue.filter(it =>
     (!filterDomain || it.domain === filterDomain) &&
     (!filterProficiency || matchesProficiency(it, filterProficiency, it.attempt_count)),
   );
 
-  // Group the queue by due date (already sorted most-overdue-first) so questions
-  // due on different days get a dated divider + count, like the domain pages.
+  // Group the queue by due date (already sorted by due date, in whichever
+  // direction the order filter asks for) so questions due on different days get
+  // a dated divider + count, like the domain pages. This is a run-length
+  // grouper, so it stays correct in both directions — equal dates are
+  // contiguous either way — but it would break if a second sort key were ever
+  // interleaved at the same level as the date.
   const dueGroups: { dateKey: string; label: string; items: typeof items }[] = [];
   for (const it of items) {
     const dateKey = (it.next_due_date ?? '').slice(0, 10);
@@ -119,7 +133,7 @@ function ReviewQueueInner() {
 
   const upcomingWeeks = buildForecastWeeks(upcomingRows, today);
 
-  if (!ready) return <ReviewQueueSkeleton />;
+  if (!ready) return <ReviewQueueSkeleton order={filterOrder} />;
 
   return (
     <div>
@@ -127,7 +141,7 @@ function ReviewQueueInner() {
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold text-fg tracking-tight">Review Queue</h1>
-            <p className="text-sm text-muted mt-1">Everything due across all domains, most overdue first.</p>
+            <p className="text-sm text-muted mt-1">{queueSubtitle(filterOrder)}</p>
           </div>
           {/* Tablet + desktop: inline actions (wrap as a unit if the row gets tight) */}
           <div className="hidden sm:flex items-center gap-2 shrink-0">
@@ -241,6 +255,7 @@ function ReviewQueueInner() {
       <ReviewQueueFilters
         currentDomain={filterDomain}
         currentProficiency={filterProficiency}
+        currentOrder={filterOrder}
         availableDomains={availableDomains}
         availableProficiencies={availableProficiencies}
       />
@@ -280,12 +295,14 @@ function ReviewQueueInner() {
   );
 }
 
-function ReviewQueueSkeleton() {
+// The Suspense fallback renders before useSearchParams is available, so the
+// order is optional there and falls back to the default caption.
+function ReviewQueueSkeleton({ order = DEFAULT_QUEUE_ORDER }: { order?: QueueOrder }) {
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-fg tracking-tight">Review Queue</h1>
-        <p className="text-sm text-muted mt-1">Everything due across all domains, most overdue first.</p>
+        <p className="text-sm text-muted mt-1">{queueSubtitle(order)}</p>
       </div>
       <div className="flex flex-col gap-2.5">
         {Array.from({ length: 4 }).map((_, i) => (
