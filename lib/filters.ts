@@ -27,8 +27,8 @@ export const QUEUE_PROFICIENCY_OPTIONS: readonly string[] = PROFICIENCY_LABELS.f
 
 /** Which way the review queue runs. First entry is the default. */
 export const QUEUE_ORDER_OPTIONS: readonly { value: QueueOrder; label: string }[] = [
-  { value: 'overdue',  label: 'Most overdue first' },
-  { value: 'due-soon', label: 'Least overdue first' },
+  { value: 'overdue',  label: 'Most overdue' },
+  { value: 'due-soon', label: 'Least overdue' },
 ];
 
 export const DEFAULT_QUEUE_ORDER = QUEUE_ORDER_OPTIONS[0].value;
