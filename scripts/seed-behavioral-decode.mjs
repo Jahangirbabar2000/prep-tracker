@@ -69,6 +69,7 @@ for (const line of lines) {
   if (qMatch) { flush(); mode = 'q'; qBuf = qMatch[1]; continue; }
   const aMatch = line.match(/^\*\*A:\*\*\s*(.*)$/);
   if (aMatch && mode === 'q') { mode = 'a'; aBuf.push(aMatch[1]); continue; }
+  if (/^-{3,}\s*$/.test(line.trim()) && mode === 'a') { flush(); continue; } // "---" section divider, not part of the answer
   if (mode === 'a') aBuf.push(line);
 }
 flush();
