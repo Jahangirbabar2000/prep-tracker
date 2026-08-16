@@ -1,4 +1,5 @@
 import { PROFICIENCY_LABELS } from './proficiency';
+import type { QueueOrder } from './store/queries';
 
 /**
  * Maps a proficiency filter value to its SQL WHERE clause fragment.
@@ -23,3 +24,21 @@ export const PROFICIENCY_OPTIONS: readonly string[] = PROFICIENCY_LABELS;
 
 /** Same options but without "New" — for review queue where all items already have next_due_date */
 export const QUEUE_PROFICIENCY_OPTIONS: readonly string[] = PROFICIENCY_LABELS.filter(l => l !== 'New');
+
+/** Which way the review queue runs. First entry is the default. */
+export const QUEUE_ORDER_OPTIONS: readonly { value: QueueOrder; label: string }[] = [
+  { value: 'overdue',  label: 'Most overdue first' },
+  { value: 'due-soon', label: 'Least overdue first' },
+];
+
+export const DEFAULT_QUEUE_ORDER = QUEUE_ORDER_OPTIONS[0].value;
+
+/**
+ * Read a queue order off a URL param. Anything unrecognised (a hand-edited or
+ * stale link) falls back to the default rather than producing a broken sort.
+ */
+export function parseQueueOrder(value: string | null | undefined): QueueOrder {
+  return QUEUE_ORDER_OPTIONS.some(o => o.value === value)
+    ? value as QueueOrder
+    : DEFAULT_QUEUE_ORDER;
+}

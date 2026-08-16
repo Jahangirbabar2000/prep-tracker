@@ -82,6 +82,54 @@ describe('reviewQueue', () => {
       [attempt({ id: 1, problem_id: 1 }), attempt({ id: 2, problem_id: 2 }), attempt({ id: 3, problem_id: 3 })],
     );
     expect(reviewQueue(data, TODAY).map(i => i.id)).toEqual([2, 3, 1]);
+    // Ascending is the default — the explicit form must match the implicit one.
+    expect(reviewQueue(data, TODAY, 'overdue')).toEqual(reviewQueue(data, TODAY));
+  });
+
+  it('orders by due date descending when asked for least overdue first', () => {
+    const data = store(
+      [
+        problem({ id: 1, next_due_date: '2026-07-25' }),
+        problem({ id: 2, next_due_date: '2026-07-10' }),
+        problem({ id: 3, next_due_date: '2026-07-24' }),
+      ],
+      [attempt({ id: 1, problem_id: 1 }), attempt({ id: 2, problem_id: 2 }), attempt({ id: 3, problem_id: 3 })],
+    );
+    expect(reviewQueue(data, TODAY, 'due-soon').map(i => i.id)).toEqual([1, 3, 2]);
+  });
+
+  it('breaks same-due-date ties by id ascending in BOTH directions', () => {
+    // Only the due-date axis flips; cards sharing a day keep a stable, defined
+    // order either way (they used to depend on incidental store order).
+    const data = store(
+      [
+        problem({ id: 2, next_due_date: '2026-07-20' }),
+        problem({ id: 1, next_due_date: '2026-07-20' }),
+        problem({ id: 3, next_due_date: '2026-07-10' }),
+      ],
+      [attempt({ id: 1, problem_id: 1 }), attempt({ id: 2, problem_id: 2 }), attempt({ id: 3, problem_id: 3 })],
+    );
+    expect(reviewQueue(data, TODAY, 'overdue').map(i => i.id)).toEqual([3, 1, 2]);
+    expect(reviewQueue(data, TODAY, 'due-soon').map(i => i.id)).toEqual([1, 2, 3]);
+  });
+
+  it('changes only the order — never membership or derived fields', () => {
+    const data = store(
+      [
+        problem({ id: 1, next_due_date: '2026-07-25' }),
+        problem({ id: 2, next_due_date: '2026-07-10' }),
+        problem({ id: 3, next_due_date: '2026-07-30' }), // not due -> out of both
+      ],
+      [
+        attempt({ id: 1, problem_id: 1 }),
+        attempt({ id: 2, problem_id: 2 }),
+        attempt({ id: 3, problem_id: 2, attempted_at: '2026-07-11T09:00:00' }),
+      ],
+    );
+    const asc = reviewQueue(data, TODAY, 'overdue');
+    const desc = reviewQueue(data, TODAY, 'due-soon');
+    expect([...desc].reverse()).toEqual(asc);
+    expect(desc.find(i => i.id === 2)).toEqual(asc.find(i => i.id === 2));
   });
 });
 
