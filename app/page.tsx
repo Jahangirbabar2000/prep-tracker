@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ReviewQueueItemCard from '@/components/ReviewQueueItem';
 import UpcomingForecast from '@/components/UpcomingForecast';
@@ -13,6 +13,9 @@ import {
 } from '@/lib/store/queries';
 import { proficiencyLabel } from '@/lib/proficiency';
 import { DEFAULT_QUEUE_ORDER, parseQueueOrder, QUEUE_PROFICIENCY_OPTIONS } from '@/lib/filters';
+import {
+  buildPracticeSet, parsePracticeSpec, practiceHref, DEFAULT_PRACTICE_SCOPE,
+} from '@/lib/practice';
 import type { QueueOrder } from '@/lib/store/queries';
 import { computeStreak } from '@/lib/streak';
 import { fmtDateOrToday } from '@/lib/fmt';
@@ -35,14 +38,22 @@ function ReviewQueueInner() {
   const filterProficiency = sp.get('proficiency') ?? '';
   const filterOrder       = parseQueueOrder(sp.get('order'));
 
-  const sessionParams = new URLSearchParams();
-  if (filterDomain)      sessionParams.set('domain', filterDomain);
-  if (filterProficiency) sessionParams.set('proficiency', filterProficiency);
-  // Carrying the order here is what makes the session walk the queue the same
-  // way the list reads — both Start Session links and the Enter shortcut use it.
-  if (filterOrder !== DEFAULT_QUEUE_ORDER) sessionParams.set('order', filterOrder);
-  const sessionQS = sessionParams.toString();
-  const sessionHref = sessionQS ? `/review/session?${sessionQS}` : '/review/session';
+  // One spec drives both the list below and the session the button starts, so
+  // the two can no longer drift apart. Carrying the order is what makes the
+  // session walk the queue the same way the list reads — both Start Session
+  // links and the Enter shortcut use it.
+  //
+  // Scope and order are pinned rather than read straight off the URL: this page
+  // IS the due list, and the date-grouped list below is a run-length grouper
+  // that only holds together while the set is due-scoped and due-ordered. A
+  // hand-typed ?scope=all or ?order=oldest must not reach buildPracticeSet here.
+  const qs = sp.toString();
+  const spec = useMemo(() => ({
+    ...parsePracticeSpec(new URLSearchParams(qs)),
+    scope: DEFAULT_PRACTICE_SCOPE,
+    order: parseQueueOrder(new URLSearchParams(qs).get('order')),
+  }), [qs]);
+  const sessionHref = practiceHref(spec);
 
   // Enter starts a session with the current filters applied (moved here from
   // GlobalShortcuts so it has access to the active domain/proficiency filter).
@@ -64,11 +75,11 @@ function ReviewQueueInner() {
   const levelLabel = (it: { interval_level: number; next_due_date?: string | null; attempt_count?: number }) =>
     proficiencyLabel(it.interval_level, !!it.next_due_date, it.attempt_count ?? 0);
 
+  // allQueue stays unfiltered — it feeds the dropdown options below, which have
+  // to reflect the whole queue. `items` is the filtered view, built from the
+  // same spec the Start Session button links to.
   const allQueue = reviewQueue(data, today, filterOrder);
-  const items = allQueue.filter(it =>
-    (!filterDomain || it.domain === filterDomain) &&
-    (!filterProficiency || matchesProficiency(it, filterProficiency, it.attempt_count)),
-  );
+  const items = buildPracticeSet(data, spec, today);
 
   // Group the queue by due date (already sorted by due date, in whichever
   // direction the order filter asks for) so questions due on different days get
