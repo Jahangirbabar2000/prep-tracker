@@ -99,3 +99,10 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 - **Unmanaged** — AWS hands you the compute; you configure and run everything above it: the guest **OS**, patching, **security groups** (firewall rules), and whatever software you install.
 - **Managed** services (covered later) shift more of that operational burden onto AWS.
+
+**Q:** What are the three ways to call AWS APIs, and who is each one good for?
+**A:**
+
+- **Console** — visual, browser-based; best for users who want an easy-to-use interface.
+- **AWS CLI** — command-line, scriptable across OSes; best for advanced users automating tasks.
+- **AWS SDK** — language-specific APIs inside your code; best for developers integrating AWS into applications.
