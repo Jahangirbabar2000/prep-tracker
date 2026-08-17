@@ -22,7 +22,7 @@ import { DEFAULT_QUEUE_ORDER } from '@/lib/filters';
 import { isStrugglingState } from '@/lib/proficiency';
 
 /** Which cards are eligible, independent of how they get ordered. */
-export type PracticeScope = 'due' | 'weak' | 'all';
+export type PracticeScope = 'due' | 'weak' | 'all' | 'unattempted';
 
 /**
  * A superset of QueueOrder, expressed as one so the compiler enforces the
@@ -43,9 +43,10 @@ export interface PracticeSpec {
 }
 
 export const PRACTICE_SCOPES: readonly { value: PracticeScope; label: string }[] = [
-  { value: 'due',  label: 'Due now' },
-  { value: 'weak', label: 'Weak spots' },
-  { value: 'all',  label: 'Everything' },
+  { value: 'due',         label: 'Due now' },
+  { value: 'weak',        label: 'Weak spots' },
+  { value: 'unattempted', label: 'Not yet attempted' },
+  { value: 'all',         label: 'Everything' },
 ];
 
 export const PRACTICE_ORDERS: readonly { value: PracticeOrder; label: string }[] = [
@@ -168,8 +169,15 @@ export function seededShuffle<T>(items: T[], seed: number): T[] {
 }
 
 function matchesScope(item: ReviewQueueItem, scope: PracticeScope, today: string): boolean {
-  if (scope === 'all')  return true;
-  if (scope === 'weak') return isWeakSpot(item);
+  if (scope === 'all')         return true;
+  if (scope === 'weak')        return isWeakSpot(item);
+  // Strictly zero attempts — narrower than the "New" proficiency label, which
+  // also covers a card that has had exactly one attempt (lib/sr.ts: the first
+  // attempt always lands at level 0, so it hasn't left "New" yet either way).
+  // Paired with order 'oldest', this is "resume" — walk the domain in the
+  // order cards were added, starting at the first one never touched at all,
+  // rather than the literal first ("First added" / scope 'all' does that).
+  if (scope === 'unattempted') return (item.attempt_count ?? 0) === 0;
   // 'due' — reviewQueue()'s admission rule, restated. Both must agree; the
   // equivalence test in practice.test.ts is what holds them together.
   return !!item.next_due_date

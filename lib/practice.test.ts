@@ -140,6 +140,20 @@ describe('buildPracticeSet · scope', () => {
     expect(buildPracticeSet(data, spec({ scope: 'all', order: 'oldest' }), TODAY).map(i => i.id))
       .toEqual([1, 2]);
   });
+
+  it('"unattempted" — combined with order "oldest" this is "resume": skip anything with any attempt at all, in add order', () => {
+    const data = store([
+      problem({ id: 1, created_at: '2026-07-01T00:00:00' }),                            // never attempted
+      problem({ id: 2, created_at: '2026-07-02T00:00:00', next_due_date: '2026-07-17' }), // one successful attempt
+      problem({ id: 3, created_at: '2026-07-03T00:00:00' }),                            // never attempted
+      problem({ id: 4, created_at: '2026-07-04T00:00:00', next_due_date: '2026-07-17' }), // one struggled attempt
+    ], [
+      attempt({ id: 10, problem_id: 2, struggled: 0 }),
+      attempt({ id: 20, problem_id: 4, struggled: 1 }),
+    ]);
+    expect(buildPracticeSet(data, spec({ scope: 'unattempted', order: 'oldest' }), TODAY).map(i => i.id))
+      .toEqual([1, 3]);
+  });
 });
 
 describe('buildPracticeSet · slicing', () => {
