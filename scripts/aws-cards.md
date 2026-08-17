@@ -118,3 +118,9 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 - **Reserved Instances** — up to 75% off; steady-state, predictable workloads (1–3yr).
 - **Spot** — up to 90% off spare capacity; interruptible workloads only (2-min warning).
 - **Dedicated Hosts** — full physical server, you control placement; compliance/licensing needs.
+
+**Q:** Dedicated Hosts vs. Dedicated Instances — what's the actual difference?
+**A:** Both give you physical isolation from other AWS accounts.
+
+- **Dedicated Hosts** — an entire physical server for exclusive use; you control instance placement and resource allocation.
+- **Dedicated Instances** — isolation too, but **you don't pick which physical server** they run on.
