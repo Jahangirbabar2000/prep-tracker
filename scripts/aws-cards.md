@@ -109,3 +109,12 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 **Q:** What is an AMI, and why does it matter for launching EC2 instances?
 **A:** An **Amazon Machine Image** is a template — OS, storage setup, permissions, pre-installed software — used to launch an EC2 instance. One AMI can launch **many identical instances**, so every new instance starts from the same consistent, repeatable setup.
+
+**Q:** What are the EC2 pricing options, and what's each best for?
+**A:**
+
+- **On-Demand** — pay per use, no commitment; getting started, unpredictable usage.
+- **Savings Plans** — up to 72% off for a $/hr commitment (1–3yr); flexible across instance families/services.
+- **Reserved Instances** — up to 75% off; steady-state, predictable workloads (1–3yr).
+- **Spot** — up to 90% off spare capacity; interruptible workloads only (2-min warning).
+- **Dedicated Hosts** — full physical server, you control placement; compliance/licensing needs.
