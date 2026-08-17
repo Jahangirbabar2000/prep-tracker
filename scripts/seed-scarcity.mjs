@@ -72,7 +72,9 @@ for (let i = 0; i < cards.length; i++) {
   const { q, a } = cards[i];
   if (existing.has(q)) { skipped++; console.log(`  skip (exists): ${q.slice(0, 60)}…`); continue; }
 
-  const createdAt = easternNow(-i * 60); // first card newest → reads top-to-bottom
+  // Ascending with i, matching id order (insertion order below) — see
+  // scripts/seed-deep-learning.mjs for why a negative offset here is wrong.
+  const createdAt = easternNow(i * 60);
   const problem = (await db.execute({
     sql: `INSERT INTO problems (name, domain, lld_category, lld_topic, notes_text, metadata_json, interval_level, next_due_date, created_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,

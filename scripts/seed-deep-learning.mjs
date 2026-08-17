@@ -181,7 +181,13 @@ for (let i = 0; i < cards.length; i++) {
   const { topic, q, a } = cards[i];
   if (existingNames.has(q)) { skipped++; continue; }
 
-  const createdAt = easternNow(-i * 30); // first card newest → reads top-to-bottom
+  // Ascending with i, so created_at ASC matches file/course order — same
+  // direction as `id`, since cards are inserted in file order below. An
+  // earlier version used a negative offset here to make the domain page's
+  // default "Newest" sort *display* course order, but that silently broke
+  // every created_at-based feature that means "when was this actually added"
+  // (Practice's "First/Last added" and "Resume" presets, both keyed off it).
+  const createdAt = easternNow(i * 30);
   const metadata = JSON.stringify({ [FIELD_KEY]: topic });
   await db.execute({
     sql: `INSERT INTO problems (name, domain, notes_text, metadata_json, interval_level, next_due_date, created_at)

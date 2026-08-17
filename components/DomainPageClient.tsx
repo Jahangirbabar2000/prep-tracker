@@ -124,7 +124,7 @@ export default function DomainPageClient({
   function syncUrl(f: Record<string, string>, s: string) {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(f)) {
-      if (v && !(k === 'sort' && v === 'newest')) params.set(k, v);
+      if (v && !(k === 'sort' && v === 'oldest')) params.set(k, v);
     }
     if (s.trim()) params.set('q', s.trim());
     const qs = params.toString();
@@ -179,7 +179,7 @@ export default function DomainPageClient({
       return result; // skip date sort when searching — relevance order is more useful
     }
 
-    return sortedProblems(result, filters.sort || 'newest');
+    return sortedProblems(result, filters.sort || 'oldest');
   }, [allProblems, filters, filterConfigs, search]);
 
   const selects = [
@@ -198,7 +198,7 @@ export default function DomainPageClient({
   ];
 
   const hasFilter = search.trim() !== '' ||
-    Object.entries(filters).some(([k, v]) => v !== '' && !(k === 'sort' && v === 'newest'));
+    Object.entries(filters).some(([k, v]) => v !== '' && !(k === 'sort' && v === 'oldest'));
 
   return (
     <>

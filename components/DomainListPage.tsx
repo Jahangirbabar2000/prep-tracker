@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Play } from 'lucide-react';
 import { Domain } from '@/lib/types';
 import DomainPageClient, { DomainFilterConfig } from '@/components/DomainPageClient';
 import LogShortcut from '@/components/LogShortcut';
@@ -26,7 +26,9 @@ function DomainListInner({ domain, title, basePath, logLabel, filterConfigs, emp
   const today = clientToday();
 
   const problems = domainProblems(data, domain);
-  const todayCount = todayStats(data, today).counts[domain] ?? 0;
+  const stats = todayStats(data, today);
+  const todayCount = stats.counts[domain] ?? 0;
+  const dueCount = stats.due[domain] ?? 0;
   const initialParams = Object.fromEntries(sp.entries());
 
   return (
@@ -44,11 +46,23 @@ function DomainListInner({ domain, title, basePath, logLabel, filterConfigs, emp
           )}
         </div>
         {canLog && <LogShortcut href={`${basePath}/log`} />}
-        {canLog && (
-          <Link href={`${basePath}/log`} className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
-            <Plus size={16} /> {logLabel} <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
+        <div className="flex items-center gap-2">
+          {/* Visible at every breakpoint, unlike the log button beside it —
+              drilling a domain is if anything more of a phone activity, and
+              LogShortcut has no equivalent here to cover a hidden control. */}
+          <Link
+            href={`${basePath}/review`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-surface border border-border text-fg text-sm font-medium rounded-lg hover:border-border-strong transition-colors cursor-pointer"
+          >
+            <Play size={14} /> Practice
+            {dueCount > 0 && <span className="text-danger font-semibold tabular">{dueCount}</span>}
           </Link>
-        )}
+          {canLog && (
+            <Link href={`${basePath}/log`} className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors cursor-pointer">
+              <Plus size={16} /> {logLabel} <span className="opacity-50 font-normal text-xs ml-0.5">L</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {ready ? (

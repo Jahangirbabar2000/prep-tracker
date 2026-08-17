@@ -57,7 +57,7 @@ export default function DomainFilters({ selects, currentSort, onFilterChange, se
         ))}
 
         <select
-          value={currentSort || 'newest'}
+          value={currentSort || 'oldest'}
           onChange={e => onFilterChange('sort', e.target.value)}
           className={selectCls}
         >

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, SkipForward } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType, StudyDomain, DomainField } from '@/lib/types';
 import MarkdownRenderer, { MarkdownInline } from '@/components/MarkdownRenderer';
@@ -11,8 +11,8 @@ import ProficiencyBadge from '@/components/ProficiencyBadge';
 import AttemptHistory from '@/components/AttemptHistory';
 import CopyLinkButton from '@/components/CopyLinkButton';
 import { useStore, getData, mutate } from '@/lib/store/store';
-import { reviewQueue, clientToday, matchesProficiency } from '@/lib/store/queries';
-import { parseQueueOrder } from '@/lib/filters';
+import { clientToday } from '@/lib/store/queries';
+import { buildPracticeSet, parsePracticeSpec } from '@/lib/practice';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 import { cardTagsFromFields, domainPath, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from '@/components/domainVisuals';
@@ -116,11 +116,14 @@ function CardPreview({
 
 function SessionPageInner() {
   const sp = useSearchParams();
-  const filterDomain      = sp.get('domain')      ?? '';
-  const filterProficiency = sp.get('proficiency') ?? '';
-  // Inherited from the queue's own order control, so the session walks the
-  // cards in the same direction the list reads.
-  const filterOrder       = parseQueueOrder(sp.get('order'));
+  const router = useRouter();
+  // The whole session — which cards, in what order, how many — is one spec read
+  // off the URL. A bare /review/session still parses to the due list, so every
+  // link the review queue has ever generated behaves exactly as before.
+  // `sp.toString()` is hoisted because a call expression inside a dependency
+  // array is what react-hooks/exhaustive-deps refuses to track.
+  const qs = sp.toString();
+  const spec = useMemo(() => parsePracticeSpec(new URLSearchParams(qs)), [qs]);
 
   const [status, setStatus]         = useState<'loading' | 'ready' | 'empty' | 'done'>('loading');
   const [allCards, setAllCards]     = useState<ReviewQueueItem[]>([]);
@@ -150,19 +153,25 @@ function SessionPageInner() {
   const { data, ready } = useStore();
   const initialized = useRef(false);
 
-  // Snapshot the queue once the store is hydrated. The session works on a frozen
-  // copy so the queue doesn't reshuffle mid-session if a background sync lands.
+  // Snapshot the practice set once the store is hydrated. The session works on a
+  // frozen copy so the deck doesn't reshuffle mid-session if a background sync
+  // lands — and the `initialized` guard means a spec that changes underneath us
+  // can't re-snapshot either, even though it now sits in the dependency list.
   useEffect(() => {
     if (!ready || initialized.current) return;
     initialized.current = true;
-    const items = reviewQueue(data, clientToday(), filterOrder).filter(it =>
-      (!filterDomain || it.domain === filterDomain) &&
-      (!filterProficiency || matchesProficiency(it, filterProficiency, it.attempt_count)),
-    );
+    const items = buildPracticeSet(data, spec, clientToday());
     if (items.length === 0) { setStatus('empty'); return; }
     setAllCards(items);
     setStatus('ready');
-  }, [ready, data, filterDomain, filterProficiency, filterOrder]);
+  }, [ready, data, spec]);
+
+  // Where "exit" goes. A domain-scoped session belongs back at that domain's
+  // practice launcher, not at the global queue it never came from.
+  const backHref  = spec.domain ? `${domainPath(data.domains, spec.domain)}/review` : '/';
+  const backLabel = spec.domain
+    ? `${resolveDomain(data.domains, spec.domain).name} practice`
+    : 'Review Queue';
 
   const card  = allCards[index] ?? null;
   const domainDefinition = resolveDomain(data.domains, card?.domain ?? '');
@@ -296,7 +305,9 @@ function SessionPageInner() {
     if (status !== 'ready' && status !== 'done') return;
     function onKey(e: KeyboardEvent) {
       if (status === 'done') {
-        if (e.key === 'Enter') { e.preventDefault(); window.location.href = '/'; }
+        // Same destination as the button below it — and a client navigation,
+        // not a full reload that would re-hydrate the store for nothing.
+        if (e.key === 'Enter') { e.preventDefault(); router.push(backHref); }
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -350,7 +361,7 @@ function SessionPageInner() {
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [status, revealed, submitting, advance, advanceDsa, goNext, goPrev, skipSection, isTimed]);
+  }, [status, revealed, submitting, advance, advanceDsa, goNext, goPrev, skipSection, isTimed, router, backHref]);
 
   if (status === 'loading') {
     return (
@@ -361,12 +372,18 @@ function SessionPageInner() {
   }
 
   if (status === 'empty') {
+    // "All caught up" is only true of the unscoped due list. A practice set that
+    // comes back empty means the filters matched nothing, which is a different
+    // thing to tell someone.
+    const scoped = spec.domain !== '' || spec.scope !== 'due';
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
-        <p className="text-fg font-medium">Nothing due for a session right now.</p>
-        <p className="text-sm text-muted">You&apos;re all caught up across all domains.</p>
-        <Link href="/" className="text-sm text-accent hover:text-accent-hover transition-colors">
-          ← Review Queue
+        <p className="text-fg font-medium">
+          {scoped ? 'No cards match this practice set.' : 'Nothing due for a session right now.'}
+        </p>
+        {!scoped && <p className="text-sm text-muted">You&apos;re all caught up across all domains.</p>}
+        <Link href={backHref} className="text-sm text-accent hover:text-accent-hover transition-colors">
+          ← {backLabel}
         </Link>
       </div>
     );
@@ -387,14 +404,19 @@ function SessionPageInner() {
             {results.length} reviewed
           </p>
           {skippedIds.size > 0 && (
-            <p className="text-xs text-muted mt-1">{skippedIds.size} skipped — they&apos;ll stay in your queue</p>
+            <p className="text-xs text-muted mt-1">
+              {skippedIds.size} skipped
+              {/* Only a due-scoped set is "your queue" — a shuffle or a weak-spot
+                  drill has no standing backlog to stay in. */}
+              {spec.scope === 'due' && <> — they&apos;ll stay in your queue</>}
+            </p>
           )}
         </div>
         <Link
-          href="/"
+          href={backHref}
           className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors"
         >
-          Back to Review Queue <span className="hidden md:inline opacity-50 text-xs font-normal ml-0.5">Enter</span>
+          Back to {backLabel} <span className="hidden md:inline opacity-50 text-xs font-normal ml-0.5">Enter</span>
         </Link>
       </div>
     );
@@ -425,7 +447,7 @@ function SessionPageInner() {
     }`}>
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
+        <Link href={backHref} className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
           <ArrowLeft size={13} /> Exit session <span className="hidden md:inline opacity-40 ml-0.5">Esc</span>
         </Link>
         <span className="text-xs text-muted tabular">{activeCount} remaining</span>

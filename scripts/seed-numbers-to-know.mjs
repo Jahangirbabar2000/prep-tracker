@@ -135,7 +135,9 @@ for (let i = 0; i < items.length; i++) {
   if (existing.has(name)) { skipped++; console.log(`  skip (exists): ${name}`); continue; }
 
   // First item newest so the group order reads top-to-bottom in the list.
-  const createdAt = easternNow(-i * 60);
+  // Ascending with i, matching id order (insertion order below) — see
+  // scripts/seed-deep-learning.mjs for why a negative offset here is wrong.
+  const createdAt = easternNow(i * 60);
   const metadata = JSON.stringify({ sd_topic: TOPIC });
   const problem = (await db.execute({
     sql: `INSERT INTO problems (name, domain, sd_topic, notes_text, metadata_json, interval_level, next_due_date, created_at)

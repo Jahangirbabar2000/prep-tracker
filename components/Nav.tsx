@@ -18,13 +18,12 @@ export default function Nav() {
   const pathname = usePathname();
   const { data } = useStore();
   const links = [
-    { href: '/', label: 'Review Queue', Icon: Inbox, domain: null, shortcut: '1' },
-    ...activeDomains(data.domains).map((domain, index) => ({
+    { href: '/', label: 'Review Queue', Icon: Inbox, domain: null },
+    ...activeDomains(data.domains).map(domain => ({
       href: `/${domain.slug}`,
       label: domain.name,
       Icon: domainIcon(domain.icon),
       domain: domain.id,
-      shortcut: index < 8 ? String(index + 2) : null,
     })),
   ];
   const { counts: todayCounts, due: dueCounts } = todayStats(data, clientToday());
@@ -73,28 +72,37 @@ export default function Nav() {
 
   const totalDue = Object.values(dueCounts).reduce((s, n) => s + n, 0);
 
-  function badgeFor(domain: string | null) {
-    if (domain === null) return { n: totalDue, isDanger: true };
-    return { n: todayCounts[domain] ?? 0, isDanger: false };
+  // Two independent counts per row: how many cards are due (urgent, red) and
+  // how many were added today (progress, accent). The aggregate queue link has
+  // no "added today" of its own — its number is the total due.
+  function badgeFor(domain: string | null): { due: number; today: number } {
+    if (domain === null) return { due: totalDue, today: 0 };
+    return { due: dueCounts[domain] ?? 0, today: todayCounts[domain] ?? 0 };
   }
 
+  // bg-danger/10 rather than /15: app/globals.css hand-writes its semantic
+  // opacity utilities and has no @theme block, so Tailwind never generates a
+  // ratio it hasn't been given. /15 is defined for accent-2 only — the
+  // bg-danger/15 that used to be here emitted no CSS at all.
+  const DUE_BADGE_CLS = 'bg-danger/10 text-danger';
+  const TODAY_BADGE_CLS = 'bg-accent text-accent-fg';
+
   function SidebarLink({
-    href, label, Icon, domain, shortcut, compact = false, onNavigate,
+    href, label, Icon, domain, compact = false, onNavigate,
   }: {
     href: string;
     label: string;
     Icon: typeof Inbox;
     domain: string | null;
-    shortcut: string | null;
     compact?: boolean;
     onNavigate?: () => void;
   }) {
     const active = isActive(href);
-    const { n: badgeN, isDanger } = badgeFor(domain);
-    const badgeCls = isDanger
-      ? 'bg-danger/15 text-danger'
-      : 'bg-accent text-accent-fg';
-    const dotCls = isDanger ? 'bg-danger' : 'bg-accent';
+    const { due, today } = badgeFor(domain);
+    const hasBadge = due > 0 || today > 0;
+    // Collapsed rail shows a single dot; due is the more urgent of the two.
+    const dotCls = due > 0 ? 'bg-danger' : 'bg-accent';
+    const pillCls = 'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-semibold leading-none shrink-0';
 
     return (
       <div className="relative group">
@@ -111,7 +119,7 @@ export default function Nav() {
         >
           <span className="relative shrink-0">
             <Icon size={18} className={active ? 'text-accent' : ''} />
-            {compact && badgeN > 0 && (
+            {compact && hasBadge && (
               <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${dotCls}`} />
             )}
           </span>
@@ -119,17 +127,11 @@ export default function Nav() {
           {!compact && (
             <>
               <span className="flex-1 whitespace-nowrap truncate">{label}</span>
-              {/* Shortcut hint hides when a count is present, so the two never
-                  read as one ambiguous number (e.g. "1 89") or crowd the label. */}
-              {shortcut && badgeN === 0 && (
-                <kbd className="hidden md:inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">
-                  {shortcut}
-                </kbd>
+              {due > 0 && (
+                <span className={`${pillCls} ${DUE_BADGE_CLS}`} title={`${due} due`}>{due}</span>
               )}
-              {badgeN > 0 && (
-                <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-semibold leading-none shrink-0 ${badgeCls}`}>
-                  {badgeN}
-                </span>
+              {today > 0 && (
+                <span className={`${pillCls} ${TODAY_BADGE_CLS}`} title={`${today} added today`}>{today}</span>
               )}
             </>
           )}
@@ -139,12 +141,10 @@ export default function Nav() {
           <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none hidden group-hover:block">
             <div className="bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 shadow-lg flex items-center gap-2 whitespace-nowrap">
               <span className="text-xs font-medium text-fg">{label}</span>
-              {shortcut && <kbd className="text-[10px] text-muted/70">{shortcut}</kbd>}
-              {badgeN > 0 && (
-                <span className={`inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full text-[10px] font-semibold leading-none ${badgeCls}`}>
-                  {badgeN}
-                </span>
-              )}
+              {/* The collapsed rail can only show one dot, so the tooltip is
+                  where both counts are actually legible. */}
+              {due > 0 && <span className="text-[10px] font-semibold text-danger">{due} due</span>}
+              {today > 0 && <span className="text-[10px] font-semibold text-accent">{today} today</span>}
             </div>
           </div>
         )}
@@ -263,8 +263,8 @@ export default function Nav() {
               individual study domains below. */}
           <SidebarLink {...links[0]} compact={collapsed} />
           <div className="mx-2 my-1.5 border-t border-border" aria-hidden />
-          {links.slice(1).map(({ href, label, Icon, domain, shortcut }) => (
-            <SidebarLink key={href} href={href} label={label} Icon={Icon} domain={domain} shortcut={shortcut} compact={collapsed} />
+          {links.slice(1).map(({ href, label, Icon, domain }) => (
+            <SidebarLink key={href} href={href} label={label} Icon={Icon} domain={domain} compact={collapsed} />
           ))}
         </nav>
 
@@ -348,14 +348,13 @@ export default function Nav() {
           <nav className="flex-1 flex flex-col gap-0.5 py-3 px-2 overflow-y-auto">
             <SidebarLink {...links[0]} onNavigate={() => setMobileOpen(false)} />
             <div className="mx-2 my-1.5 border-t border-border" aria-hidden />
-            {links.slice(1).map(({ href, label, Icon, domain, shortcut }) => (
+            {links.slice(1).map(({ href, label, Icon, domain }) => (
               <SidebarLink
                 key={href}
                 href={href}
                 label={label}
                 Icon={Icon}
                 domain={domain}
-                shortcut={shortcut}
                 onNavigate={() => setMobileOpen(false)}
               />
             ))}
