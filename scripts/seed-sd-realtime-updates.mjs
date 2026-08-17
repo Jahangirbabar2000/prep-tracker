@@ -128,6 +128,10 @@ function easternNow(offsetSeconds = 0) {
   const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
+// "YYYY-MM-DD" today in Eastern (matches lib/db.ts localToday()).
+function easternToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+}
 
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL,
@@ -167,8 +171,9 @@ await ensureOption('sd_category', CATEGORY, false);
 await ensureOption('sd_topic', TOPIC, true);
 
 // ── 2. Insert the cards (skip any that already exist) ──────────────────────
-// New cards land as "New" (interval_level 0, next_due_date NULL), matching the
-// rest of the System Design deck.
+// Cards go in with ZERO attempts (interval_level 0, next_due_date NULL —
+// "New"), then get a "got it" first attempt in step 3 so they land in
+// tomorrow's Review Queue instead of sitting invisibly until studied by hand.
 const existing = new Set((await db.execute({
   sql: `SELECT name FROM problems WHERE domain = ?`, args: [DOMAIN],
 })).rows.map(r => r.name));
@@ -194,6 +199,43 @@ for (let i = 0; i < CARDS.length; i++) {
   });
   inserted++;
   console.log(`  added: ${name}`);
+}
+
+// ── 3. First "got it" attempt for any card with no attempts yet ────────────
+// Mirrors app/api/problems/[id]/attempts/route.ts + lib/sr.ts replaySchedule:
+// a card's first attempt always lands at level 0 with next_due_date = +1 day
+// however it went, so this queues each card for tomorrow without touching its
+// "New" label (attempt_count 1). Scoped to cards with zero attempts, so a
+// re-run never re-queues a card you've since studied.
+const unqueued = (await db.execute({
+  sql: `SELECT p.id FROM problems p
+        WHERE p.domain = ? AND p.sd_topic = ?
+          AND NOT EXISTS (SELECT 1 FROM attempts a WHERE a.problem_id = p.id)
+        ORDER BY p.created_at`,
+  args: [DOMAIN, TOPIC],
+})).rows.map(r => r.id);
+
+if (unqueued.length) {
+  const attemptedAt = easternNow();
+  const nextDue = (() => {
+    const d = new Date(`${easternToday()}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  for (const id of unqueued) {
+    await db.execute({
+      sql: `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled, practice_type)
+            VALUES (?, ?, 0, 0, NULL)`,
+      args: [id, attemptedAt],
+    });
+    await db.execute({
+      sql: `UPDATE problems SET interval_level = 0, next_due_date = ? WHERE id = ?`,
+      args: [nextDue, id],
+    });
+  }
+  console.log(`Queued ${unqueued.length} card(s) for review on ${nextDue}.`);
+} else {
+  console.log('Every card already has at least one attempt — nothing to queue.');
 }
 
 console.log(`\nDone. Inserted ${inserted}, skipped ${skipped} (already present), of ${CARDS.length} total.`);
