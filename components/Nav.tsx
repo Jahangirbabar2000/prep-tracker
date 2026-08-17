@@ -18,13 +18,12 @@ export default function Nav() {
   const pathname = usePathname();
   const { data } = useStore();
   const links = [
-    { href: '/', label: 'Review Queue', Icon: Inbox, domain: null, shortcut: '1' },
-    ...activeDomains(data.domains).map((domain, index) => ({
+    { href: '/', label: 'Review Queue', Icon: Inbox, domain: null },
+    ...activeDomains(data.domains).map(domain => ({
       href: `/${domain.slug}`,
       label: domain.name,
       Icon: domainIcon(domain.icon),
       domain: domain.id,
-      shortcut: index < 8 ? String(index + 2) : null,
     })),
   ];
   const { counts: todayCounts, due: dueCounts } = todayStats(data, clientToday());
@@ -89,13 +88,12 @@ export default function Nav() {
   const TODAY_BADGE_CLS = 'bg-accent text-accent-fg';
 
   function SidebarLink({
-    href, label, Icon, domain, shortcut, compact = false, onNavigate,
+    href, label, Icon, domain, compact = false, onNavigate,
   }: {
     href: string;
     label: string;
     Icon: typeof Inbox;
     domain: string | null;
-    shortcut: string | null;
     compact?: boolean;
     onNavigate?: () => void;
   }) {
@@ -129,14 +127,6 @@ export default function Nav() {
           {!compact && (
             <>
               <span className="flex-1 whitespace-nowrap truncate">{label}</span>
-              {/* Shortcut hint hides as soon as EITHER count is present, so the
-                  numbers never read as one ambiguous run (e.g. "1 8 9") or
-                  crowd the label. */}
-              {shortcut && !hasBadge && (
-                <kbd className="hidden md:inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border border-border-strong bg-surface-2 text-[10px] leading-none text-muted/70">
-                  {shortcut}
-                </kbd>
-              )}
               {due > 0 && (
                 <span className={`${pillCls} ${DUE_BADGE_CLS}`} title={`${due} due`}>{due}</span>
               )}
@@ -151,7 +141,6 @@ export default function Nav() {
           <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none hidden group-hover:block">
             <div className="bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 shadow-lg flex items-center gap-2 whitespace-nowrap">
               <span className="text-xs font-medium text-fg">{label}</span>
-              {shortcut && <kbd className="text-[10px] text-muted/70">{shortcut}</kbd>}
               {/* The collapsed rail can only show one dot, so the tooltip is
                   where both counts are actually legible. */}
               {due > 0 && <span className="text-[10px] font-semibold text-danger">{due} due</span>}
@@ -274,8 +263,8 @@ export default function Nav() {
               individual study domains below. */}
           <SidebarLink {...links[0]} compact={collapsed} />
           <div className="mx-2 my-1.5 border-t border-border" aria-hidden />
-          {links.slice(1).map(({ href, label, Icon, domain, shortcut }) => (
-            <SidebarLink key={href} href={href} label={label} Icon={Icon} domain={domain} shortcut={shortcut} compact={collapsed} />
+          {links.slice(1).map(({ href, label, Icon, domain }) => (
+            <SidebarLink key={href} href={href} label={label} Icon={Icon} domain={domain} compact={collapsed} />
           ))}
         </nav>
 
@@ -359,14 +348,13 @@ export default function Nav() {
           <nav className="flex-1 flex flex-col gap-0.5 py-3 px-2 overflow-y-auto">
             <SidebarLink {...links[0]} onNavigate={() => setMobileOpen(false)} />
             <div className="mx-2 my-1.5 border-t border-border" aria-hidden />
-            {links.slice(1).map(({ href, label, Icon, domain, shortcut }) => (
+            {links.slice(1).map(({ href, label, Icon, domain }) => (
               <SidebarLink
                 key={href}
                 href={href}
                 label={label}
                 Icon={Icon}
                 domain={domain}
-                shortcut={shortcut}
                 onNavigate={() => setMobileOpen(false)}
               />
             ))}
