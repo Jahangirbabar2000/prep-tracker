@@ -106,3 +106,6 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 - **Console** — visual, browser-based; best for users who want an easy-to-use interface.
 - **AWS CLI** — command-line, scriptable across OSes; best for advanced users automating tasks.
 - **AWS SDK** — language-specific APIs inside your code; best for developers integrating AWS into applications.
+
+**Q:** What is an AMI, and why does it matter for launching EC2 instances?
+**A:** An **Amazon Machine Image** is a template — OS, storage setup, permissions, pre-installed software — used to launch an EC2 instance. One AMI can launch **many identical instances**, so every new instance starts from the same consistent, repeatable setup.
