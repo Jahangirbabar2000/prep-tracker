@@ -104,7 +104,9 @@ for (let i = 0; i < cards.length; i++) {
   const { q, a, link } = cards[i];
   if (existingNames.has(q)) { skipped++; continue; }
 
-  const createdAt = easternNow(-i * 30); // first card newest → reads top-to-bottom
+  // Ascending with i, matching id order (insertion order below) — see
+  // scripts/seed-deep-learning.mjs for why a negative offset here is wrong.
+  const createdAt = easternNow(i * 30);
   const metadata = JSON.stringify({ fe_bucket: BUCKET, fe_question_set: QUESTION_SET });
   const problem = (await db.execute({
     sql: `INSERT INTO problems (name, domain, fe_bucket, fe_question_set, notes_text, metadata_json, interval_level, next_due_date, created_at)
