@@ -79,3 +79,14 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 **Q:** Why would a company deploy to a specific AWS Region rather than one central location?
 **A:** To minimize **latency** — the farther infrastructure sits from customers, the longer requests take. A company with users in Europe and Asia deploys to Regions like `eu-west-1` (Ireland) and `ap-southeast-1` (Singapore) instead of serving both from one distant Region.
+
+### Compute in the Cloud
+
+**Q:** What is multi-tenancy in EC2, and what keeps it safe?
+**A:** Each EC2 instance is a **VM sharing one physical host** with other customers' instances. A **hypervisor** running on that host handles the resource-sharing and isolation between VMs — AWS manages the hypervisor and host entirely; you never touch that layer.
+
+**Q:** Which EC2 instance-type family fits real-time big-data analytics on large in-flight datasets, and why?
+**A:**
+
+- **Memory optimized** — fast access to large amounts of data held **in memory**: real-time analytics, in-memory databases.
+- **Not Storage optimized** — that family is high, consistent throughput to data already sitting on local disk, a different problem.
