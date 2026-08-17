@@ -16,6 +16,21 @@ Prep Tracker — a local-first, spaced-repetition interview-prep tracker. See `R
 - **Theming is token-driven.** Colors are CSS variables in `app/globals.css` (`:root` light, `.dark` dark); components use semantic classes (`bg-surface`, `text-accent`, …). Change tokens, not per-component hex. Both light and dark must work.
 - **Auth.** Middleware (`middleware.ts`) gates everything except `/login`, `/api/auth`, and static/PWA assets when `AUTH_SECRET` is set (fail-open otherwise).
 
+## Scripts (`scripts/`)
+
+Deliberately small — it is not an archive. Everything in it is either live or
+wired to an npm script:
+
+- **`seed-aws.mjs` + `aws-cards.md`** — the live card-authoring workflow. `aws-cards.md` is the source of truth for the AWS deck's questions and answers: edit there, not in the app, or the next run overwrites the edit. The script is incremental and idempotent (domain/fields/options reused, cards matched on exact question text). Its header also codifies the **house card style** — one card one fact, 250–450 character answers, answer first — which applies to every deck, not just AWS.
+- **`migrate-domains.mjs`** (+ `migrate-domains.test.ts`) — domain-schema migration, wired to `npm run db:migrate`.
+- **`geticon.mjs`** — icon helper.
+
+Conventions for anything you add here:
+
+- **A one-off seed or repair script is deleted once it has been applied.** These write straight to Turso, so a spent script does nothing useful on a re-run and a stale one is a hazard. The card text lives in the DB, and a deleted script stays recoverable from git history — so run it, then delete it. Don't grow a graveyard of past seeds.
+- **Seeded cards need a first attempt or they never surface.** A card inserted with `interval_level 0` / `next_due_date NULL` is "New" and invisible to the Review Queue until studied by hand. Give each new card one "got it" attempt: per `lib/sr.ts`, a first attempt always lands at level 0 due +1 day however it went, so the card keeps its "New" label but actually shows up tomorrow. Scope that step to cards with zero attempts so a re-run never resets real progress.
+- Scripts read Turso credentials from `.env.local`; they are plain `node` (no build step).
+
 ## Conventions
 
 - Dev server runs on **port 3007** (`npm run dev`).
