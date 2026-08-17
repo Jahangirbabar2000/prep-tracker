@@ -90,3 +90,9 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 - **Memory optimized** — fast access to large amounts of data held **in memory**: real-time analytics, in-memory databases.
 - **Not Storage optimized** — that family is high, consistent throughput to data already sitting on local disk, a different problem.
+
+**Q:** Why is Amazon EC2 called an "unmanaged" service, and what does that put on the customer?
+**A:**
+
+- **Unmanaged** — AWS hands you the compute; you configure and run everything above it: the guest **OS**, patching, **security groups** (firewall rules), and whatever software you install.
+- **Managed** services (covered later) shift more of that operational burden onto AWS.
