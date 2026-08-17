@@ -27,7 +27,8 @@ Three study-mode templates are built in:
 
 ## Features
 
-- **Review Queue** — everything due across all domains, grouped by due date, most overdue first. Filter by domain and proficiency (New / Struggling / Learning / Familiar / Proficient / Confident / Mastered); the progress ring and headline scope to the active filter.
+- **Review Queue** — everything due across all domains, grouped by due date, most overdue first. Filter by domain and proficiency (New / Struggling / Learning / Familiar / Proficient / Confident / Mastered); the progress ring and headline scope to the active filter. The sidebar badges each domain's due count alongside what you added today.
+- **Per-domain practice** — revise a domain on demand, off-schedule, from `/{domain}/review`: due now, weak spots (struggling or missed last time), a seeded shuffle, or walk the domain oldest-/newest-first. Scope, order and size are independent, so "weak spots in Two Pointers, oldest first, 20 of them" is one link you can bookmark. Practice reaches cards the queue structurally cannot — ones not yet due, and ones never attempted — and grading still writes a real attempt, so there is only ever one record.
 - **Daily progress + streak** — a progress ring for today's workload and a running day streak.
 - **7-day forecast** — a mini bar chart of upcoming review load per day, with per-domain totals.
 - **Fast logging** — sub-15-second attempt logging with optional backdating, notes, classification, and links.
