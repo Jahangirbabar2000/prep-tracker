@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reviewQueue, matchesProficiency, todayStats } from './queries';
+import { reviewQueue, matchesProficiency, todayStats, toQueueItem, compareByDueDate } from './queries';
 import type { StoreData } from './store';
 import type { Problem, Attempt } from '@/lib/types';
 import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
@@ -130,6 +130,59 @@ describe('reviewQueue', () => {
     const desc = reviewQueue(data, TODAY, 'due-soon');
     expect([...desc].reverse()).toEqual(asc);
     expect(desc.find(i => i.id === 2)).toEqual(asc.find(i => i.id === 2));
+  });
+});
+
+// toQueueItem is what lets practice sets carry cards reviewQueue can never
+// return: no attempts, no due date, or a due date still in the future.
+describe('toQueueItem', () => {
+  it('reports empty attempt fields for a card that has never been attempted', () => {
+    const p = problem({ id: 1, next_due_date: null });
+    const item = toQueueItem(store([p], []), p, TODAY);
+    expect(item.attempt_count).toBe(0);
+    expect(item.last_attempted_at).toBe('');
+    expect(item.last_struggled).toBe(0);
+  });
+
+  it('reports a NEGATIVE days_overdue for a card due in the future', () => {
+    const p = problem({ id: 1, next_due_date: '2026-07-30' }); // TODAY + 4
+    expect(toQueueItem(store([p], []), p, TODAY).days_overdue).toBe(-4);
+  });
+
+  it('reports days_overdue 0 for a card that was never scheduled', () => {
+    const p = problem({ id: 1, next_due_date: null });
+    expect(toQueueItem(store([p], []), p, TODAY).days_overdue).toBe(0);
+  });
+
+  it('takes last_struggled from the newest attempt, not the worst one', () => {
+    const p = problem({ id: 1, next_due_date: '2026-07-20' });
+    const data = store([p], [
+      attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-10T09:00:00', struggled: 1 }),
+      attempt({ id: 2, problem_id: 1, attempted_at: '2026-07-15T09:00:00', struggled: 0 }),
+    ]);
+    const item = toQueueItem(data, p, TODAY);
+    expect(item.attempt_count).toBe(2);
+    expect(item.last_struggled).toBe(0);
+    expect(item.last_attempted_at).toBe('2026-07-15T09:00:00');
+  });
+});
+
+describe('compareByDueDate', () => {
+  it('sorts cards with no due date last, in BOTH directions', () => {
+    const scheduled = problem({ id: 1, next_due_date: '2026-07-20' });
+    const unscheduled = problem({ id: 2, next_due_date: null });
+    for (const order of ['overdue', 'due-soon'] as const) {
+      expect(compareByDueDate(scheduled, unscheduled, order)).toBeLessThan(0);
+      expect(compareByDueDate(unscheduled, scheduled, order)).toBeGreaterThan(0);
+    }
+  });
+
+  it('breaks ties between two unscheduled cards on id, so the sort stays total', () => {
+    const a = problem({ id: 1, next_due_date: null });
+    const b = problem({ id: 2, next_due_date: null });
+    expect(compareByDueDate(a, b, 'overdue')).toBeLessThan(0);
+    expect(compareByDueDate(b, a, 'overdue')).toBeGreaterThan(0);
+    expect(compareByDueDate(a, a, 'overdue')).toBe(0);
   });
 });
 
