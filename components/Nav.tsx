@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Inbox, Binary,
+  Inbox,
   Settings, ChevronLeft, ChevronRight, BarChart3, Menu, X,
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import Logo from './Logo';
 import { useStore } from '@/lib/store/store';
 import { todayStats, clientToday } from '@/lib/store/queries';
 import SyncStatus from './SyncStatus';
@@ -239,9 +240,7 @@ export default function Nav() {
           collapsed ? 'justify-center px-2' : 'px-3',
         ].join(' ')}>
           <Link href="/" className="flex items-center flex-1 min-w-0 rounded-md hover:opacity-80 transition-opacity">
-            <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
-              <Binary size={16} />
-            </span>
+            <Logo className="w-7 h-7" />
             {!collapsed && (
               <span className="font-semibold text-fg text-sm whitespace-nowrap truncate ml-2.5">Jahangir&apos;s Prep</span>
             )}
@@ -284,9 +283,7 @@ export default function Nav() {
             <Menu size={22} />
           </button>
           <Link href="/" className="flex items-center gap-2 font-semibold text-fg truncate hover:opacity-80 transition-opacity">
-            <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
-              <Binary size={16} />
-            </span>
+            <Logo className="w-7 h-7" />
             <span className="truncate">Jahangir&apos;s Prep</span>
           </Link>
         </div>
@@ -330,9 +327,7 @@ export default function Nav() {
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
             >
-              <span className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-fg shrink-0">
-                <Binary size={16} />
-              </span>
+              <Logo className="w-7 h-7" />
               <span className="font-semibold text-fg text-sm truncate">Jahangir&apos;s Prep</span>
             </Link>
             <button
