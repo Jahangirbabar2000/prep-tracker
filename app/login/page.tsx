@@ -2,7 +2,8 @@
 
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Binary, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 function LoginForm() {
   const params = useSearchParams();
@@ -39,9 +40,7 @@ function LoginForm() {
     <div className="min-h-dvh flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 mb-6">
-          <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent text-accent-fg">
-            <Binary size={18} />
-          </span>
+          <Logo className="w-9 h-9" />
           <span className="font-semibold text-fg">Jahangir&apos;s Prep</span>
         </div>
 

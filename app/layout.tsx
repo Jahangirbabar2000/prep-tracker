@@ -29,7 +29,7 @@ const themeScript = `
     var t = localStorage.getItem('theme');
     var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (dark) document.documentElement.classList.add('dark');
-    var color = dark ? '#0c0a1a' : '#f4f3fb';
+    var color = dark ? '#141009' : '#f4efe2';
     var m = document.querySelector('meta[name="theme-color"]');
     if (!m) { m = document.createElement('meta'); m.setAttribute('name', 'theme-color'); document.head.appendChild(m); }
     m.setAttribute('content', color);
@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             "script tag while rendering" warning and the resulting hydration desync. */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0c0a1a" />
+        <meta name="theme-color" content="#141009" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

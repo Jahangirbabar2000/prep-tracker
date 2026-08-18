@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2a2114"/><stop offset="1" stop-color="#141009"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#f2ce77"/><stop offset="1" stop-color="#e6bd57"/>
+    </linearGradient></defs>
+  <rect width="512" height="512" rx="114" fill="url(#plate)"/>
+  <g transform="rotate(-16 256 256)"><rect x="90" y="108" width="240" height="304" rx="36" fill="#2dd4bf"/></g>
+  <rect x="166" y="90" width="256" height="322" rx="40" fill="#141009"/>
+  <rect x="178" y="102" width="232" height="298" rx="32" fill="url(#gold)"/>
+  <rect x="212" y="182" width="164" height="38" rx="19" fill="#141009"/>
+  <rect x="212" y="258" width="102" height="38" rx="19" fill="#141009"/>
+</svg>
