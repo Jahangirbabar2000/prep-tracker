@@ -124,3 +124,15 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 - **Dedicated Hosts** — an entire physical server for exclusive use; you control instance placement and resource allocation.
 - **Dedicated Instances** — isolation too, but **you don't pick which physical server** they run on.
+
+**Q:** Scalability vs. elasticity — what's the actual difference?
+**A:** **Scalability** is long-term capacity planning — adding resources (up or out) so a system can grow to handle more load. **Elasticity** is real-time — automatically scaling resources up *and down* to match demand right now, so you're not paying for idle capacity.
+
+**Q:** What does Elastic Load Balancing (ELB) do, and how does it relate to EC2 Auto Scaling?
+**A:** ELB is the **single point of contact** for incoming traffic, distributing it across EC2 instances. They're distinct services: **Auto Scaling** grows/shrinks the instance count; **ELB** routes traffic across however many instances currently exist.
+
+**Q:** SQS vs. SNS — what's the actual difference?
+**A:** Both decouple components, but differently.
+
+- **SQS** — a queue; messages sit there until a consumer is ready to process them (pull).
+- **SNS** — publish-subscribe; messages push out to subscribers immediately, no holding for later pickup.
