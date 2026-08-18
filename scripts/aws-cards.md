@@ -136,3 +136,54 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 - **SQS** — a queue; messages sit there until a consumer is ready to process them (pull).
 - **SNS** — publish-subscribe; messages push out to subscribers immediately, no holding for later pickup.
+
+### Exploring Compute Services
+
+**Q:** Unmanaged vs. managed vs. fully-managed (serverless) — what's the control spectrum?
+**A:**
+
+- **Unmanaged** (EC2) — you configure the OS, network, and apps; AWS only handles the physical infrastructure.
+- **Managed** — AWS takes on most operational overhead; you may still provision or configure some pieces.
+- **Fully managed / serverless** (e.g. Lambda) — no servers to provision at all; you just write and deploy code, still responsible for securing it.
+
+**Q:** What is AWS Lambda, and how does it run your code?
+**A:** A **serverless compute service** — you write a **function**, attach a **trigger** (e.g. a new S3 upload), and Lambda runs the code only when that trigger fires. AWS handles all scaling and infrastructure; you're billed only for **compute time down to the millisecond**, never for idle capacity.
+
+**Q:** What are ECS, EKS, ECR, and Fargate, and how do they fit together?
+**A:**
+
+- **ECR** — registry; stores your container images.
+- **ECS** — AWS's own container orchestration service (start/stop/scale containers).
+- **EKS** — managed Kubernetes orchestration; same job as ECS, open-source Kubernetes instead.
+- **Fargate** — serverless compute engine that *runs* containers for either ECS or EKS — no servers to manage.
+
+**Q:** What are Elastic Beanstalk, AWS Batch, Lightsail, and Outposts each for?
+**A:**
+
+- **Elastic Beanstalk** — deploy code, it provisions and auto-scales the infrastructure; web apps/APIs.
+- **AWS Batch** — runs large-scale batch/parallel jobs, manages the compute fleet for you.
+- **Lightsail** — simplified VPS + storage + networking at a flat price; small sites, dev/test.
+- **Outposts** — extends AWS into your **on-premises** data center; low latency, data residency, compliance.
+
+### Going Global
+
+**Q:** What is an AWS edge location, and what's it for?
+**A:** A smaller-footprint facility, separate from Regions and AZs, part of AWS's global edge network. **Amazon CloudFront** (AWS's CDN) uses edge locations to cache content (images, videos, etc.) closer to users, cutting latency versus round-tripping to a central Region.
+
+**Q:** What four factors decide which AWS Region to deploy in?
+**A:**
+
+- **Compliance** — data-residency/regulatory laws (e.g. GDPR) can dictate the Region outright, before anything else matters.
+- **Proximity** — closer to your users means lower latency.
+- **Feature availability** — not every service/feature is in every Region.
+- **Pricing** — cost varies by Region (local tax, energy costs).
+
+**Q:** What do high availability, agility, and elasticity each mean for AWS infrastructure?
+**A:**
+
+- **High availability** — the system keeps running through individual component failures, no significant downtime.
+- **Agility** — you can adapt and deploy changes quickly.
+- **Elasticity** — resources scale up/down automatically with demand.
+
+**Q:** What is infrastructure as code, and what does CloudFormation do with it?
+**A:** IaC means defining your infrastructure in a **file** instead of clicking through the console by hand. **CloudFormation** takes a declarative template (what you want, not how to build it) and provisions everything for you — deploy the same template again and you get an **identical environment**, in any account or Region.
