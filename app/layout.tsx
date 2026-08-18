@@ -52,7 +52,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Prep" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        {/* iOS gets its own icon, not the maskable /icon-192.png: iOS ignores
+            `purpose: maskable` and applies its own squircle clip, so the
+            maskable art's 20% Android safe-zone inset just made the mark look
+            small inside an empty plate. 180x180 is the @3x iPhone size.
+            Both files come out of scripts/geticon.mjs. */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="antialiased">
         <StoreProvider>

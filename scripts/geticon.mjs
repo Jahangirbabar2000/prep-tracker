@@ -6,9 +6,10 @@
 //   node scripts/geticon.mjs
 //
 // Outputs:
-//   app/icon.svg        vector, what Chrome uses for the tab (crisp at any size)
-//   app/favicon.ico     16/32/48 raster fallback
-//   public/icon-*.png   PWA/home-screen, drawn maskable-safe (see below)
+//   app/icon.svg                  vector, what Chrome uses for the tab (crisp at any size)
+//   app/favicon.ico               16/32/48 raster fallback
+//   public/icon-*.png             Android/PWA, drawn maskable-safe (see below)
+//   public/apple-touch-icon.png   iOS home screen, 180x180 (see below)
 import sharp from 'sharp';
 import { writeFileSync } from 'fs';
 
@@ -52,9 +53,23 @@ const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <g transform="translate(256 256) scale(0.8) translate(-256 -256)">${art}</g>
 </svg>`;
 
+// iOS home-screen icon. Deliberately NOT the maskable PNG: iOS ignores
+// `purpose: maskable` and clips whatever you give it to its own squircle, so the
+// maskable art's 20% Android safe-zone inset just renders the mark small inside
+// a big empty plate. Full-bleed plate (iOS rounds the corners itself, and a
+// pre-rounded plate would get double-rounded with dark slivers at the corners)
+// with the art at 92% — enough that the squircle can't clip the deck. 180x180 is
+// the @3x iPhone size, which iOS downscales for every smaller slot.
+const ios = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>${defs}</defs>
+  <rect width="512" height="512" fill="url(#plate)"/>
+  <g transform="translate(256 256) scale(0.92) translate(-256 -256)">${art}</g>
+</svg>`;
+
 writeFileSync('app/icon.svg', icon + '\n');
 await sharp(Buffer.from(maskable)).resize(192, 192).png().toFile('public/icon-192.png');
 await sharp(Buffer.from(maskable)).resize(512, 512).png().toFile('public/icon-512.png');
+await sharp(Buffer.from(ios)).resize(180, 180).png().toFile('public/apple-touch-icon.png');
 
 // favicon.ico — an ICO is a header plus one directory entry per size; modern
 // browsers accept PNG-encoded entries, so each size is just a PNG blob.
@@ -82,4 +97,4 @@ const entries = sizes.map((s, i) => {
 });
 writeFileSync('app/favicon.ico', Buffer.concat([header, ...entries, ...pngs]));
 
-console.log('wrote app/icon.svg, app/favicon.ico, public/icon-192.png, public/icon-512.png');
+console.log('wrote app/icon.svg, app/favicon.ico, public/icon-192.png,\n      public/icon-512.png, public/apple-touch-icon.png');
