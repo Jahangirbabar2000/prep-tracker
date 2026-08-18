@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, SkipForward } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ExternalLink, SkipForward, StickyNote } from 'lucide-react';
 import { ReviewQueueItem, Link as LinkType, StudyDomain, DomainField } from '@/lib/types';
 import MarkdownRenderer, { MarkdownInline } from '@/components/MarkdownRenderer';
 import AskAI, { type AskAIHandle } from '@/components/AskAI';
@@ -185,6 +185,16 @@ function SessionPageInner() {
       .filter(a => a.problem_id === card.id)
       .sort((x, y) => (x.attempted_at < y.attempted_at ? 1 : x.attempted_at > y.attempted_at ? -1 : y.id - x.id));
   }, [data.attempts, card]);
+
+  // Notes already saved on this card. The section below used to offer only
+  // "+ Add note", so a note written here (or on the problem page) was invisible
+  // during review — oldest first, matching the problem page's ordering.
+  const cardNotes = useMemo(() => {
+    if (!card) return [];
+    return data.notes
+      .filter(n => n.problem_id === card.id)
+      .sort((x, y) => x.id - y.id);
+  }, [data.notes, card]);
 
   // Fetch links: eagerly for DSA, lazily on reveal for concept domains. Cached per card.
   useEffect(() => {
@@ -673,6 +683,19 @@ function SessionPageInner() {
 
         {/* ── Notes section ── */}
         <div className="border-t border-border px-6 py-3">
+          {cardNotes.length > 0 && (
+            <ul className="flex flex-col gap-1.5 pb-3">
+              {cardNotes.map(n => (
+                <li key={n.id} className="flex items-start gap-2 text-sm text-fg leading-snug">
+                  <StickyNote size={13} className="mt-1 shrink-0 text-muted/50" />
+                  <span className="flex-1">
+                    {n.question}
+                    {n.answer && <span className="block text-muted">{n.answer}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
           {!noteOpen ? (
             <button
               type="button"
