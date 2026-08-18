@@ -30,7 +30,7 @@ wired to an npm script:
 Conventions for anything you add here:
 
 - **A one-off seed or repair script is deleted once it has been applied.** These write straight to Turso, so a spent script does nothing useful on a re-run and a stale one is a hazard. The card text lives in the DB, and a deleted script stays recoverable from git history — so run it, then delete it. Don't grow a graveyard of past seeds.
-- **Seeded cards need a first attempt or they never surface.** A card inserted with `interval_level 0` / `next_due_date NULL` is "New" and invisible to the Review Queue until studied by hand. Give each new card one "got it" attempt: per `lib/sr.ts`, a first attempt always lands at level 0 due +1 day however it went, so the card keeps its "New" label but actually shows up tomorrow. Scope that step to cards with zero attempts so a re-run never resets real progress.
+- **Seed cards as genuinely New — never fake a first attempt.** Insert with `interval_level 0` / `next_due_date NULL` and stop there. Such a card is deliberately absent from the Review Queue, which by design holds only cards you have studied at least once (`reviewQueue()` in `lib/store/queries.ts`); the surface for never-studied cards is the domain's **Resume** practice preset — `scope: 'unattempted'`, `order: 'oldest'`, see `app/[domainSlug]/review/page.tsx`. Writing a synthetic "got it" attempt to force a card into the queue backfires twice: `computeStreak` counts the seed run as a study day, and `scope: 'unattempted'` means *strictly* zero attempts, so Resume then skips the exact cards it exists to surface.
 - Scripts read Turso credentials from `.env.local`; they are plain `node` (no build step).
 
 ## Conventions

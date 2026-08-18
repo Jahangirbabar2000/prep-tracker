@@ -3,9 +3,12 @@
 // scripts/aws-cards.md, parsed from the
 // "## Certification" / "### Topic" / "**Q:** … **A:** …" markdown structure.
 //
-// New cards go in with ZERO attempts (interval_level 0, next_due_date NULL —
-// "New"), then immediately get a "got it" first attempt so they land in
-// tomorrow's Review Queue rather than sitting invisibly until manually studied.
+// New cards go in as genuinely "New" — zero attempts, interval_level 0,
+// next_due_date NULL. They are reached through the domain's Resume practice
+// preset (scope 'unattempted', order 'oldest'), NOT the Review Queue, which by
+// design only holds cards you have actually studied at least once. Do not fake
+// a first attempt to get them into the queue: it inflates the streak and makes
+// Resume skip the very cards it exists to surface.
 //
 //   node scripts/seed-aws.mjs
 //
@@ -82,10 +85,6 @@ function easternNow(offsetSeconds = 0) {
   }).formatToParts(new Date(Date.now() + offsetSeconds * 1000));
   const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
-}
-// "YYYY-MM-DD" today in Eastern (matches lib/db.ts localToday()).
-function easternToday() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
 }
 
 // ── Parse scripts/aws-cards.md ──────────────────────────────────────────────
@@ -238,13 +237,11 @@ await ensureOptions(topicField, [...TOPICS, ...seenTopics.filter(t => !TOPICS.in
 
 // ── Insert new cards, refresh changed ones ──────────────────────────────────
 // New cards go in with ZERO attempts (interval_level 0, next_due_date NULL —
-// "New"), then immediately get a "got it" first attempt below so they land in
-// tomorrow's Review Queue rather than sitting invisibly until manually studied.
+// "New"); the domain's Resume preset is what surfaces them.
 const existing = new Map((await db.execute({
   sql: 'SELECT id, name, notes_text, metadata_json FROM problems WHERE domain = ?', args: [domain.id],
 })).rows.map(r => [r.name, r]));
 
-const newIds = [];
 let inserted = 0, updated = 0, unchanged = 0;
 for (const { cert, topic, q, a } of cards) {
   const metadata = JSON.stringify({ [CERT_FIELD.key]: cert, [TOPIC_FIELD.key]: topic });
@@ -262,39 +259,12 @@ for (const { cert, topic, q, a } of cards) {
   }
 
   const createdAt = easternNow(inserted); // file order, one second apart
-  const row = (await db.execute({
+  await db.execute({
     sql: `INSERT INTO problems (name, domain, notes_text, metadata_json, interval_level, next_due_date, created_at)
-          VALUES (?, ?, ?, ?, 0, NULL, ?) RETURNING id`,
+          VALUES (?, ?, ?, ?, 0, NULL, ?)`,
     args: [q, domain.id, a, metadata, createdAt],
-  })).rows[0];
-  newIds.push(row.id);
+  });
   inserted++;
-}
-
-// ── First "got it" attempt for brand-new cards ──────────────────────────────
-// Mirrors app/api/problems/[id]/attempts/route.ts + lib/sr.ts replaySchedule:
-// a card's first attempt always lands at level 0 with next_due_date = +1 day,
-// regardless of struggled/not, so this queues each new card for tomorrow
-// without touching its "New" label (attempt_count 1).
-if (newIds.length) {
-  const attemptedAt = easternNow();
-  const nextDue = (() => {
-    const d = new Date(`${easternToday()}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + 1);
-    return d.toISOString().slice(0, 10);
-  })();
-  for (const id of newIds) {
-    await db.execute({
-      sql: `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled, practice_type)
-            VALUES (?, ?, 0, 0, NULL)`,
-      args: [id, attemptedAt],
-    });
-    await db.execute({
-      sql: 'UPDATE problems SET interval_level = 0, next_due_date = ? WHERE id = ?',
-      args: [nextDue, id],
-    });
-  }
-  console.log(`Queued ${newIds.length} new card(s) for review on ${nextDue}.`);
 }
 
 // ── Warn about cards in the DB with no matching question in the markdown ───
