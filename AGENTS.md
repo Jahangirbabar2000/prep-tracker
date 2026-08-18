@@ -23,6 +23,7 @@ Deliberately small — it is not an archive. Everything in it is either live or
 wired to an npm script:
 
 - **`seed-aws.mjs` + `aws-cards.md`** — the live card-authoring workflow. `aws-cards.md` is the source of truth for the AWS deck's questions and answers: edit there, not in the app, or the next run overwrites the edit. The script is incremental and idempotent (domain/fields/options reused, cards matched on exact question text). Its header also codifies the **house card style** — one card one fact, 250–450 character answers, answer first — which applies to every deck, not just AWS.
+- **`seed-behavioral.mjs` + `behavioral-cards.md`** — the same live workflow for the **Behavioral** deck, one section per Hello Interview course article. Differences from the AWS pair: it never creates the domain or its fields (`behavioral` already has them, so a missing one is an error), each `## Category` section declares its source article with a `Link:` line that becomes a per-card `links` row labelled with the card's own question, and `--dry` parses and prints without writing — use it to review a batch before it lands. `behavioral-cards.md` currently covers only the `Practice` section; the older 74 cards predate the file and live only in the DB, so the orphan check is scoped to the categories the file actually covers.
 - **`migrate-domains.mjs`** (+ `migrate-domains.test.ts`) — domain-schema migration, wired to `npm run db:migrate`.
 - **`geticon.mjs`** — icon helper.
 
