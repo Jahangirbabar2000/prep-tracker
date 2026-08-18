@@ -65,7 +65,7 @@ describe('buildPracticeSet · scope "due" equivalence with reviewQueue', () => {
       problem({ id: 3, next_due_date: '2026-07-26' }),
       problem({ id: 4, next_due_date: '2026-07-30' }),                    // future -> out
       problem({ id: 5, next_due_date: null }),                            // unscheduled -> out
-      problem({ id: 6, next_due_date: '2026-07-01' }),                    // no attempts -> out
+      problem({ id: 6, next_due_date: '2026-07-01' }),                    // scheduled, never attempted -> IN
       problem({ id: 7, next_due_date: '2026-07-22', domain: 'lld' }),
       problem({ id: 8, next_due_date: '2026-07-22', interval_level: 1 }),
     ],

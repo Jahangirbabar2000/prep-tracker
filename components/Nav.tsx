@@ -74,8 +74,9 @@ export default function Nav() {
   const totalDue = Object.values(dueCounts).reduce((s, n) => s + n, 0);
 
   // Two independent counts per row: how many cards are due (urgent, red) and
-  // how many were added today (progress, accent). The aggregate queue link has
-  // no "added today" of its own — its number is the total due.
+  // how many were created today (progress, accent) — a card you just added
+  // shows up here immediately, before you have studied it. The aggregate queue
+  // link has no "added today" of its own — its number is the total due.
   function badgeFor(domain: string | null): { due: number; today: number } {
     if (domain === null) return { due: totalDue, today: 0 };
     return { due: dueCounts[domain] ?? 0, today: todayCounts[domain] ?? 0 };

@@ -7,29 +7,19 @@ export async function GET() {
   const today = localToday();
 
   const [todayRows, dueRows] = await Promise.all([
+    // "Added today" = created today. "Due now" = next_due_date has arrived,
+    // with no attempt requirement. Both mirror todayStats() in lib/store/queries.ts.
     queryAll<{ domain: string; count: number }>(`
-      SELECT p.domain, COUNT(DISTINCT a.problem_id) as count
-      FROM attempts a
-      JOIN problems p ON p.id = a.problem_id
-      WHERE substr(a.attempted_at, 1, 10) = ?
-        AND NOT EXISTS (
-          SELECT 1 FROM attempts prev
-          WHERE prev.problem_id = a.problem_id
-            AND substr(prev.attempted_at, 1, 10) < ?
-        )
-      GROUP BY p.domain
-    `, [today, today]),
+      SELECT domain, COUNT(*) as count
+      FROM problems
+      WHERE substr(created_at, 1, 10) = ?
+      GROUP BY domain
+    `, [today]),
     queryAll<{ domain: string; count: number }>(`
-      SELECT p.domain, COUNT(*) as count
-      FROM problems p
-      JOIN attempts a ON a.id = (
-        SELECT id FROM attempts
-        WHERE problem_id = p.id
-        ORDER BY attempted_at DESC
-        LIMIT 1
-      )
-      WHERE p.next_due_date <= ?
-      GROUP BY p.domain
+      SELECT domain, COUNT(*) as count
+      FROM problems
+      WHERE next_due_date IS NOT NULL AND next_due_date <= ?
+      GROUP BY domain
     `, [today]),
   ]);
 

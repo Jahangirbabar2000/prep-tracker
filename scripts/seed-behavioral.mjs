@@ -10,12 +10,12 @@
 // an error rather than something to build. Category values found in the file
 // are appended to the Category field's options in file order.
 //
-// New cards go in as genuinely "New" — zero attempts, interval_level 0,
-// next_due_date NULL. They are reached through the domain's Resume practice
-// preset (scope 'unattempted', order 'oldest'), NOT the Review Queue, which by
-// design only holds cards you have actually studied at least once. Do not fake
-// a first attempt to get them into the queue: it inflates the streak and makes
-// Resume skip the very cards it exists to surface.
+// New cards go in with ZERO attempts, interval_level 0, and next_due_date set
+// to TOMORROW — level 0's interval in lib/sr.ts. That is what puts a card you
+// add today into the Review Queue tomorrow, which admits on the due date alone.
+// Do NOT fake a first attempt to get it there: a synthetic "got it" inflates
+// computeStreak and, because the Resume preset is scope 'unattempted' (strictly
+// zero attempts), hides the card from the surface built for never-studied cards.
 //
 // Designed to be run again after every question you add: existing cards are
 // matched by exact question name, and a card whose answer or metadata changed
@@ -56,6 +56,15 @@ function easternNow(offsetSeconds = 0) {
   }).formatToParts(new Date(Date.now() + offsetSeconds * 1000));
   const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+// A new card is scheduled one day out — level 0's interval in lib/sr.ts — so it
+// joins the Review Queue tomorrow with zero attempts. Never write a synthetic
+// first attempt to get it there: that would inflate computeStreak and hide the
+// card from the 'unattempted' Resume preset.
+function easternTomorrow() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+    .format(new Date(Date.now() + 86_400_000));
 }
 
 // ── Parse scripts/behavioral-cards.md ───────────────────────────────────────
@@ -222,8 +231,8 @@ for (const { category, q, a } of cards) {
     sql: `INSERT INTO problems
             (name, domain, notes_text, metadata_json, beh_category, question_list,
              interval_level, next_due_date, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, 0, NULL, ?) RETURNING id`,
-    args: [q, domain.id, a, metadata, category, QUESTION_LIST, createdAt],
+          VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?) RETURNING id`,
+    args: [q, domain.id, a, metadata, category, QUESTION_LIST, easternTomorrow(), createdAt],
   })).rows[0];
   cardIdByQuestion.set(q, row.id);
   inserted++;

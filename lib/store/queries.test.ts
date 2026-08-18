@@ -39,14 +39,14 @@ function store(problems: Problem[], attempts: Attempt[]): StoreData {
 }
 
 describe('reviewQueue', () => {
-  it('includes only attempted problems that are due on or before today', () => {
+  it('includes every problem due on or before today, attempted or not', () => {
     const data = store(
       [
         problem({ id: 1, next_due_date: '2026-07-20' }),        // overdue, attempted -> in
         problem({ id: 2, next_due_date: '2026-07-30' }),        // future -> out
         problem({ id: 3, next_due_date: '2026-07-26' }),        // due today, attempted -> in
         problem({ id: 4, next_due_date: null }),                 // never scheduled -> out
-        problem({ id: 5, next_due_date: '2026-07-01' }),        // overdue but NO attempt -> out
+        problem({ id: 5, next_due_date: '2026-07-01' }),        // overdue, never attempted -> in
       ],
       [
         attempt({ id: 10, problem_id: 1 }),
@@ -54,7 +54,19 @@ describe('reviewQueue', () => {
       ],
     );
     const q = reviewQueue(data, TODAY);
-    expect(q.map(i => i.id)).toEqual([1, 3]); // most overdue first
+    expect(q.map(i => i.id)).toEqual([5, 1, 3]); // most overdue first
+  });
+
+  // The point of scheduling a brand-new card one day out: it shows up the day
+  // after it was added, with no attempt and no synthetic first attempt.
+  it('admits a just-added card on its due date and not before', () => {
+    const data = store([problem({ id: 1, next_due_date: TODAY, interval_level: 0 })], []);
+    expect(reviewQueue(data, '2026-07-25').map(i => i.id)).toEqual([]);
+    const [item] = reviewQueue(data, TODAY);
+    expect(item.id).toBe(1);
+    expect(item.attempt_count).toBe(0);
+    expect(item.last_attempted_at).toBe('');
+    expect(item.days_overdue).toBe(0);
   });
 
   it('computes attempt_count, last_struggled and days_overdue', () => {
@@ -243,22 +255,36 @@ describe('matchesProficiency', () => {
 });
 
 describe('todayStats', () => {
-  it('counts a first-ever-today attempt as "added" and a due item as "due"', () => {
+  it('counts a card created today as "added" and a card whose due date arrived as "due"', () => {
     const data = store(
       [
-        problem({ id: 1, domain: 'dsa', next_due_date: '2026-07-20' }),          // due today
-        problem({ id: 2, domain: 'ai', next_due_date: '2026-07-30' }),           // added today, not due
+        // Created earlier, due today -> "due", NOT "added".
+        problem({ id: 1, domain: 'dsa', created_at: '2026-07-10T09:00:00', next_due_date: '2026-07-20' }),
+        // Created today, studied today, scheduled ahead -> "added", not yet "due".
+        problem({ id: 2, domain: 'ai', next_due_date: '2026-07-30' }),
       ],
       [
-        attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-10T09:00:00' }),  // earlier attempt -> not "added" today
+        attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-10T09:00:00' }),
         attempt({ id: 2, problem_id: 1, attempted_at: '2026-07-26T09:00:00' }),
-        attempt({ id: 3, problem_id: 2, attempted_at: '2026-07-26T10:00:00' }),  // first ever, today -> added
+        attempt({ id: 3, problem_id: 2, attempted_at: '2026-07-26T10:00:00' }),
       ],
     );
     const { counts, due } = todayStats(data, TODAY);
-    expect(counts.ai).toBe(1);   // problem 2 added today
-    expect(counts.dsa).toBe(0);  // problem 1 had an earlier attempt
-    expect(due.dsa).toBe(1);     // problem 1 is due
-    expect(due.ai).toBe(0);      // problem 2 not due yet
+    expect(counts.ai).toBe(1);
+    expect(counts.dsa).toBe(0);
+    expect(due.dsa).toBe(1);
+    expect(due.ai).toBe(0);
+  });
+
+  // The regression that motivated counting created_at: seeded cards have zero
+  // attempts, so a "first attempt today" rule reported 0 for a batch just added.
+  it('counts a freshly seeded card — zero attempts, scheduled for tomorrow', () => {
+    const data = store(
+      [problem({ id: 1, domain: 'lld', next_due_date: '2026-07-27' })],
+      [],
+    );
+    const { counts, due } = todayStats(data, TODAY);
+    expect(counts.lld).toBe(1);
+    expect(due.lld).toBe(0);
   });
 });

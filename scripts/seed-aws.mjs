@@ -3,12 +3,12 @@
 // scripts/aws-cards.md, parsed from the
 // "## Certification" / "### Topic" / "**Q:** … **A:** …" markdown structure.
 //
-// New cards go in as genuinely "New" — zero attempts, interval_level 0,
-// next_due_date NULL. They are reached through the domain's Resume practice
-// preset (scope 'unattempted', order 'oldest'), NOT the Review Queue, which by
-// design only holds cards you have actually studied at least once. Do not fake
-// a first attempt to get them into the queue: it inflates the streak and makes
-// Resume skip the very cards it exists to surface.
+// New cards go in with ZERO attempts, interval_level 0, and next_due_date set
+// to TOMORROW — level 0's interval in lib/sr.ts. That is what puts a card you
+// add today into the Review Queue tomorrow, which admits on the due date alone.
+// Do NOT fake a first attempt to get it there: a synthetic "got it" inflates
+// computeStreak and, because the Resume preset is scope 'unattempted' (strictly
+// zero attempts), hides the card from the surface built for never-studied cards.
 //
 //   node scripts/seed-aws.mjs
 //
@@ -85,6 +85,15 @@ function easternNow(offsetSeconds = 0) {
   }).formatToParts(new Date(Date.now() + offsetSeconds * 1000));
   const p = Object.fromEntries(parts.filter(x => x.type !== 'literal').map(x => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
+// A new card is scheduled one day out — level 0's interval in lib/sr.ts — so it
+// joins the Review Queue tomorrow with zero attempts. Never write a synthetic
+// first attempt to get it there: that would inflate computeStreak and hide the
+// card from the 'unattempted' Resume preset.
+function easternTomorrow() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+    .format(new Date(Date.now() + 86_400_000));
 }
 
 // ── Parse scripts/aws-cards.md ──────────────────────────────────────────────
@@ -236,8 +245,8 @@ await ensureOptions(certField, CERTIFICATIONS);
 await ensureOptions(topicField, [...TOPICS, ...seenTopics.filter(t => !TOPICS.includes(t))]);
 
 // ── Insert new cards, refresh changed ones ──────────────────────────────────
-// New cards go in with ZERO attempts (interval_level 0, next_due_date NULL —
-// "New"); the domain's Resume preset is what surfaces them.
+// New cards go in with ZERO attempts, at level 0 and due tomorrow, so they
+// reach the Review Queue on their own the next day.
 const existing = new Map((await db.execute({
   sql: 'SELECT id, name, notes_text, metadata_json FROM problems WHERE domain = ?', args: [domain.id],
 })).rows.map(r => [r.name, r]));
@@ -261,8 +270,8 @@ for (const { cert, topic, q, a } of cards) {
   const createdAt = easternNow(inserted); // file order, one second apart
   await db.execute({
     sql: `INSERT INTO problems (name, domain, notes_text, metadata_json, interval_level, next_due_date, created_at)
-          VALUES (?, ?, ?, ?, 0, NULL, ?)`,
-    args: [q, domain.id, a, metadata, createdAt],
+          VALUES (?, ?, ?, ?, 0, ?, ?)`,
+    args: [q, domain.id, a, metadata, easternTomorrow(), createdAt],
   });
   inserted++;
 }

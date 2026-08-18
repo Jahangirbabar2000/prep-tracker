@@ -178,11 +178,10 @@ function matchesScope(item: ReviewQueueItem, scope: PracticeScope, today: string
   // order cards were added, starting at the first one never touched at all,
   // rather than the literal first ("First added" / scope 'all' does that).
   if (scope === 'unattempted') return (item.attempt_count ?? 0) === 0;
-  // 'due' — reviewQueue()'s admission rule, restated. Both must agree; the
-  // equivalence test in practice.test.ts is what holds them together.
-  return !!item.next_due_date
-    && item.next_due_date <= today
-    && (item.attempt_count ?? 0) > 0;
+  // 'due' — reviewQueue()'s admission rule, restated: the due date alone, with
+  // no attempt requirement, so a just-added card joins on its scheduled day.
+  // Both must agree; the equivalence test in practice.test.ts holds them together.
+  return !!item.next_due_date && item.next_due_date <= today;
 }
 
 function byCreatedAt(direction: 1 | -1) {

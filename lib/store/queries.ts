@@ -97,7 +97,17 @@ export function compareByDueDate(a: Problem, b: Problem, order: QueueOrder): num
   return a.id - b.id;
 }
 
-/** Review queue: due problems that have at least one attempt. */
+/**
+ * Review queue: problems whose due date has arrived.
+ *
+ * Admission is the due date alone — a card does NOT need a prior attempt. A
+ * newly added card is scheduled one day out (level 0's interval) at creation,
+ * so it joins the queue the day after you add it, which is what "add a
+ * question and see it tomorrow" means. It gets there with zero attempts and no
+ * synthetic "got it" backfill, so `computeStreak` still only counts days you
+ * actually studied, and the Resume preset (`scope: 'unattempted'`) still finds
+ * it. Cards with `next_due_date` NULL were never scheduled and stay out.
+ */
 export function reviewQueue(
   data: StoreData,
   today: string,
@@ -106,7 +116,6 @@ export function reviewQueue(
   return data.problems
     .filter(p => p.next_due_date && p.next_due_date <= today)
     .map(p => toQueueItem(data, p, today))
-    .filter(it => (it.attempt_count ?? 0) > 0)
     .sort((a, b) => compareByDueDate(a, b, order));
 }
 
@@ -128,22 +137,15 @@ export function todayStats(data: StoreData, today: string): { counts: Record<str
   const counts: Record<string, number> = { dsa: 0, system_design: 0, frontend: 0, python: 0, ai: 0, lld: 0, behavioral: 0 };
   const due: Record<string, number> = { dsa: 0, system_design: 0, frontend: 0, python: 0, ai: 0, lld: 0, behavioral: 0 };
 
-  const problemById = new Map(data.problems.map(p => [p.id, p]));
-
-  // "Added today": distinct problems whose FIRST-ever attempt date is today.
-  const firstAttemptToday = new Set<number>();
+  // "Added today" is literally that: the card was created today. It used to mean
+  // "first-ever attempt was today", which made the badge invisible for the case
+  // it exists to report — cards are seeded with zero attempts, so a batch you
+  // just added counted for nothing until you studied it the next day.
   for (const p of data.problems) {
-    const dates = data.attempts.filter(a => a.problem_id === p.id).map(a => dateOf(a.attempted_at));
-    if (dates.length && dates.every(d => d >= today) && dates.some(d => d === today)) {
-      firstAttemptToday.add(p.id);
-    }
-  }
-  for (const pid of firstAttemptToday) {
-    const p = problemById.get(pid);
-    if (p) counts[p.domain] = (counts[p.domain] ?? 0) + 1;
+    if (dateOf(p.created_at) === today) counts[p.domain] = (counts[p.domain] ?? 0) + 1;
   }
 
-  // "Due now": problems with an attempt and next_due_date <= today.
+  // "Due now": problems whose next_due_date has arrived (see reviewQueue).
   for (const item of reviewQueue(data, today)) {
     due[item.domain] = (due[item.domain] ?? 0) + 1;
   }
