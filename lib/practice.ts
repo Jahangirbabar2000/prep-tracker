@@ -49,9 +49,12 @@ export const PRACTICE_SCOPES: readonly { value: PracticeScope; label: string }[]
   { value: 'all',         label: 'Everything' },
 ];
 
+// The first two share their values with QUEUE_ORDER_OPTIONS (lib/filters.ts),
+// so they share its wording too — the same ordering shouldn't read as two
+// different things on the queue and in the practice builder.
 export const PRACTICE_ORDERS: readonly { value: PracticeOrder; label: string }[] = [
-  { value: 'overdue',  label: 'Most overdue' },
-  { value: 'due-soon', label: 'Least overdue' },
+  { value: 'overdue',  label: 'Overdue' },
+  { value: 'due-soon', label: 'Due soon' },
   { value: 'oldest',   label: 'First added' },
   { value: 'newest',   label: 'Last added' },
   { value: 'shuffle',  label: 'Shuffled' },

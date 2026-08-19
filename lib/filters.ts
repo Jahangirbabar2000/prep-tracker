@@ -25,10 +25,16 @@ export const PROFICIENCY_OPTIONS: readonly string[] = PROFICIENCY_LABELS;
 /** Same options but without "New" — for review queue where all items already have next_due_date */
 export const QUEUE_PROFICIENCY_OPTIONS: readonly string[] = PROFICIENCY_LABELS.filter(l => l !== 'New');
 
-/** Which way the review queue runs. First entry is the default. */
+/**
+ * Which way the review queue runs. First entry is the default.
+ *
+ * The labels are deliberately short — this select shares a phone's row with
+ * the domain and level filters, and "Most overdue" only got ellipsised there.
+ * The page subtitle spells the direction out in prose either way.
+ */
 export const QUEUE_ORDER_OPTIONS: readonly { value: QueueOrder; label: string }[] = [
-  { value: 'overdue',  label: 'Most overdue' },
-  { value: 'due-soon', label: 'Least overdue' },
+  { value: 'overdue',  label: 'Overdue' },
+  { value: 'due-soon', label: 'Due soon' },
 ];
 
 export const DEFAULT_QUEUE_ORDER = QUEUE_ORDER_OPTIONS[0].value;
