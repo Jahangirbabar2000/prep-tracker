@@ -93,6 +93,7 @@ Bucket: In a Hurry
 Link: https://www.hellointerview.com/learn/system-design/in-a-hurry/key-technologies
 
 **Q:** Core Database Choice: When should you pick a relational database vs NoSQL in an interview?
+Anchor: core-database
 **A:** - Product design interviews → relational (Postgres/MySQL)
 - Infrastructure design interviews → NoSQL (DynamoDB/Cassandra)
 - Avoid explicit comparisons. They signal inexperience.
@@ -100,6 +101,7 @@ Link: https://www.hellointerview.com/learn/system-design/in-a-hurry/key-technolo
 The overlap is real. Both can handle relationships. Both scale horizontally with proper architecture. Don't claim "I need relational because I have relationships" or "I need NoSQL for scale"—these are yellow flags. Instead, talk about the specific database you chose and how it solves your problem. A strong answer is "I'm using Postgres because its ACID properties maintain data integrity" rather than making broad category claims about relational databases being better for structured data. Specificity signals you understand the actual features.
 
 **Q:** Relational Databases: What features make Postgres/MySQL critical for system design?
+Anchor: relational-databases
 **A:** **SQL Joins**
 
 - Combine data from multiple tables efficiently
@@ -121,6 +123,7 @@ The overlap is real. Both can handle relationships. Both scale horizontally with
 These three features give relational databases the flexibility to solve complex data problems while maintaining consistency. They're why relational databases remain the default for most interview problems despite the rise of NoSQL.
 
 **Q:** NoSQL Databases: What are the actual strengths of DynamoDB/Cassandra that matter in design?
+Anchor: nosql-databases
 **A:** **When NoSQL excels:**
 
 - Flexible, evolving data models (schema-less storage)
@@ -132,6 +135,7 @@ Don't overstate the difference. Relational databases can do all of these with pr
 When discussing NoSQL in interviews, focus on specific features of the database you chose and how they solve your problem, not broad "NoSQL scales better" claims. That's the signal of depth.
 
 **Q:** Blob Storage: How do you structure a system that stores large files?
+Anchor: blob-storage
 **A:** Never use S3 as your primary database. The correct architecture separates concerns:
 
 - **Core database** (Postgres/DynamoDB) stores metadata and pointers (just URLs)
@@ -154,11 +158,13 @@ When discussing NoSQL in interviews, focus on specific features of the database 
 This separation gives you fast metadata queries with database indexes and cheap, infinitely scalable file storage. For large files, use chunking/multipart uploads so you can resume on failure and parallelize the upload process.
 
 **Q:** Blob Storage Scaling: Why is blob storage considered infinitely scalable in interviews?
+Anchor: blob-storage
 **A:** Blob services like S3 use replication and erasure coding for durability, handle unlimited data and requests within account limits, and cost pennies per GB per month—$0.023/GB for S3 versus $1.25/GB for DynamoDB. Because of this economic and architectural reality, you treat blob storage scaling as a given in interviews. Don't worry about it.
 
 Your actual design burden shifts to questions that matter: Can the metadata database handle the query load? Can the CDN cache and serve files fast enough? Does chunking and resumable upload work correctly? The pattern succeeds because concerns are cleanly separated—infinitely scalable blob storage + well-designed metadata layer. This is why storing videos in S3 and metadata in Postgres works for YouTube-scale systems without special blob storage logic.
 
 **Q:** Search Optimization: Why can't you use a traditional database for full-text search?
+Anchor: search-optimized-database
 **A:** A query like `SELECT * FROM documents WHERE document_text LIKE '%search_term%'` requires a full table scan—the database checks every single record. This doesn't scale. With millions of documents, you're checking millions of records on every search.
 
 Search-optimized databases like Elasticsearch use inverted indexes, a data structure that maps words to the documents containing them. Instead of scanning all documents, you look up the word and instantly get matching documents. This is 1000x faster. Elasticsearch also handles tokenization (breaking text into individual words), stemming (matching "running" and "runs" both to "run"), and fuzzy search (tolerating misspellings via edit distance calculations).
@@ -166,11 +172,13 @@ Search-optimized databases like Elasticsearch use inverted indexes, a data struc
 Use search-optimized databases for tweet search, event search, document search—anything requiring full-text queries. If you want to reduce your technology footprint, Postgres GIN indexes support full-text search, though they're less powerful than Elasticsearch. The tradeoff is acceptable for smaller systems where Elasticsearch would be overkill.
 
 **Q:** Search Database Architecture: How does a search index stay synchronized with your primary database?
+Anchor: search-optimized-database
 **A:** Search indexes like Elasticsearch typically sync from your primary database via change data capture (CDC)—the search system pulls updates from your main database and rebuilds indexes continuously. This means the search index lags slightly behind the primary database. For search use cases, this staleness is acceptable and even expected—users don't expect perfect real-time consistency in search results.
 
 The architecture becomes: Postgres or DynamoDB as source of truth, Elasticsearch as a read-only search layer that trails slightly behind. When a document is updated in Postgres, it takes seconds (or milliseconds in fast CDC systems) to appear in search results. This tradeoff is worth it because it lets you search in ways your main database can't handle efficiently. The separation of concerns—transactional consistency in your primary database, eventual consistency in search—allows both systems to optimize for their specific use case.
 
 **Q:** Database Selection Anti-Pattern: What statements reveal inexperience about database choice?
+Anchor: core-database
 **A:** Red flags that reveal inexperience:
 
 - "I need relational because my data has relationships" (NoSQL handles relationships fine)
@@ -182,11 +190,13 @@ These broad category statements signal you don't understand the specific feature
 Instead, give feature-focused answers: "I'm using Postgres because transactions will keep my order data consistent when processing payments and inventory simultaneously" or "I'm using DynamoDB because it scales horizontally for our write-heavy timeline and I've designed my partition key around our access patterns—user_id for fast per-user queries, with a tradeoff that global trending queries require scanning all shards." Specificity signals depth and shows you've thought through real tradeoffs, not just picked a database category.
 
 **Q:** API Gateway: When and how should you include an API gateway in your system design?
+Anchor: api-gateway
 **A:** An API gateway sits in front of your system as the first point of contact for clients. It routes incoming requests to the appropriate backend service—GET /users/123 goes to the users service, POST /events/{id}/bookings goes to the bookings service. Beyond routing, it handles cross-cutting concerns: authentication (verifying user identity), rate limiting (preventing abuse), and logging (tracking requests).
 
 Include an API gateway in nearly all product design interviews. It's a best practice that shows architectural maturity. Common implementations are AWS API Gateway, Kong, and Apigee, though NGINX or Apache webservers work fine too. Interviewers rarely dig deep into API gateway specifics—they usually want to discuss problems more specific to your design. Mention it as an abstraction layer and move on unless asked for details.
 
 **Q:** Load Balancer: What's the difference between L4 and L7 load balancers and when does it matter?
+Anchor: load-balancer
 **A:** A load balancer distributes traffic across multiple machines to avoid overloading any single server. When you have horizontal scaling (multiple servers handling the same request), you need a load balancer.
 
 **L4 (Layer 4) vs L7 (Layer 7):**
@@ -197,6 +207,7 @@ Include an API gateway in nearly all product design interviews. It's a best prac
 **Simple decision rule:** If you have persistent connections (WebSockets), use L4. Otherwise, L7 offers great flexibility with minimal downside. You don't need to draw a load balancer in front of every service in your design—either omit it and mention services are horizontally scaled, or add one at the front as an abstraction. Common implementations: AWS Elastic Load Balancer, NGINX, HAProxy.
 
 **Q:** Queue: How do queues smooth out traffic spikes and when should you avoid them?
+Anchor: queue
 **A:** A queue acts as a buffer between producers and consumers. A compute resource sends messages to a queue and forgets about them. Workers on the other end process messages at their own pace. The queue's function is to smooth load spikes—if you get 1,000 requests but can only handle 200/second, 800 requests wait in the queue instead of being dropped.
 
 Queues decouple producers and consumers, letting you scale them independently. Bring down a service behind a queue with minimal impact.
@@ -219,6 +230,7 @@ Queues decouple producers and consumers, letting you scale them independently. B
 **Common technologies:** Kafka (distributed streaming platform) and SQS (fully managed AWS queue).
 
 **Q:** Streams / Event Sourcing: When do you use streams instead of queues?
+Anchor: streams-event-sourcing
 **A:** Streams retain data for a configurable time period, allowing consumers to read and re-read from the same position or from the past. Queues typically delete messages after processing. Use streams when you need:
 
 **Real-time processing of vast data:** A social media analytics system ingests millions of engagement events (likes, comments, shares) in real-time. A stream processing system (Flink, Spark Streaming) processes these events to update dashboards as they happen.
@@ -237,6 +249,7 @@ Queues decouple producers and consumers, letting you scale them independently. B
 **Common technologies:** Kafka, Flink, Kinesis.
 
 **Q:** Distributed Lock: What problem do distributed locks solve and when do you need them?
+Anchor: distributed-lock
 **A:** Distributed locks lock a resource across different systems for a reasonable period (unlike database transaction locks, which are short-term). They're implemented using distributed key-value stores like Redis or ZooKeeper.
 
 Basic idea: Set a key (ticket-123) to "locked" atomically. If another process tries to set the same key, it fails. First process finishes and sets it to "unlocked." Locks expire after a time period to handle process crashes.
@@ -255,6 +268,7 @@ Basic idea: Set a key (ticket-123) to "locked" atomically. If another process tr
 - **Deadlocks:** Can occur when processes wait for each other. Process A locks resource 1, tries to lock 2. Process B locks 2, tries to lock 1. Both wait forever. Prevent by organizing lock acquisition order consistently across your codebase.
 
 **Q:** Distributed Cache: What data should you store in a cache and how do you keep it fresh?
+Anchor: distributed-cache
 **A:** A distributed cache (Redis, Memcached cluster) stores expensive or frequently accessed data in memory for fast retrieval.
 
 **When to use:**
@@ -284,6 +298,7 @@ Basic idea: Set a key (ticket-123) to "locked" atomically. If another process tr
 **Common technologies:** Redis (supports strings, hashes, lists, sets, sorted sets, bitmaps, hyperloglogs) and Memcached (simple key-value for strings and binary objects).
 
 **Q:** CDN: Why use a CDN for static assets and what else can it cache?
+Anchor: cdn
 **A:** A CDN distributes servers geographically and caches content close to users. When a user requests content, the CDN routes to the nearest server. If cached, return it instantly. If not, fetch from origin, cache it, return it.
 
 **Most common use:** Cache static media assets. Instagram caches user profile pictures on a CDN so users worldwide get fast downloads.
@@ -305,6 +320,7 @@ Bucket: In a Hurry
 Link: https://www.hellointerview.com/learn/system-design/in-a-hurry/patterns
 
 **Q:** Realtime Updates: When should you use HTTP polling vs SSE vs WebSockets?
+Anchor: pushing-realtime-updates
 **A:** Start with HTTP polling—the simplest option. Clients periodically request updates from the server. It's inefficient (wasted requests when nothing changed) but requires no special infrastructure.
 
 Upgrade to Server-Sent Events (SSE) when polling becomes wasteful. SSE is unidirectional: client makes an initial HTTP request, server pushes data down that connection. Works great for notifications, live scores, dashboards. Simpler infrastructure than WebSockets, works with standard HTTP load balancers.
@@ -314,6 +330,7 @@ Use WebSockets only when you need true bidirectional communication where clients
 For the server side, you have options. Pub/Sub services decouple publishers and subscribers—one service publishes events, many services subscribe and push to their connected clients. For heavier processing (like Google Docs real-time collaboration), use stateful servers in a consistent hash ring so a user's edits always route to the same server maintaining their document state.
 
 **Q:** Long-Running Tasks: When should you queue a task instead of processing it synchronously?
+Anchor: managing-long-running-tasks
 **A:** Split long operations (video encoding, report generation, bulk operations taking > few seconds) into two steps: immediate acknowledgment and background processing.
 
 User submits task → web server validates request, pushes job to queue (Redis/Kafka), returns job ID in milliseconds. Separate worker processes pull jobs from queue and execute the actual work. Benefits: fast user response, independent scaling of web servers and workers, fault isolation.
@@ -323,6 +340,7 @@ User submits task → web server validates request, pushes job to queue (Redis/K
 Only queue when the work genuinely takes too long. Key technologies: message queues for job coordination, worker pools for processing, job status tracking, retries, and dead letter queues for poison messages that keep failing.
 
 **Q:** Dealing with Contention: How do you prevent race conditions when multiple users access the same resource?
+Anchor: dealing-with-contention
 **A:** When multiple users try to book the last concert ticket or bid on an auction item simultaneously, you need mechanisms to prevent race conditions and ensure only one user succeeds.
 
 Solutions range from database-level to distributed:
@@ -335,6 +353,7 @@ Key tradeoff: performance versus consistency. A simple database transaction is s
 **Critical insight:** Databases were built to solve contention problems. When you shard your data across multiple databases, you take on all those problems the database originally solved for you. Interviewers dig deep here—they want to see if you understand what you're giving up by breaking data apart. Start with single-database solutions before scaling to distributed approaches.
 
 **Q:** Scaling Reads: What's the progression from a bottlenecked database to serving millions of read requests?
+Anchor: scaling-reads
 **A:** Read traffic becomes your first bottleneck as you grow. Most applications hit read-to-write ratios of 100:1 or higher. Instagram: opening the app triggers hundreds of queries for photos, metadata, user info, engagement. Posting once daily is a single write.
 
 **Progression:**
@@ -346,6 +365,7 @@ Key tradeoff: performance versus consistency. A simple database transaction is s
 Key challenges: cache invalidation (keeping cached data fresh), replication lag (accepting staleness), hot keys (millions requesting the same popular content simultaneously—your cache becomes a bottleneck).
 
 **Q:** Scaling Writes: How do you handle millions of writes per second when a single database can't keep up?
+Anchor: scaling-writes
 **A:** Individual database servers hit hard storage and write throughput limits. Solutions: horizontal sharding, vertical partitioning, and load management.
 
 **Horizontal sharding:** Distribute data across multiple independent servers using a partition key. User ID as partition key means all posts by one user live on one shard. Fast per-user queries, slow global queries (require hitting every shard). Choose partition keys that distribute load evenly while keeping related data together.
@@ -357,6 +377,7 @@ Key challenges: cache invalidation (keeping cached data fresh), replication lag 
 **Critical detail:** Bad partition keys create hot shards. A celebrity's shard gets hammered while others sit idle. Good partition keys distribute evenly.
 
 **Q:** Handling Large Blobs: How do you avoid routing gigabytes through your application servers?
+Anchor: handling-large-blobs
 **A:** Never route large files through your web servers. Use presigned URLs for direct client-to-storage transfers.
 
 **Upload flow:**
@@ -377,6 +398,7 @@ Your servers are eliminated as bottlenecks. Clients get resumable uploads, progr
 **Key challenges:** Synchronizing database metadata with actual blob storage (use event notifications from storage services), handling upload failures (retry logic, cleanup orphaned blobs), managing file lifecycle (expiration policies).
 
 **Q:** Multi-Step Processes: How do you coordinate complex workflows that must survive failures?
+Anchor: multi-step-processes
 **A:** Complex business processes (order fulfillment, user onboarding, payment processing) involve multiple services and long-running operations. Need reliable coordination that survives failures, retries, and external dependency failures.
 
 **Options:**
@@ -388,6 +410,7 @@ Your servers are eliminated as bottlenecks. Clients get resumable uploads, progr
 Key insight: Move from scattered state management and manual error handling to declarative workflow definitions. The system guarantees exactly-once execution and maintains complete audit trails.
 
 **Q:** Proximity-Based Services: When do you need geospatial indexes for location-based queries?
+Anchor: proximity-based-services
 **A:** Systems like Uber or Gopuff need to search for nearby entities (drivers, stores) by location. Geospatial indexes (Postgres PostGIS, Redis geospatial, Elasticsearch geo-queries) let you query efficiently.
 
 Architecture: Divide geographical area into regions, index entities within regions. System quickly excludes vast irrelevant areas, reducing search space dramatically.
@@ -397,6 +420,7 @@ Architecture: Divide geographical area into regions, index entities within regio
 Most systems don't require global queries. When proximity is involved, users search locally—nearby drivers, nearby restaurants. This naturally bounds the search space.
 
 **Q:** Pattern Combinations: How do patterns work together to solve complex systems?
+Anchor: pattern-selection
 **A:** Patterns are not mutually exclusive. A video platform combines multiple patterns:
 
 - **Large Blobs:** Upload videos to S3 directly via presigned URLs
