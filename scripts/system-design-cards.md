@@ -972,27 +972,32 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/caching
 
 **Q:** Why is caching so effective, and what's the rough latency difference between a database and an in-memory cache?
+Anchor: where-to-cache
 **A:** Databases store data on disk, and every query pays the cost of disk access. Memory sits much closer to the CPU and avoids that entirely.
 
 *Example:* reading a user profile from Postgres might take **50ms**, while reading the same data from Redis takes **~1ms** — roughly a **50x** improvement.
 
 **Q:** What are the four layers where caching can occur, and which is the default answer in interviews?
+Anchor: where-to-cache
 **A:** - **External caching** (Redis, Memcached) — the **default answer** for any high-traffic system; shared across all app servers, supports eviction/TTL
 - **CDN** — geographically distributed edge servers caching content close to users, best introduced when the system serves static media at scale
 - **Client-side caching** — browser HTTP cache, localStorage, mobile app local storage; limited backend control, harder to invalidate
 - **In-process caching** — data cached inside the application's own memory (config, feature flags, hot keys); mention only as an *optimization layer* after external caching is already established
 
 **Q:** How much latency does a CDN typically save for a geographically distant user, using the Virginia/India example?
+Anchor: cdn-content-delivery-network
 **A:** Without a CDN, a request from India to a server in Virginia adds **250-300ms** of latency. With a CDN, the same content is served from a nearby edge server in **20-40ms** — a massive difference.
 
 > The most common and most impactful use of a CDN is still media delivery, even though modern CDNs can also cache API responses and dynamic content.
 
 **Q:** What is in-process caching best suited for, and what is its core limitation?
+Anchor: in-process-caching
 **A:** Small, frequently-requested pieces of data that rarely change — configuration values, feature flags, small reference datasets, hot keys, rate-limiting counters, precomputed values.
 
 *Limitation:* each application instance has its **own separate cache**. Data isn't shared across servers, and if one instance updates or invalidates a value, the others have no way of knowing.
 
 **Q:** What is cache-aside (lazy loading), and why should it be your default caching pattern in interviews?
+Anchor: cache-aside-lazy-loading
 **A:** The application checks the cache first; on a miss, it fetches from the database, stores the result in the cache, then returns it.
 
 - Keeps the cache lean since only requested data gets cached
@@ -1001,6 +1006,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/caching
 > If you only remember one caching pattern for interviews, make it cache-aside.
 
 **Q:** What is write-through caching, and what problem does it still have despite writing to both cache and database?
+Anchor: write-through-caching
 **A:** The application writes only to the cache; the cache synchronously writes to the database before acknowledging the write back to the application.
 
 - Tradeoff: slower writes, since both the cache and database update must complete
@@ -1009,22 +1015,26 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/caching
 *Use when:* reads must always return fresh data and slightly slower writes are acceptable.
 
 **Q:** What is write-behind (write-back) caching, and what's the risk?
+Anchor: write-behind-write-back-caching
 **A:** The application writes only to the cache; the cache batches and asynchronously flushes those writes to the database in the background.
 
 *Risk:* if the cache crashes before flushing, **data is lost**. Best suited for workloads where occasional data loss is tolerable and eventual consistency is fine, like analytics or metrics pipelines.
 
 **Q:** What is read-through caching, and when is it actually worth proposing?
+Anchor: read-through-caching
 **A:** The cache itself acts as a smart proxy — the application never talks to the database directly. On a miss, the cache fetches from the database, stores it, and returns it. This is the read-side counterpart to write-through.
 
 *When to propose it:* rarely, in interviews — mostly relevant when discussing **CDNs**, which are effectively a form of read-through cache. For application-level Redis caching, cache-aside is far more common.
 
 **Q:** What are the four cache eviction policies, and which is the safe default?
+Anchor: cache-eviction-policies
 **A:** - **LRU** (Least Recently Used) — evicts the item unused for longest; the **default** in most systems, adapts well to most workloads
 - **LFU** (Least Frequently Used) — evicts the item accessed least often; good for consistently popular items like trending videos
 - **FIFO** — evicts by insertion order only, ignoring usage; rarely used since it can evict still-hot items
 - **TTL** — not an eviction policy on its own, but an expiration timer, often combined with LRU/LFU; essential when data must eventually refresh (API responses, session tokens)
 
 **Q:** What is a cache stampede (thundering herd), and what's the most effective fix?
+Anchor: cache-stampede-thundering-herd
 **A:** A popular cache entry expires, and many requests simultaneously miss the cache and hit the database at once — turning one query into hundreds or thousands in a brief window.
 
 *Example:* a homepage feed cached with a 60-second TTL expires at exactly `12:01:00`; every request at that instant misses and queries the database simultaneously.
@@ -1033,6 +1043,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/caching
 - **Cache warming** — proactively refresh popular keys before they expire; only helps with TTL-based expiration, not write-based invalidation
 
 **Q:** What is cache inconsistency, and why does it happen in the first place?
+Anchor: cache-consistency
 **A:** The cache and database returning different values for the same data, because most systems write to the database first and only later refresh the cache — creating a window where the cache holds stale data.
 
 *Example:* a user updates their profile picture; the database has the new value, but other users may still see the stale cached image until it refreshes.
@@ -1044,6 +1055,7 @@ Three approaches, chosen based on how fresh data must be:
 - **Accept eventual consistency** — appropriate for feeds, metrics, and analytics where a short delay doesn't matter
 
 **Q:** What is a hot key, and how does it create a bottleneck even in a working, high-hit-rate cache?
+Anchor: hot-keys
 **A:** A single cache entry that receives disproportionately massive traffic compared to everything else. Even with a high overall cache hit rate, one hot key can overload a single cache node or Redis shard.
 
 *Example:* if everyone is viewing a celebrity's profile on a Twitter-like app, `user:taylorswift` might receive millions of requests per second, overwhelming one node even though the system is technically "working correctly."
@@ -1055,6 +1067,7 @@ Fixes:
 - **Apply rate limiting** on abusive traffic patterns targeting the specific key
 
 **Q:** What four signals should prompt you to bring up caching in an interview, and what's the pattern for justifying it?
+Anchor: when-to-bring-up-caching
 **A:** - **Read-heavy workload** — e.g. "200M reads/day hitting the database, even with indexes we're at 20-50ms per query"
 - **Expensive queries** — e.g. a personalized feed requiring multiple joins takes 200ms, but can be cached and served in 1ms
 - **High database CPU** — the same queries running repeatedly are pushing CPU to 80% at peak
@@ -1063,6 +1076,7 @@ Fixes:
 *Pattern:* identify the performance problem, quantify it with rough numbers, then explain how caching solves it — don't jump straight to "we'll use a cache" without establishing why.
 
 **Q:** What are the five steps for systematically introducing a caching strategy in an interview?
+Anchor: how-to-introduce-caching
 **A:** 1. **Identify the bottleneck** — name the specific slow thing and quantify it (e.g. "profile queries hit the DB 500 times/sec, each taking 30ms")
 2. **Decide what to cache** — data that's read frequently, changes rarely, and is expensive to fetch or compute; also define the cache key structure (e.g. `user:123:profile`)
 3. **Choose your cache architecture** — usually cache-aside; mention CDN for static content or in-process caching for extremely hot keys if relevant
