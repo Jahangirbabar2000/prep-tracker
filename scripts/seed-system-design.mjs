@@ -209,29 +209,46 @@ async function requireField({ key, label }) {
   return field;
 }
 
-async function ensureOptions(field, values) {
+// Adds missing options AND puts them in file order. The filter dropdowns render
+// options by sort_order (orderFieldValues in lib/domains.ts), so section order
+// here is what the Topic and Bucket dropdowns read in the app — which is why
+// this file's sections follow the course. Options the file never mentions keep
+// their relative order at the end rather than being dropped.
+async function syncOptions(field, values) {
   const existing = (await db.execute({
-    sql: 'SELECT value FROM domain_field_options WHERE field_id = ?', args: [field.id],
-  })).rows.map(r => r.value);
-  let nextSort = (await db.execute({
-    sql: 'SELECT MAX(sort_order) AS value FROM domain_field_options WHERE field_id = ?', args: [field.id],
-  })).rows[0].value;
-  nextSort = (nextSort ?? -1) + 1;
+    sql: 'SELECT id, value, sort_order FROM domain_field_options WHERE field_id = ? ORDER BY sort_order, id',
+    args: [field.id],
+  })).rows;
+  const byValue = new Map(existing.map(row => [row.value, row]));
+
   for (const value of values) {
-    if (existing.includes(value)) continue;
-    await db.execute({
-      sql: 'INSERT INTO domain_field_options (field_id, value, sort_order) VALUES (?, ?, ?)',
-      args: [field.id, value, nextSort++],
-    });
+    if (byValue.has(value)) continue;
+    const row = (await db.execute({
+      sql: 'INSERT INTO domain_field_options (field_id, value, sort_order) VALUES (?, ?, ?) RETURNING id',
+      args: [field.id, value, 0],
+    })).rows[0];
+    byValue.set(value, { id: row.id, value, sort_order: null });
     console.log(`  + ${field.label} option: ${value}`);
   }
+
+  const trailing = existing.map(row => row.value).filter(value => !values.includes(value));
+  let moved = 0;
+  for (const [index, value] of [...values, ...trailing].entries()) {
+    const row = byValue.get(value);
+    if (Number(row.sort_order) === index) continue;
+    await db.execute({
+      sql: 'UPDATE domain_field_options SET sort_order = ? WHERE id = ?', args: [index, row.id],
+    });
+    moved++;
+  }
+  if (moved) console.log(`  ~ Re-ordered ${moved} ${field.label} option(s) to file order.`);
 }
 
 const bucketField = await requireField(BUCKET_FIELD);
 const topicField = await requireField(TOPIC_FIELD);
 
-await ensureOptions(bucketField, seenBuckets);
-await ensureOptions(topicField, seenTopics);
+await syncOptions(bucketField, seenBuckets);
+await syncOptions(topicField, seenTopics);
 
 // ── Insert new cards, refresh changed ones ──────────────────────────────────
 // Existing system-design rows carry BOTH metadata_json and the legacy

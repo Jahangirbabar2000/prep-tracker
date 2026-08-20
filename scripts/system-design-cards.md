@@ -14,6 +14,11 @@ not in the app, or the next run will overwrite it.
 Format:
 
 - `## <Topic>` — becomes the card's `sd_topic`. One section per source article.
+  **Section order is the dropdown order:** the seed rewrites each option's
+  `sort_order` to match this file, and the app renders the Topic and Bucket
+  filters by `sort_order`. That is why the sections follow the course rather
+  than the order cards happened to be added. Reordering in Settings instead
+  will be overwritten by the next run.
 - `Bucket: <name>` — the `sd_category` every card in that section belongs to.
   Buckets are many-to-one over topics (Core Concepts holds nine), which is why
   this is a line inside the section rather than a second heading level.
