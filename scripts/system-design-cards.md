@@ -828,17 +828,20 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/db-indexing
 
 **Q:** What fundamental problem do indexes solve, and why does it matter even with modern SSDs?
+Anchor: physical-storage-and-access-patterns
 **A:** Without an index, a query must scan through every page of data sequentially, loading each into memory to check for a match — painfully slow at scale, like flipping through every page of a book to find one word.
 
 Even on SSDs, **random access is still significantly slower than sequential access**. This gap is smaller than with HDDs, but it's still very real, which is why proper indexing remains critical even on modern storage.
 
 **Q:** What are the two main costs of adding an index, and when might an index hurt more than it helps?
+Anchor: cost
 **A:** - **Storage** — every index needs disk space, sometimes nearly as much as the data
 - **Write performance** — an insert or update touches the table *and* every index on it
 
 But **don't over-weight this: under-indexing kills far more applications than over-indexing ever has.** Modern engines handle well-designed indexes efficiently. Skip an index only on a write-heavy, rarely-read table (a log) or a table small enough to scan.
 
 **Q:** What is a B-tree, and what four structural rules define it?
+Anchor: b-tree-indexes
 **A:** A self-balancing tree that maintains sorted data with efficient insertions, deletions, and searches. Unlike binary trees, each node can have many children (often hundreds).
 
 - All leaf nodes must be at the same depth
@@ -849,6 +852,7 @@ But **don't over-weight this: under-indexing kills far more applications than ov
 Each node is sized to fit a single disk page (~8KB), so finding a record often requires reading only 2-3 pages from disk.
 
 **Q:** Why are B-trees the default choice for most database indexes?
+Anchor: b-tree-indexes
 **A:** They handle both equality searches and range searches equally well, maintain sorted order (great for range queries and `ORDER BY`), stay balanced even under random inserts/deletes, and minimize disk I/O by matching their structure to how databases physically store data.
 
 > If you find yourself in an interview and you need to decide which index to use, B-trees are a safe bet.
@@ -856,17 +860,20 @@ Each node is sized to fit a single disk page (~8KB), so finding a record often r
 *Real-world note:* PostgreSQL uses B-trees for primary keys and unique constraints; MongoDB uses B+ trees for its indexes.
 
 **Q:** What problem do LSM trees solve that B-trees struggle with?
+Anchor: lsm-trees-log-structured-merge-trees
 **A:** **Extremely high write throughput.** With B-trees, each write means finding the right leaf page, reading it into memory, updating it, and writing it back — fine at a few thousand writes/sec, but random disk seeks become a bottleneck at 100,000+ writes/sec.
 
 LSM trees batch writes in memory and flush them to disk sequentially, converting many small random writes into fewer large sequential ones.
 
 **Q:** What are the four steps of the LSM tree write path?
+Anchor: lsm-trees-log-structured-merge-trees
 **A:** 1. **Memtable** — new writes go into an in-memory sorted structure (e.g. red-black tree or skip list), extremely fast since it's all RAM
 2. **Write-Ahead Log (WAL)** — every write is also appended to a durability log on disk, a fast sequential append
 3. **Flush to SSTable** — once the memtable fills, it's frozen and flushed to disk as an immutable Sorted String Table in one large sequential write
 4. **Compaction** — a background process periodically merges SSTables, removing duplicates and deleted entries to keep read performance manageable
 
 **Q:** Why do LSM trees make reads more complex, and what three techniques mitigate this?
+Anchor: lsm-trees-log-structured-merge-trees
 **A:** A single point query may need to check the memtable, any pending immutable memtables, and *every* SSTable on disk (newest to oldest) — potentially dozens of files in the worst case.
 
 Mitigations:
@@ -878,6 +885,7 @@ Mitigations:
 *Rule of thumb:* if a system writes far more than it reads (metrics, audit logs, IoT data), LSM trees are likely right. For user-facing apps with frequent reads per page load, B-trees usually perform better.
 
 **Q:** What is a hash index, and why is it rarely the right interview answer despite being O(1)?
+Anchor: hash-indexes
 **A:** A hash index is essentially a persistent hashmap: it hashes an indexed value to determine which bucket holds a pointer to the row. This gives extremely fast exact-match lookups, but the structure is useless for range queries or sorting, since similar values are deliberately scattered across buckets.
 
 It's rarely the right answer because **B-trees handle equality comparisons almost as efficiently as hash indexes**, while also supporting range queries and sorting — so hash indexes trade away flexibility for a speed advantage that barely exists in disk-based systems.
@@ -887,6 +895,7 @@ It's rarely the right answer because **B-trees handle equality comparisons almos
 *Where they do shine:* in-memory databases like Redis, where all data already lives in RAM and disk I/O patterns don't matter.
 
 **Q:** Why do standard B-tree indexes on latitude and longitude fail for proximity search?
+Anchor: geospatial-indexes
 **A:** A B-tree on latitude and a separate one on longitude each treat their dimension independently — a 2D "find points within a circle" problem being solved with two unrelated 1D indexes.
 
 - Using the latitude index alone returns a strip spanning the entire globe at that latitude
@@ -895,6 +904,7 @@ It's rarely the right answer because **B-trees handle equality comparisons almos
 This is why spatial data needs an index that actually understands 2D proximity relationships.
 
 **Q:** What is a geohash, and why is it the recommended default for geospatial indexing in interviews?
+Anchor: geospatial-indexes
 **A:** Geohash recursively divides the world into smaller and smaller squares, encoding a 2D location into a single 1D string (base32) where **locations close together usually share similar string prefixes**.
 
 - Longer strings encode more precision (e.g. `"9q8y"` ≈ all of San Francisco, `"9q8yyk"` ≈ a specific city block)
@@ -905,11 +915,13 @@ This is why spatial data needs an index that actually understands 2D proximity r
 *Real-world use:* Redis's `GEOADD`/`GEOSEARCH` commands use geohash internally.
 
 **Q:** How do quadtrees organize spatial data, and why have they fallen out of favor in production databases?
+Anchor: geospatial-indexes
 **A:** Quadtrees recursively subdivide a 2D region into four equal quadrants whenever a quadrant exceeds a point threshold (typically 4-8 points), mapping this subdivision directly onto a tree structure.
 
 Their advantage is *adaptive resolution* — dense areas subdivide finely, sparse areas stay coarse. But unlike geohash, quadtrees require a specialized tree structure rather than reusing existing B-tree implementations, which is why most modern databases prefer geohash or R-trees instead. Quadtree concepts do underpin R-trees and are still used in systems like Google Maps' tile organization.
 
 **Q:** What makes R-trees different from quadtrees, and why are they the modern production default for spatial indexing?
+Anchor: geospatial-indexes
 **A:** R-trees use flexible, **overlapping rectangles** that adapt to the actual distribution of the data, rather than quadtrees' rigid, fixed-size quadrant subdivisions.
 
 - This lets a single R-tree efficiently index both points *and* larger shapes (delivery zones, road networks) in the same structure
@@ -918,9 +930,11 @@ Their advantage is *adaptive resolution* — dense areas subdivide finely, spars
 R-trees are the default spatial index in PostgreSQL/PostGIS and MySQL today.
 
 **Q:** Why can't a B-tree efficiently support a LIKE '%database%' style text search?
+Anchor: inverted-indexes
 **A:** B-tree indexes can only help with **prefix matches** (`'database%'`) or, with a reversed column, suffix matches. When the search pattern could match *anywhere* within the text, the database has no choice but to scan every character of every row — the index provides no help at all.
 
 **Q:** What is an inverted index, and how does it flip the document/word relationship?
+Anchor: inverted-indexes
 **A:** Instead of storing documents with their words, an inverted index stores **words mapped to the documents containing them** — like the index at the back of a textbook.
 
 *Example mapping:*
@@ -933,6 +947,7 @@ hash     -> [doc2]
 Production systems like Elasticsearch enrich this with an analysis pipeline: tokenizing text, lowercasing, removing stop words, and stemming, so a search for "Databases" also matches "database" or "database's."
 
 **Q:** What is a composite index, and why does column order matter?
+Anchor: composite-indexes
 **A:** A single index combining multiple columns in a specific order, letting one B-tree traversal satisfy both a filter and a sort in one shot, instead of intersecting two separate indexes and then sorting.
 
 *Example:* `CREATE INDEX idx_user_time ON posts(user_id, created_at)` lets a query filtering on `user_id` and ordering by `created_at` get both from one sorted traversal.
@@ -942,6 +957,7 @@ Production systems like Elasticsearch enrich this with an analysis pipeline: tok
 > Order columns from most selective to least selective — though query patterns can override strict selectivity if sorting by a specific column is common.
 
 **Q:** What is a covering index, and what is the current guidance on when to use one?
+Anchor: covering-indexes
 **A:** An index that includes every column a query needs, not just the filter/sort columns, letting the database return results straight from the index without a separate lookup into the main table page.
 
 *Example:*
@@ -1060,19 +1076,23 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 
 **Q:** What is the technical difference between partitioning and sharding, even though the terms are often used loosely?
+Anchor: first-what-is-partitioning
 **A:** **Partitioning** splits a large table into smaller pieces *within a single database instance* — the data never leaves the machine. **Sharding** splits data *across multiple machines* — each shard is a standalone database.
 
 > In practice most engineers use the terms loosely, so don't get hung up on the wording. Just be clear about whether your data lives on one machine or many.
 
 **Q:** What are the two types of partitioning?
+Anchor: first-what-is-partitioning
 **A:** - **Horizontal partitioning** — splits rows across partitions (same columns, fewer rows per partition), e.g. one partition per year of orders
 - **Vertical partitioning** — splits columns across partitions (same rows, fewer columns per partition), e.g. keeping frequently accessed columns separate from large or rarely used ones
 
 **Q:** What two decisions must you make together when sharding, and what does each define?
+Anchor: how-to-shard-your-data
 **A:** - **What to shard by** — the field/column used to split the data, defining how data is *grouped*
 - **How to distribute it** — the rule for assigning those groups to shards, defining how data is *spread across machines*
 
 **Q:** What are the three properties of a good shard key?
+Anchor: choosing-your-shard-key
 **A:** - **High cardinality** — many unique values; a boolean shard key caps you at two shards, which defeats the purpose
 - **Even distribution** — values spread evenly; sharding by country when 90% of users are in the US just creates one massive shard
 - **Aligns with queries** — the most common queries should ideally hit just one shard
@@ -1082,6 +1102,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 *Bad examples:* `is_premium` (boolean, only two possible shards), `created_at` on a growing table (all new writes pile onto the newest shard).
 
 **Q:** What is range-based sharding, and when does it actually work well?
+Anchor: sharding-strategies
 **A:** Records are grouped by continuous ranges of the shard key value (e.g. user IDs 1-1M on shard 1, 1M-2M on shard 2).
 
 - **Advantage:** simplicity, and efficient range scans since a query bounded within one range only hits one shard
@@ -1090,6 +1111,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 **Works well for:** multi-tenant systems where each company/client naturally owns a distinct ID range — Company A's users only ever query Company A's range.
 
 **Q:** What is hash-based sharding, and why is it the default assumed strategy in interviews?
+Anchor: sharding-strategies
 **A:** A hash function is applied to the shard key, and the result determines which shard a record lands on — e.g. `shard = hash(user_id) % 4`.
 
 - **Advantage:** even distribution, since the hash scrambles input values across all shards regardless of any natural skew
@@ -1098,6 +1120,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 > This is the default and most common sharding strategy. It's also what your interviewer will likely assume you're using unless you explicitly state otherwise.
 
 **Q:** What is directory-based sharding, and why is it rarely the right interview answer?
+Anchor: sharding-strategies
 **A:** A lookup table (directory/mapping service) explicitly stores which shard each record lives on, rather than computing it via a formula.
 
 - **Advantage:** maximum flexibility — a hot user can be manually moved to a dedicated shard, rebalancing is just a mapping update
@@ -1106,6 +1129,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 *Rarely used in interviews* because it introduces a critical dependency and invites follow-up questions that can derail the conversation.
 
 **Q:** What is the "celebrity problem," and what three techniques help mitigate hot spots?
+Anchor: hot-spots-and-load-imbalance
 **A:** A hot spot where a small number of extremely popular keys (e.g. a celebrity's user profile) receive massively disproportionate traffic compared to normal keys — hash-based distribution doesn't help here, since the issue is inherent key popularity, not distribution strategy.
 
 - **Isolate hot keys to dedicated shards** — move an extremely hot account to its own shard that can be scaled independently
@@ -1113,6 +1137,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 - **Dynamic shard splitting** — some databases (e.g. MongoDB's balancer) automatically split and migrate overloaded chunks to rebalance load
 
 **Q:** Why do cross-shard queries become expensive, and what three techniques minimize them?
+Anchor: cross-shard-operations
 **A:** A query aligned with the shard key (e.g. "get user 12345's profile") hits one shard and is fast. A query that doesn't align (e.g. "top 10 most popular posts globally") has to query *every* shard, wait for all responses, and merge results — turning one query into potentially dozens of network calls.
 
 - **Cache the results** — especially effective for queries tolerant of eventual consistency, like trending content or leaderboards; the first query is expensive, subsequent ones hit the cache
@@ -1122,11 +1147,13 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 > If you find yourself saying "we'll query all shards and aggregate the results" for a common use case, pause and consider whether you can denormalize, cache, or precompute it instead.
 
 **Q:** Why does sharding break simple database transactions, and what's the standard textbook fix (and why is it usually avoided)?
+Anchor: maintaining-consistency
 **A:** When related data lives on a single database, a transaction guarantees atomicity for free. Once data is split across shards (e.g. account on shard 1, transaction record on shard 2), you're coordinating writes across independent databases that don't know about each other.
 
 **Two-phase commit (2PC)** is the textbook fix — a coordinator asks all shards to prepare, waits for confirmation, then tells everyone to commit. It's avoided in most production systems because it's **slow and fragile**: if any shard or the coordinator fails mid-transaction, the whole system can get stuck.
 
 **Q:** What are the three preferred alternatives to 2PC for handling multi-shard consistency?
+Anchor: maintaining-consistency
 **A:** - **Design to avoid cross-shard transactions entirely** — the best solution; keep all of a user's related data (balance, history, profile) on the same shard so every transaction is naturally single-shard
 - **Sagas** — break a multi-shard operation into a sequence of steps, each with a compensating action to undo it if a later step fails (e.g. deduct from account A, credit account B, refund A if the credit fails)
 - **Accept eventual consistency** — appropriate when a brief mismatch is tolerable, like a denormalized follower count that converges across shards within a few seconds
@@ -1134,6 +1161,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 > If you find yourself constantly needing distributed transactions, you probably chose the wrong shard key or the wrong shard boundaries.
 
 **Q:** What three concrete, quantified signals should prompt bringing up sharding in an interview?
+Anchor: when-to-mention-sharding
 **A:** - **Storage** — e.g. "500M users × 5KB each = 2.5TB; fine on a single Postgres instance today, but 10x growth would require sharding"
 - **Write throughput** — e.g. "50K writes/sec at peak will overwhelm a single database"
 - **Read throughput** — e.g. "100M daily active users making multiple queries each will exceed what read replicas alone can handle"
@@ -1143,12 +1171,14 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/sharding
 > By far the number one sharding mistake in interviews is introducing sharding before proving it's necessary. Slow down, do the math, and make sure sharding is actually needed.
 
 **Q:** What are the four steps for walking through a sharding strategy out loud in an interview?
+Anchor: what-to-say
 **A:** 1. **Propose a shard key based on access patterns** — e.g. "most queries are user-centric, so I'd shard by `user_id`"
 2. **Choose the distribution strategy** — e.g. "hash-based sharding with consistent hashing, to distribute users evenly"
 3. **Call out the trade-offs** — e.g. "global queries like 'trending posts across all users' become expensive; I'd cache and precompute that instead of querying live"
 4. **Address how you'll handle growth** — e.g. "start with 64 shards; consistent hashing means adding more later only moves a fraction of the data"
 
 **Q:** How do real distributed databases (Cassandra, DynamoDB, MongoDB) differ in how they actually implement sharding under the hood?
+Anchor: sharding-in-modern-databases
 **A:** - **Cassandra** — uses a partitioner (e.g. Murmur3Partitioner) with virtual nodes, a form of consistent hashing mapping keys to token ranges
 - **DynamoDB** — hashes the partition key to route items internally, splitting/merging partitions as they grow; not classic ring-based consistent hashing exposed to users
 - **MongoDB** — shards into range-based chunks on the shard key (or ranges over the hash space if using a hashed key), with a background balancer automatically splitting/migrating chunks
