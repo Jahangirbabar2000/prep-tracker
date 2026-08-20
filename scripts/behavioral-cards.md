@@ -26,10 +26,10 @@ Format:
 
 Every card gets `question_list: Hello Interview Course`.
 
-**Partial back-fill.** This file holds `Why the Behavioral Matters`, `Practice`
-and `Common Pitfalls`. The 64 remaining older cards (Decode, Select, Deliver,
-The Big Three) were seeded before this file existed and still live only in the
-DB — so the orphan check is scoped to the categories present here, and won't
+**Partial back-fill.** This file holds `Why the Behavioral Matters`, `Decode`,
+`Practice` and `Common Pitfalls`. The 49 remaining older cards (Select,
+Deliver, The Big Three) were seeded before this file existed and still live
+only in the DB — so the orphan check is scoped to the categories present here, and won't
 flag them. Back-fill those sections when convenient: recover the exact question
 and answer text from the DB so the seed matches the existing rows instead of
 inserting duplicates, then add an `Anchor:` per card.
@@ -124,6 +124,178 @@ Anchor: conclusion
 **A:** Most candidates don't lack good experiences.
 
 They lack a framework for selecting, structuring, and communicating those experiences in a way that gives interviewers evidence to confidently hire them.
+
+## Decode: How Interviews Work
+Link: https://www.hellointerview.com/learn/behavioral/course/decode-how-behavioral-interviews-work
+
+**Q:** Why is decoding a behavioral question the first step before choosing a story?
+Anchor: why-decoding-a-question-matters
+**A:** Because the question asked is only the surface.
+
+You first need to identify the behavior the interviewer is actually evaluating; otherwise, you may choose a strong story that provides the wrong signal.
+
+**Q:** What three evaluation frameworks do behavioral interviewers use?
+Anchor: the-three-evaluation-frameworks
+**A:** - **Signal Areas:** Universal competencies such as ownership, communication, and conflict resolution
+- **Company Values:** Company-specific language and priorities
+- **Cultural Assessment:** Whether your way of operating matches how successful employees work at that company
+
+**Q:** How should you use company values when preparing for an interview?
+Anchor: company-values
+**A:** Map each company value to the underlying universal signal areas, then let the values guide your story selection and language.
+
+Use company terminology when it fits naturally, but never force or awkwardly repeat values without behavioral evidence.
+
+**Q:** What is “value-dropping,” and why should you avoid it?
+Anchor: company-values
+**A:** **Value-dropping** means artificially inserting company values or leadership principles into every response.
+
+Interviewers recognize it immediately.
+
+The underlying behavior matters more than merely repeating the company’s vocabulary.
+
+**Q:** What is cultural assessment, and why can it cause a confusing rejection or downlevel?
+Anchor: cultural-assessment
+**A:** Interviewers compare your behaviors with those of successful employees at their company, including your approach to:
+
+- Hierarchy
+- Speed versus quality
+- Communication
+- Impact
+- Failure
+
+A behavior valued in a startup may be interpreted differently in Big Tech, so you must translate your experience into the target company’s cultural context.
+
+**Q:** What are the three main types of behavioral interview questions, and how should you respond to each?
+Anchor: the-three-question-types
+**A:** - **“Tell me about a time…”:** Give a specific, detailed story from your past.
+- **Hypothetical questions:** Explain your judgment and how you would approach the situation.
+- **Values questions:** Explain your professional philosophy and demonstrate alignment with the company’s culture.
+
+Most preparation should focus on “Tell me about a time…” questions because they are the most common and provide the strongest evidence.
+
+**Q:** What does the Scope signal assess, and how do you demonstrate it?
+Anchor: scope
+**A:** Scope assesses the “size of the box” you can operate in and whether your past impact matches the level being considered.
+
+Demonstrate it through:
+
+- Significant business or user impact
+- Technical and organizational complexity
+- Longer timescales and higher-stakes decisions
+- Cross-functional or external stakeholders
+- Increasing responsibility over time
+- Mature reflections and lessons
+
+Your story’s scope should match the seniority of the role.
+
+**Q:** What does strong Ownership look like in a behavioral story?
+Anchor: ownership
+**A:** You:
+
+- Proactively noticed a problem
+- Took responsibility without waiting to be asked
+- Drove the solution end-to-end
+- Followed through to real user or business value
+- Measured whether it succeeded
+
+Use **“I”** to clarify your individual contribution rather than hiding it behind “we.”
+
+**Q:** What does strong Ambiguity handling look like?
+Anchor: ambiguity
+**A:** You turn an unclear problem into actionable work by:
+
+- Breaking it into smaller pieces
+- Making and documenting reasonable assumptions
+- Gathering information from multiple sources
+- Prioritizing what matters
+- Starting with partial information
+- Validating assumptions and adjusting when necessary
+
+Do not only say that the situation was unclear.
+
+Explain exactly how you created clarity.
+
+**Q:** What does strong Perseverance signal—and what two mistakes should you avoid?
+Anchor: perseverance
+**A:** Strong perseverance means:
+
+- Adapting when obstacles arise
+- Trying different approaches
+- Learning under pressure
+- Maintaining momentum
+- Staying focused on the objective
+
+Avoid:
+
+- **Blind persistence:** Knowing when to stop or cancel a project can demonstrate good judgment.
+- **Martyr stories:** Working nights and weekends may signal poor planning rather than strength. Emphasize problem-solving, not suffering.
+
+**Q:** What does strong Conflict Resolution look like?
+Anchor: conflict-resolution
+**A:** You:
+
+- Addressed the disagreement directly
+- Sought to understand the other person’s perspective
+- Supported your position with evidence
+- Found common ground or a reasonable compromise
+- Preserved the working relationship afterward
+
+Never begin with *“I don’t have conflicts.”*
+
+Healthy, direct conflict is valued.
+
+**Q:** How should the scope of a conflict story change with seniority?
+Anchor: conflict-resolution
+**A:** Junior candidates might discuss a disagreement with a teammate.
+
+Senior candidates should usually show broader conflict—such as disagreement with a manager, partner team, stakeholder, or across organizational boundaries.
+
+The complexity of the conflict should match the level of the role.
+
+**Q:** What does strong Growth signal look like?
+Anchor: growth
+**A:** You:
+
+- Honestly acknowledge a mistake or weakness
+- Take responsibility
+- Identify the root cause
+- Extract a specific lesson
+- Demonstrate an observable change in later behavior
+
+Avoid humble-brag weaknesses and mistakes that appear obviously inappropriate for your experience level.
+
+**Q:** What does the Communication signal assess, both during the interview and inside your stories?
+Anchor: communication
+**A:** Throughout the interview, it assesses how clearly and efficiently you communicate.
+
+Inside your stories, it assesses whether you:
+
+- Adapted your message to the audience
+- Chose the right communication channel
+- Shared information proactively
+- Facilitated productive discussions
+- Created alignment across stakeholders
+
+Explain not only **what** you communicated, but **when, how, to whom, and why**.
+
+**Q:** What does Leadership look like for an individual contributor without formal authority?
+Anchor: leadership
+**A:** Leadership can include:
+
+- Influencing through expertise or relationships
+- Building consensus
+- Mentoring others
+- Driving team-wide improvements
+- Representing the team to stakeholders
+- Taking responsibility for decisions affecting others
+
+Look for leadership moments hidden inside technical stories, such as:
+
+- Securing support
+- Unblocking teammates
+- Running a decision-making meeting
+- Influencing a project without authority
 
 ## Practice
 Link: https://www.hellointerview.com/learn/behavioral/course/practicing
