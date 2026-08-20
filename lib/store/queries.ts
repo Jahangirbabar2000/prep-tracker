@@ -3,6 +3,7 @@
 // to what the API/server pages return so presentational components are unchanged.
 import { Problem, Attempt, ReviewQueueItem, Domain } from '@/lib/types';
 import { isStrugglingState, proficiencyLabel, type ProficiencyLabel } from '@/lib/proficiency';
+import { archivedDomainIds } from '@/lib/domains';
 import { StoreData } from './store';
 
 const TZ = 'America/New_York';
@@ -107,14 +108,21 @@ export function compareByDueDate(a: Problem, b: Problem, order: QueueOrder): num
  * synthetic "got it" backfill, so `computeStreak` still only counts days you
  * actually studied, and the Resume preset (`scope: 'unattempted'`) still finds
  * it. Cards with `next_due_date` NULL were never scheduled and stay out.
+ *
+ * Cards in an archived domain stay out too, however overdue they are: archiving
+ * takes a domain out of rotation without touching its cards, so restoring it
+ * brings the queue back exactly as it was. buildPracticeSet() skips the same
+ * cards, which is what keeps the `scope: 'due'` equivalence in practice.test.ts
+ * true for an archived domain as well as an active one.
  */
 export function reviewQueue(
   data: StoreData,
   today: string,
   order: QueueOrder = 'overdue',
 ): ReviewQueueItem[] {
+  const archived = archivedDomainIds(data.domains);
   return data.problems
-    .filter(p => p.next_due_date && p.next_due_date <= today)
+    .filter(p => p.next_due_date && p.next_due_date <= today && !archived.has(p.domain))
     .map(p => toQueueItem(data, p, today))
     .sort((a, b) => compareByDueDate(a, b, order));
 }
@@ -214,8 +222,9 @@ export function historyBuckets(
 /** Upcoming due counts by (date, domain) for today < date <= until. */
 export function forecast(data: StoreData, today: string, until: string): { date: string; domain: string; count: number }[] {
   const map = new Map<string, number>();
+  const archived = archivedDomainIds(data.domains);
   for (const p of data.problems) {
-    if (!p.next_due_date) continue;
+    if (!p.next_due_date || archived.has(p.domain)) continue;
     if (p.next_due_date > today && p.next_due_date <= until) {
       const key = `${p.next_due_date} ${p.domain}`;
       map.set(key, (map.get(key) ?? 0) + 1);

@@ -7,7 +7,7 @@ import {
 import { reviewQueue, matchesProficiency, toQueueItem } from './store/queries';
 import { QUEUE_ORDER_OPTIONS } from './filters';
 import type { StoreData } from './store/store';
-import type { Problem, Attempt } from '@/lib/types';
+import type { Problem, Attempt, StudyDomain } from '@/lib/types';
 import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
 
 const TODAY = '2026-07-26';
@@ -32,17 +32,28 @@ function attempt(over: Partial<Attempt> & { id: number; problem_id: number }): A
   } as Attempt;
 }
 
-function store(problems: Problem[], attempts: Attempt[] = []): StoreData {
+function store(
+  problems: Problem[],
+  attempts: Attempt[] = [],
+  domains: StudyDomain[] = LEGACY_DOMAIN_FALLBACKS,
+): StoreData {
   return {
     problems,
     attempts,
     notes: [],
     links: [],
     config_options: [],
-    domains: LEGACY_DOMAIN_FALLBACKS,
+    domains,
     domain_fields: [],
     domain_field_options: [],
   };
+}
+
+/** The standard domains with some archived — archiving never touches the cards. */
+function archiving(...ids: string[]): StudyDomain[] {
+  return LEGACY_DOMAIN_FALLBACKS.map(domain =>
+    ids.includes(domain.id) ? { ...domain, archived_at: '2026-07-25T12:00:00Z' } : domain,
+  );
 }
 
 function spec(over: Partial<PracticeSpec> = {}): PracticeSpec {
@@ -58,36 +69,44 @@ function spec(over: Partial<PracticeSpec> = {}): PracticeSpec {
 describe('buildPracticeSet · scope "due" equivalence with reviewQueue', () => {
   // Exercises both orders, duplicate due dates, two domains, an unattempted
   // card, an unscheduled card and a not-yet-due card in one fixture.
-  const data = store(
-    [
-      problem({ id: 1, next_due_date: '2026-07-20' }),
-      problem({ id: 2, next_due_date: '2026-07-20' }),                    // tie on due date
-      problem({ id: 3, next_due_date: '2026-07-26' }),
-      problem({ id: 4, next_due_date: '2026-07-30' }),                    // future -> out
-      problem({ id: 5, next_due_date: null }),                            // unscheduled -> out
-      problem({ id: 6, next_due_date: '2026-07-01' }),                    // scheduled, never attempted -> IN
-      problem({ id: 7, next_due_date: '2026-07-22', domain: 'lld' }),
-      problem({ id: 8, next_due_date: '2026-07-22', interval_level: 1 }),
-    ],
-    [1, 2, 3, 4, 5, 7, 8].map(id => attempt({ id, problem_id: id })),
-  );
+  const problems = [
+    problem({ id: 1, next_due_date: '2026-07-20' }),
+    problem({ id: 2, next_due_date: '2026-07-20' }),                    // tie on due date
+    problem({ id: 3, next_due_date: '2026-07-26' }),
+    problem({ id: 4, next_due_date: '2026-07-30' }),                    // future -> out
+    problem({ id: 5, next_due_date: null }),                            // unscheduled -> out
+    problem({ id: 6, next_due_date: '2026-07-01' }),                    // scheduled, never attempted -> IN
+    problem({ id: 7, next_due_date: '2026-07-22', domain: 'lld' }),
+    problem({ id: 8, next_due_date: '2026-07-22', interval_level: 1 }),
+  ];
+  const attempts = [1, 2, 3, 4, 5, 7, 8].map(id => attempt({ id, problem_id: id }));
 
-  for (const order of ['overdue', 'due-soon'] as const) {
-    it(`matches reviewQueue for order "${order}" with no filters`, () => {
-      expect(buildPracticeSet(data, spec({ order }), TODAY))
-        .toEqual(reviewQueue(data, TODAY, order));
-    });
+  // The equivalence holds whatever the domains are doing. Archiving 'lld' is
+  // the interesting half: both sides have to drop card 7, and they only do
+  // because buildPracticeSet and reviewQueue share one archived rule.
+  for (const [label, domains] of [
+    ['all domains active', LEGACY_DOMAIN_FALLBACKS],
+    ['lld archived', archiving('lld')],
+  ] as const) {
+    const data = store(problems, attempts, domains);
 
-    it(`matches reviewQueue for order "${order}" filtered by domain`, () => {
-      expect(buildPracticeSet(data, spec({ order, domain: 'dsa' }), TODAY))
-        .toEqual(reviewQueue(data, TODAY, order).filter(it => it.domain === 'dsa'));
-    });
+    for (const order of ['overdue', 'due-soon'] as const) {
+      it(`matches reviewQueue for order "${order}" with no filters — ${label}`, () => {
+        expect(buildPracticeSet(data, spec({ order }), TODAY))
+          .toEqual(reviewQueue(data, TODAY, order));
+      });
 
-    it(`matches reviewQueue for order "${order}" filtered by proficiency`, () => {
-      expect(buildPracticeSet(data, spec({ order, proficiency: 'Learning' }), TODAY))
-        .toEqual(reviewQueue(data, TODAY, order)
-          .filter(it => matchesProficiency(it, 'Learning', it.attempt_count)));
-    });
+      it(`matches reviewQueue for order "${order}" filtered by domain — ${label}`, () => {
+        expect(buildPracticeSet(data, spec({ order, domain: 'dsa' }), TODAY))
+          .toEqual(reviewQueue(data, TODAY, order).filter(it => it.domain === 'dsa'));
+      });
+
+      it(`matches reviewQueue for order "${order}" filtered by proficiency — ${label}`, () => {
+        expect(buildPracticeSet(data, spec({ order, proficiency: 'Learning' }), TODAY))
+          .toEqual(reviewQueue(data, TODAY, order)
+            .filter(it => matchesProficiency(it, 'Learning', it.attempt_count)));
+      });
+    }
   }
 });
 
@@ -367,5 +386,46 @@ describe('fieldValuesPresent', () => {
       problem({ id: 5, metadata: {} }),
     ];
     expect(fieldValuesPresent(problems, 't')).toEqual(['Arrays', 'Graphs']);
+  });
+});
+
+describe('buildPracticeSet · archived domains', () => {
+  // One card per reason a scope could pick it up: due, struggling, never
+  // attempted. All three sit in 'ai', so archiving 'ai' must empty every scope.
+  const problems = [
+    problem({ id: 1, domain: 'dsa', next_due_date: '2026-07-20' }),
+    problem({ id: 2, domain: 'ai',  next_due_date: '2026-07-20' }),  // due
+    problem({ id: 3, domain: 'ai',  next_due_date: null }),          // unattempted, unscheduled
+    problem({ id: 4, domain: 'ai',  next_due_date: '2026-07-30' }),  // struggled last time
+  ];
+  const attempts = [
+    attempt({ id: 1, problem_id: 1 }),
+    attempt({ id: 2, problem_id: 2 }),
+    attempt({ id: 4, problem_id: 4, struggled: 1 }),
+  ];
+
+  for (const scope of ['due', 'weak', 'all', 'unattempted'] as const) {
+    it(`excludes archived cards from scope "${scope}"`, () => {
+      const active = buildPracticeSet(store(problems, attempts), spec({ scope, order: 'oldest' }), TODAY);
+      expect(active.some(it => it.domain === 'ai')).toBe(true);
+
+      const archived = buildPracticeSet(
+        store(problems, attempts, archiving('ai')), spec({ scope, order: 'oldest' }), TODAY,
+      );
+      expect(archived.map(it => it.domain)).not.toContain('ai');
+      expect(archived).toEqual(active.filter(it => it.domain !== 'ai'));
+    });
+  }
+
+  it('stays empty even when the spec names the archived domain outright', () => {
+    const data = store(problems, attempts, archiving('ai'));
+    for (const scope of ['due', 'weak', 'all', 'unattempted'] as const) {
+      expect(buildPracticeSet(data, spec({ scope, domain: 'ai' }), TODAY)).toEqual([]);
+    }
+  });
+
+  it('keeps a card whose domain is missing from the store, matching fallbackDomain', () => {
+    const data = store([problem({ id: 9, domain: 'nope', next_due_date: TODAY })], [], archiving('ai'));
+    expect(buildPracticeSet(data, spec(), TODAY).map(it => it.id)).toEqual([9]);
   });
 });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DomainField, DomainFieldOption, Problem, StudyDomain } from './types';
 import {
   activeDomains,
+  archivedDomainIds,
   cardTagsFromFields,
   domainBySlugWithFallback,
   domainBySlug,
@@ -46,6 +47,14 @@ describe('runtime domains', () => {
     expect(domainPath(domains, 'dsa')).toBe('/dsa');
     expect(domainBySlug(domains, 'databases')?.id).toBe('custom');
     expect(activeDomains(domains).map(domain => domain.id)).toEqual(['dsa']);
+  });
+
+  // The set the review queue and practice sets filter cards against, so that
+  // archiving a domain takes it out of rotation without touching its cards.
+  it('reports the archived domain IDs, and nothing for an all-active registry', () => {
+    expect([...archivedDomainIds(domains)]).toEqual(['custom']);
+    expect(archivedDomainIds([domains[0]]).size).toBe(0);
+    expect(archivedDomainIds([]).size).toBe(0);
   });
 
   it('keeps renamed built-in detail routes valid without a hydrated domain registry', () => {

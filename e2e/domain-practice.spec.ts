@@ -20,7 +20,8 @@ const DOMAIN = {
   empty_message: 'Empty',
   answer_placeholder: 'Answer',
   default_link: '',
-  archived_at: null,
+  // Widened so a test can archive this fixture domain.
+  archived_at: null as string | null,
 };
 
 interface Card {
@@ -43,16 +44,16 @@ const UNTOUCHED_CARD: Card = {
   due: null, created: '2000-06-01 00:00:00', struggles: [],
 };
 
-function syncPayload(cards: Card[]) {
+function syncPayload(cards: Card[], domain = DOMAIN) {
   return {
-    domains: [DOMAIN],
+    domains: [domain],
     domain_fields: [],
     domain_field_options: [],
     config_options: [],
     problems: cards.map(c => ({
       id: c.id,
       name: c.name,
-      domain: DOMAIN.id,
+      domain: domain.id,
       metadata: {},
       notes_text: 'Answer body',
       interval_level: c.level,
@@ -72,10 +73,10 @@ function syncPayload(cards: Card[]) {
   };
 }
 
-async function stubSync(page: Page, cards: Card[]) {
+async function stubSync(page: Page, cards: Card[], domain = DOMAIN) {
   await page.route('**/api/sync', route => route.fulfill({
     contentType: 'application/json',
-    json: syncPayload(cards) as unknown as Record<string, unknown>,
+    json: syncPayload(cards, domain) as unknown as Record<string, unknown>,
   }));
 }
 
@@ -166,4 +167,19 @@ test('the domain page links to practice at phone width too', async ({ page }) =>
   await expect(practice).toBeVisible();
   await practice.click();
   await expect(page).toHaveURL(new RegExp(`/${DOMAIN.slug}/review$`));
+});
+
+test('an archived domain leaves the queue and empties its own practice launcher', async ({ page }) => {
+  // Same cards as the tests above, where the due one shows in the queue and
+  // "Last added" counts two. Archiving the domain is the only thing that changes.
+  const archived = { ...DOMAIN, archived_at: '2000-07-01 00:00:00' };
+  await stubSync(page, [DUE_CARD, UNTOUCHED_CARD], archived);
+
+  await page.goto('/');
+  await expect(page.getByText(DUE_CARD.name)).toHaveCount(0);
+  await expect(page.getByRole('link', { name: DOMAIN.name })).toHaveCount(0);
+
+  await page.goto(`/${archived.slug}/review`);
+  await expect(page.getByTestId('practice-count-due')).toHaveText('0');
+  await expect(page.getByTestId('practice-count-newest')).toHaveText('0');
 });

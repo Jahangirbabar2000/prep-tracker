@@ -141,6 +141,18 @@ export function activeDomains(domains: StudyDomain[]): StudyDomain[] {
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 }
 
+/**
+ * IDs of the archived domains. Their cards stay in the store and on the domain
+ * page, but they are out of rotation — see reviewQueue() in store/queries.ts and
+ * buildPracticeSet() in practice.ts, which both skip them. An id that isn't in
+ * this set counts as active, including one missing from `domains` entirely: that
+ * is the same call fallbackDomain() below makes with `archived_at: null`, and it
+ * keeps a store that hasn't hydrated its domains yet from blanking the queue.
+ */
+export function archivedDomainIds(domains: StudyDomain[]): Set<string> {
+  return new Set(domains.filter(domain => domain.archived_at).map(domain => domain.id));
+}
+
 /** Numeric navigation shortcuts: 1 is the queue, 2–9 follow active Settings order. */
 export function navigationShortcutMap(domains: StudyDomain[]): Record<string, string> {
   return Object.fromEntries([

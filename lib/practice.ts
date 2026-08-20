@@ -19,6 +19,7 @@ import {
   compareByDueDate, matchesProficiency, toQueueItem, type QueueOrder,
 } from '@/lib/store/queries';
 import { DEFAULT_QUEUE_ORDER } from '@/lib/filters';
+import { archivedDomainIds } from '@/lib/domains';
 import { isStrugglingState } from '@/lib/proficiency';
 
 /** Which cards are eligible, independent of how they get ordered. */
@@ -211,7 +212,17 @@ export function buildPracticeSet(
   today: string,
 ): ReviewQueueItem[] {
   const items: ReviewQueueItem[] = [];
+  // An archived domain is out of rotation, so its cards are excluded from every
+  // scope — not just 'due'. This has to sit here rather than in matchesScope's
+  // 'due' branch: 'all', 'weak' and 'unattempted' never look at next_due_date,
+  // so a due-only gate would still surface archived cards through Shuffle,
+  // Weak spots and Resume. reviewQueue() applies the same rule, which is what
+  // holds the equivalence in practice.test.ts together. The exclusion applies
+  // even when spec.domain names the archived domain, so its practice launcher
+  // reads zero rather than quietly staying playable.
+  const archived = archivedDomainIds(data.domains);
   for (const p of data.problems) {
+    if (archived.has(p.domain)) continue;
     if (spec.domain && p.domain !== spec.domain) continue;
     if (spec.field && spec.value && (p.metadata?.[spec.field] ?? '') !== spec.value) continue;
     const item = toQueueItem(data, p, today);

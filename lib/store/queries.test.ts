@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { reviewQueue, matchesProficiency, todayStats, toQueueItem, compareByDueDate } from './queries';
+import { reviewQueue, matchesProficiency, todayStats, toQueueItem, compareByDueDate, forecast } from './queries';
 import type { StoreData } from './store';
-import type { Problem, Attempt } from '@/lib/types';
+import type { Problem, Attempt, StudyDomain } from '@/lib/types';
 import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
 
 const TODAY = '2026-07-26';
@@ -25,17 +25,28 @@ function attempt(over: Partial<Attempt> & { id: number; problem_id: number }): A
   } as Attempt;
 }
 
-function store(problems: Problem[], attempts: Attempt[]): StoreData {
+function store(
+  problems: Problem[],
+  attempts: Attempt[],
+  domains: StudyDomain[] = LEGACY_DOMAIN_FALLBACKS,
+): StoreData {
   return {
     problems,
     attempts,
     notes: [],
     links: [],
     config_options: [],
-    domains: LEGACY_DOMAIN_FALLBACKS,
+    domains,
     domain_fields: [],
     domain_field_options: [],
   };
+}
+
+/** The standard domains with some archived — archiving never touches the cards. */
+function archiving(...ids: string[]): StudyDomain[] {
+  return LEGACY_DOMAIN_FALLBACKS.map(domain =>
+    ids.includes(domain.id) ? { ...domain, archived_at: '2026-07-25T12:00:00Z' } : domain,
+  );
 }
 
 describe('reviewQueue', () => {
@@ -286,5 +297,53 @@ describe('todayStats', () => {
     const { counts, due } = todayStats(data, TODAY);
     expect(counts.lld).toBe(1);
     expect(due.lld).toBe(0);
+  });
+});
+
+describe('archived domains', () => {
+  // The same three cards every time: archiving is the only variable.
+  const problems = [
+    problem({ id: 1, domain: 'dsa', next_due_date: '2026-07-20' }),  // overdue
+    problem({ id: 2, domain: 'ai',  next_due_date: TODAY }),         // due today
+    problem({ id: 3, domain: 'ai',  next_due_date: '2026-07-30' }),  // upcoming
+  ];
+
+  it('keeps every card while the domains are active', () => {
+    const data = store(problems, []);
+    expect(reviewQueue(data, TODAY).map(i => i.id)).toEqual([1, 2]);
+    expect(todayStats(data, TODAY).due).toMatchObject({ dsa: 1, ai: 1 });
+    expect(forecast(data, TODAY, '2026-08-30')).toEqual([
+      { date: '2026-07-30', domain: 'ai', count: 1 },
+    ]);
+  });
+
+  it('drops the archived domain from the queue, the due counts and the forecast', () => {
+    const data = store(problems, [], archiving('ai'));
+    expect(reviewQueue(data, TODAY).map(i => i.id)).toEqual([1]);
+    expect(todayStats(data, TODAY).due).toMatchObject({ dsa: 1, ai: 0 });
+    expect(forecast(data, TODAY, '2026-08-30')).toEqual([]);
+  });
+
+  it('leaves the cards untouched, so restoring the domain restores the queue', () => {
+    const archived = store(problems, [], archiving('ai'));
+    expect(reviewQueue(archived, TODAY).map(i => i.id)).toEqual([1]);
+    // Same problems, domains restored — nothing about the cards ever changed.
+    expect(reviewQueue(store(archived.problems, []), TODAY).map(i => i.id)).toEqual([1, 2]);
+  });
+
+  it('treats a domain missing from the store as active, matching fallbackDomain', () => {
+    const data = store([problem({ id: 9, domain: 'nope', next_due_date: TODAY })], [], archiving('ai'));
+    expect(reviewQueue(data, TODAY).map(i => i.id)).toEqual([9]);
+  });
+
+  it('still counts an archived card as added today — that half of todayStats is history', () => {
+    const data = store(
+      [problem({ id: 1, domain: 'ai', next_due_date: TODAY })],
+      [],
+      archiving('ai'),
+    );
+    const { counts, due } = todayStats(data, TODAY);
+    expect(counts.ai).toBe(1);
+    expect(due.ai).toBe(0);
   });
 });
