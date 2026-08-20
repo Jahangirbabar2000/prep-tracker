@@ -11,6 +11,7 @@ import {
 } from 'motion/react';
 import { useEffect, useRef, type PointerEvent, type ReactNode } from 'react';
 import { findScrollableX, isTextEntry } from '@/lib/useSwipeNav';
+import { usePhone } from '@/lib/usePhone';
 import { resolveCardSwipe, type CardSwipeDirection } from '@/lib/swipeCard';
 
 interface Props {
@@ -49,13 +50,16 @@ export default function SwipeableReviewCard({
   const nextOpacity = useTransform(x, [-12, 0], [1, 0]);
   const previousOpacity = useTransform(x, [0, 12], [0, 1]);
   const dragControls = useDragControls();
+  // Swiping is a phone-only gesture; desktop and tablet drive the deck with the
+  // Prev / Next controls instead (see lib/usePhone.ts).
+  const swipeEnabled = usePhone();
   const reduceMotion = useReducedMotion();
   const activeAnimation = useRef<ReturnType<typeof animate> | null>(null);
 
   useEffect(() => () => activeAnimation.current?.stop(), []);
 
   function startDrag(event: PointerEvent<HTMLDivElement>) {
-    if (disabled || (!canSwipeLeft && !canSwipeRight)) return;
+    if (!swipeEnabled || disabled || (!canSwipeLeft && !canSwipeRight)) return;
     const target = event.target as Element;
     if (isTextEntry(target) || target.closest(interactiveSelector)) return;
     if (findScrollableX(target, event.currentTarget)) return;
@@ -102,7 +106,7 @@ export default function SwipeableReviewCard({
 
   return (
     <div className="relative isolate">
-      {canSwipeRight && previousPreview && (
+      {swipeEnabled && canSwipeRight && previousPreview && (
         <motion.div
           aria-hidden
           style={{ opacity: previousOpacity }}
@@ -111,7 +115,7 @@ export default function SwipeableReviewCard({
           {previousPreview}
         </motion.div>
       )}
-      {canSwipeLeft && nextPreview && (
+      {swipeEnabled && canSwipeLeft && nextPreview && (
         <motion.div
           aria-hidden
           style={{ opacity: nextOpacity }}
@@ -122,12 +126,13 @@ export default function SwipeableReviewCard({
       )}
       <motion.div
         data-testid="swipe-review-card"
-        drag="x"
+        data-swipe={swipeEnabled ? 'on' : 'off'}
+        drag={swipeEnabled ? 'x' : false}
         dragListener={false}
         dragControls={dragControls}
         dragConstraints={{
-          left: canSwipeLeft ? -140 : 0,
-          right: canSwipeRight ? 140 : 0,
+          left: swipeEnabled && canSwipeLeft ? -140 : 0,
+          right: swipeEnabled && canSwipeRight ? 140 : 0,
         }}
         dragElastic={0.2}
         dragMomentum={false}
@@ -146,14 +151,16 @@ export default function SwipeableReviewCard({
           }}
           className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-sm"
         >
-          <div
-            data-swipe-handle="true"
-            aria-hidden
-            className="absolute inset-x-0 top-0 z-30 h-5 cursor-grab active:cursor-grabbing"
-            style={{ touchAction: 'pan-y' }}
-          >
-            <span className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-border-strong/60" />
-          </div>
+          {swipeEnabled && (
+            <div
+              data-swipe-handle="true"
+              aria-hidden
+              className="absolute inset-x-0 top-0 z-30 h-5 cursor-grab active:cursor-grabbing"
+              style={{ touchAction: 'pan-y' }}
+            >
+              <span className="absolute left-1/2 top-1.5 h-1 w-8 -translate-x-1/2 rounded-full bg-border-strong/60" />
+            </div>
+          )}
           {children}
         </motion.div>
       </motion.div>

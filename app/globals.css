@@ -163,3 +163,10 @@ button:active, [role="button"]:active, .cursor-pointer:active {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Card swipe is phone-only (see lib/usePhone.ts). SwipeableReviewCard marks the
+   card when the gesture is off; the handles inside it aren't draggable then, so
+   don't advertise a grab cursor on them. */
+[data-swipe='off'] [data-swipe-handle='true'] {
+  cursor: auto !important;
+}

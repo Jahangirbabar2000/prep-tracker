@@ -39,7 +39,8 @@ test('review queue filter selects are accessible (have names)', async ({ page })
   }
 });
 
-test('review card springs back below threshold and exits on a committed swipe', async ({ page }) => {
+// The swipe fixture: two flashcards due, so the card can be dragged to the next.
+async function mockSwipeDeck(page: import('@playwright/test').Page) {
   await page.route('**/api/sync', route => route.fulfill({
     contentType: 'application/json',
     json: {
@@ -93,6 +94,11 @@ test('review card springs back below threshold and exits on a committed swipe', 
       links: [],
     },
   }));
+}
+
+test('review card springs back below threshold and exits on a committed swipe', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'card swipe is a phone-only gesture');
+  await mockSwipeDeck(page);
   await page.goto('/review/session');
   const card = page.getByTestId('swipe-review-card');
   await expect(card).toBeVisible();
@@ -125,6 +131,35 @@ test('review card springs back below threshold and exits on a committed swipe', 
   await page.mouse.move(startX - 140, startY, { steps: 6 });
   await page.mouse.up();
   await expect(card.getByText('Swipe animation fixture two')).toBeVisible();
+});
+
+test('review card does not drag outside phone viewports', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop/tablet contract');
+  await mockSwipeDeck(page);
+  await page.goto('/review/session');
+  const card = page.getByTestId('swipe-review-card');
+  await expect(card).toBeVisible();
+
+  const box = await card.boundingBox();
+  const startX = box!.x + box!.width / 2;
+  const startY = box!.y + 10;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 140, startY, { steps: 6 });
+
+  const draggedX = await card.evaluate(element => {
+    const transform = getComputedStyle(element).transform;
+    return transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m41;
+  });
+  expect(draggedX).toBe(0);
+
+  await page.mouse.up();
+  // Still on the first card — and nothing advertises a grab cursor.
+  await expect(card.getByText('Swipe animation fixture one')).toBeVisible();
+  const grabCursors = await page.locator('[data-swipe-handle="true"]').evaluateAll(
+    els => els.map(el => getComputedStyle(el).cursor).filter(cursor => cursor === 'grab'),
+  );
+  expect(grabCursors).toEqual([]);
 });
 
 test('Ask AI leaves the mobile dock and scrolls into normal page flow', async ({ page }, testInfo) => {
