@@ -142,21 +142,48 @@ export default function DomainPageClient({
     window.history.replaceState(null, '', basePath);
   }
 
-  // Derive available filter options only from values present in actual data
+  // Each dropdown's options reflect the OTHER active filters, not the whole
+  // domain — so choosing a bucket narrows Topic to that bucket's topics, and no
+  // dropdown ever offers a combination that would return nothing. Same rule the
+  // review queue uses (app/page.tsx). A filter never narrows itself, or picking
+  // a value would leave it as the only option.
   const derivedOptions = useMemo(() => {
+    // Does this problem satisfy every active filter except the one we're
+    // building options for?
+    const matchesOthers = (p: Problem, exceptKey: string) => {
+      for (const fc of filterConfigs) {
+        if (fc.key === exceptKey) continue;
+        const val = filters[fc.key];
+        if (val && String(p.metadata[fc.field] ?? '') !== val) return false;
+      }
+      if (exceptKey !== 'proficiency' && filters.proficiency && labelOf(p) !== filters.proficiency) {
+        return false;
+      }
+      return true;
+    };
+
     const opts: Record<string, string[]> = {};
     for (const fc of filterConfigs) {
       const vals = new Set<string>();
       for (const p of allProblems) {
+        if (!matchesOthers(p, fc.key)) continue;
         const v = p.metadata[fc.field];
         if (v != null && String(v) !== '') vals.add(String(v));
       }
+      // Keep the current selection listed even once the other filters have
+      // narrowed past it, so the <select> can still render what it's set to.
+      const current = filters[fc.key];
+      if (current) vals.add(current);
       opts[fc.key] = orderFieldValues([...vals], fc.order ?? []);
     }
-    const profSet = new Set(allProblems.map(labelOf));
+
+    const profSet = new Set(
+      allProblems.filter(p => matchesOthers(p, 'proficiency')).map(labelOf),
+    );
+    if (filters.proficiency) profSet.add(filters.proficiency);
     opts.proficiency = PROFICIENCY_ORDER.filter(l => profSet.has(l));
     return opts;
-  }, [allProblems, filterConfigs]);
+  }, [allProblems, filterConfigs, filters]);
 
   // Apply filters + search + sort in memory
   const visible = useMemo(() => {

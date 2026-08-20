@@ -62,7 +62,11 @@ export default function DomainFilters({ selects, currentSort, onFilterChange, se
 
       {/* Filters — right; one shared row on mobile, wrapping only from sm up */}
       <div className="flex items-center gap-2 flex-nowrap sm:flex-wrap">
-        {selects.map(s => s.options.length >= 3 && (
+        {/* Two choices is still a useful filter — and now that options cascade
+            (DomainPageClient), narrowing to a bucket can legitimately leave a
+            field with two. A field where every card shares one value stays
+            hidden, which is what this guard is actually for. */}
+        {selects.map(s => s.options.length >= 2 && (
           <select
             key={s.key}
             aria-label={s.placeholder}
