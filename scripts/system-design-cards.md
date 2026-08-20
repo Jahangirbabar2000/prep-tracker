@@ -1447,6 +1447,7 @@ Bucket: Patterns
 Link: https://www.hellointerview.com/learn/system-design/patterns/realtime-updates
 
 **Q:** Real-time updates split into two independent problems — what are they?
+Anchor: the-solution
 **A:** **Hop 1 — client↔server:** how the update reaches the client (polling, long polling, SSE, WebSockets, WebRTC). **Hop 2 — source→server:** how the server *holding that connection* learns the update happened (polling a DB, consistent hashing, pub/sub).
 
 Choose each independently — they trade off separately.
@@ -1454,157 +1455,187 @@ Choose each independently — they trade off separately.
 > "Two hops: how the client hears about it, and how my server hears about it."
 
 **Q:** How does long polling work, and why does it degrade for high-frequency updates?
+Anchor: long-polling-the-easy-solution
 **A:** The client requests, the server **holds the request open** until data exists, responds, and the client immediately re-requests.
 
 The gap is the cost: at 100ms RTT, two updates 10ms apart land at 100ms and up to **290ms** — the client has to call back before it can receive the next one.
 
 **Q:** What's the one infrastructure detail you must call out when proposing long polling?
+Anchor: long-polling-the-easy-solution
 **A:** Every hop must tolerate the hold time — a load balancer that times out at 30s will hang up on a client your server was happily holding for 60s. **15–30s is the safe interval.**
 
 It also makes monitoring painful, since requests legitimately sit open for a long time.
 
 **Q:** What HTTP mechanism makes SSE possible, and how does it differ from a normal response?
+Anchor: server-sent-events-sse-the-efficient-one-way-street
 **A:** A normal response sends `Content-Length` and is one atomic body.
 
 SSE sends **`Transfer-Encoding: chunked`** — the client is told to expect a series of chunks of unknown count and size, so the server can write one update, keep the request open, and write more later.
 
 **Q:** What's the nastiest SSE failure mode in real infrastructure?
+Anchor: server-sent-events-sse-the-efficient-one-way-street
 **A:** A proxy or load balancer that **doesn't support streaming will buffer the whole response** instead of forwarding chunks — your stream silently stops working until the request completes, with no error to point at.
 
 Opaque and painful to debug; verify every hop supports streaming.
 
 **Q:** Why do persistent WebSocket connections make deployments painful, and what is the standard architectural fix?
+Anchor: websockets-the-full-duplex-champion
 **A:** Redeploying a server severs every connection it holds, forcing mass reconnection — prefer that over migrating connections, it's simpler.
 
 Fix: **terminate WebSockets in a dedicated WebSocket service** behind an L4 load balancer. It rarely deploys, so it rarely churns connections, and the rest of the system stays stateless.
 
 **Q:** What's the common pattern that lets you avoid WebSockets even when clients need to write?
+Anchor: websockets-the-full-duplex-champion
 **A:** **SSE for the downstream updates, plain HTTP POST/PUT for the writes.** WebSockets only earn their complexity when writes are *high-frequency*; occasional writes can just be separate requests.
 
 > "I'd default to SSE and do writes over POST unless write volume actually justifies a duplex connection."
 
 **Q:** With a polling-based second hop, what load number do candidates forget to compute?
+Anchor: pulling-with-simple-polling
 **A:** The read volume on the store. The update source writes to a DB and clients poll it — decoupled and dead simple, but **1M clients polling every 10s is 100K reads/sec**, entirely from clients asking "anything new?"
 
 Do that math before calling polling cheap.
 
 **Q:** To push a message to User C, how do you find which server holds their connection?
+Anchor: pushing-via-consistent-hashes
 **A:** Make ownership deterministic — hash the user ID to a server, with **ZooKeeper or etcd** holding the server list so every node agrees. A client that connects elsewhere gets redirected to its owner, which keeps a map of user → open connection.
 
 Use **consistent hashing**, not `% N`, so scaling doesn't move every connection.
 
 **Q:** What has to happen during a scaling event for a consistent-hash connection layer?
+Anchor: pushing-via-consistent-hashes
 **A:** Record **both old and new assignments**, drain clients off the old servers gradually so they reconnect to their new owner, then commit the new mapping.
 
 In the interim, **send messages to both the old and new server** so nothing is lost mid-transition.
 
 **Q:** How does a pub/sub second hop work, and why can a client connect to any server?
+Anchor: pushing-via-pub-sub
 **A:** Because the routing state lives in the pub/sub service (Redis/Kafka), not in the servers.
 
 A client connects to any **endpoint server**; that server subscribes to the client's topic — often one topic per user — and forwards published messages down the existing connection.
 
 **Q:** How do you choose between consistent hashing and pub/sub for the second hop?
+Anchor: pushing-via-pub-sub
 **A:** **How much state each connection carries.**
 
 - **Heavy per-connection state** (a Google Docs document: pending ops, collaborator sync) → consistent hashing pins it to one server, and scaling only rebuilds a fraction of it.
 - **Just forwarding small messages** → pub/sub; state lives in the broker and endpoint servers stay interchangeable.
 
 **Q:** What do you lose by putting a pub/sub service in the second hop?
+Anchor: pushing-via-pub-sub
 **A:** - **No connection visibility** — the broker doesn't know whether a subscriber is still connected, or when it drops.
 - **Bottleneck and SPOF** — scaled by sharding subscriptions across a Redis cluster, which then creates **many-to-many** connections between brokers and endpoint servers.
 - One extra hop of latency (<10ms).
 
 **Q:** How do you detect a dead real-time connection and recover the updates missed while it was down?
+Anchor: how-do-you-handle-connection-failures-and-reconnection
 **A:** A WebSocket can break without either side noticing — **heartbeats** catch these "zombie" connections.
 
 For recovery, track what each client has received via **sequence numbers** or a per-user queue (Redis streams is the popular choice), and replay from the last acknowledged ID on reconnect.
 
 **Q:** How do you keep message ordering consistent across distributed real-time servers, and what is the interview-appropriate answer?
+Anchor: how-do-you-maintain-message-ordering-across-distributed-servers
 **A:** **Funnel related messages through a single server or partition** — a local timestamp then gives you a total order for free, trading some scalability for consistency.
 
 Vector clocks and logical timestamps exist, but they're deep-infra territory — don't reach for them on a product question like an online auction.
 
 ## Scaling Reads
 Bucket: Patterns
-Link: https://www.hellointerview.com/learn/courses/system-design/lesson/scaling-reads/scaling-reads
+Link: https://www.hellointerview.com/learn/system-design/patterns/scaling-reads
 
 **Q:** At what read volume do you stop tuning the database and add a cache or replicas?
+Anchor: scale-your-database-horizontally
 **A:** Above roughly **50,000–100,000 read requests/sec**, assuming you already have proper indexing.
 
 Rough, and it moves with read patterns, data model and hardware — but in an interview a rough number is what justifies the decision.
 
 **Q:** What is a materialized view, and what does it buy you for read scaling?
+Anchor: denormalization-strategies
 **A:** A precomputed, stored result of an expensive aggregation, refreshed by a **background job** rather than recalculated per request.
 
 Instead of averaging every review on each product page load, compute `AVG(rating)` once and read it. Strongest for analytics queries over large datasets.
 
 **Q:** Why is sharding usually the wrong answer to a read-scaling problem?
+Anchor: database-sharding
 **A:** Sharding is primarily a **write**-scaling technique. It does help reads — smaller datasets per query, load spread across servers — but it buys that with major operational complexity.
 
 For read load, **caching and read replicas are both more effective and far easier** to implement.
 
 **Q:** What is the tradeoff between synchronous and asynchronous replication?
+Anchor: read-replicas
 **A:** **Synchronous** waits for replicas to confirm — consistent, but every write pays the latency. **Asynchronous** acknowledges immediately — fast, but replicas trail, so a user may not see their own write.
 
 Either way replicas double as redundancy: promote one to primary when the primary fails.
 
 **Q:** How much does vertical scaling actually buy you, and how should you raise it in an interview?
+Anchor: hardware-upgrades
 **A:** SSDs over spinning disks give **10–100× faster random I/O**; more RAM keeps more of the dataset out of disk reads; more cores serve more concurrent queries.
 
 Worth one sentence — it is often the fastest breathing room — but it sidesteps the question, so don't dwell there.
 
 **Q:** What should actually determine your cache TTL?
+Anchor: application-level-caching
 **A:** The **non-functional staleness requirement**. "Search results no more than 30 seconds stale" *is* your TTL.
 
 In practice: short TTLs (**5–15 min**) as a safety net, plus active invalidation for anything critical like profiles or inventory. Low-stakes data like recommendation scores can ride on TTL alone.
 
 **Q:** How does cache versioning work?
+Anchor: how-do-you-handle-cache-invalidation-when-data-updates-need-to-be-immediately-visible
 **A:** The record carries a **version column, incremented in the same DB transaction as the write**. Reads take two hops: fetch the current version from a small version key, then read `event:123:v42`.
 
 A write commits `v43` and readers move there on their own. Old entries are never deleted — they just become unreachable.
 
 **Q:** What problem does cache versioning solve that delete-on-write does not?
+Anchor: how-do-you-handle-cache-invalidation-when-data-updates-need-to-be-immediately-visible
 **A:** The **repopulation race**. After a delete, a reader that missed can fetch stale data — often from a lagging replica — and write it back into the live key, poisoning it for everyone.
 
 With versioning a stale reader can only touch `v42`, never the current `v43`. No invalidation broadcast, no guessing which layer to purge.
 
 **Q:** What are the tradeoffs of cache versioning?
+Anchor: how-do-you-handle-cache-invalidation-when-data-updates-need-to-be-immediately-visible
 **A:** - **Two cache lookups per request** — version, then data
 - **Old versions accumulate**, since nothing is deleted; you still need TTLs to reclaim them
 - **Only helps single-entity caches** (user profiles, product details) — no use for feeds or search results, where invalidation is inherently harder
 
 **Q:** What is a deleted items cache, and when do you reach for one?
+Anchor: how-do-you-handle-cache-invalidation-when-data-updates-need-to-be-immediately-visible
 **A:** A **small, fast cache of recently deleted or hidden IDs**. Serve the cached feed as-is, then filter the results against that set.
 
 It lets you keep serving mostly-correct cached feeds immediately while proper invalidation of the big structures happens in the background — ideal for moderation and privacy changes.
 
 **Q:** What should you never put in a CDN cache, and why?
+Anchor: cdn-and-edge-caching
 **A:** **User-specific data** — preferences, private messages, account settings. Only one user ever requests them, so the hit rate is zero and you gain nothing.
 
 CDNs pay off on naturally shared content (public posts, catalogs, search results), where they can cut origin load by **90%+**.
 
 **Q:** How much backend load does request coalescing actually save?
+Anchor: how-do-you-handle-millions-of-concurrent-reads-for-the-same-cached-data
 **A:** It bounds it at **exactly N, where N is your number of application servers** — one rebuild each — whether 1,000 or 10 million users want the key at once.
 
 That hard bound is the reason to reach for coalescing before anything more exotic.
 
 **Q:** What is cache key fanout, and what does it fix?
+Anchor: how-do-you-handle-millions-of-concurrent-reads-for-the-same-cached-data
 **A:** Store the same hot value under **N distinct keys** (`feed:taylor-swift:1` … `:10`) and have clients pick one at random.
 
 500k req/sec against a single key becomes **50k across ten** — survivable. Cost: N× the memory, and invalidation now has to clear every copy.
 
 **Q:** What is probabilistic early refresh, and why does it beat a distributed lock?
+Anchor: what-happens-when-multiple-requests-try-to-rebuild-an-expired-cache-entry-simultaneously
 **A:** Each read carries a **rising chance of triggering a background refresh** as the entry ages — ~1% at minute 50, 5% at 55, 20% at 59 of a 60-minute TTL — so rebuilds spread across the last 10–15 minutes instead of landing at once.
 
 A lock serializes rebuilds but leaves thousands of requests waiting on one slow rebuild.
 
 **Q:** When should you NOT reach for read-scaling patterns?
+Anchor: when-not-to-use
 **A:** - **Write-heavy systems** — Uber's location tracking is nearer 1:1 or 2:1; scale writes first
 - **Explicitly small scale** — "design for 1000 users" needs one well-indexed database
 - **Strongly consistent systems** — finance, inventory
 - **Real-time collaborative apps** — caching actively *hurts* Google Docs, where every keystroke must be visible
 
 **Q:** Read scaling and latency reduction are different problems — why does the distinction matter?
+Anchor: when-not-to-use
 **A:** These patterns exist to reduce **database load**. If the database is handling the load fine and you simply want lower latency, that is a different problem with different tools — edge compute, service-mesh tuning.
 
 Diagnose which one you actually have before proposing replicas or a cache.
