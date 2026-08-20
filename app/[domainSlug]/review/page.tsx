@@ -17,13 +17,6 @@ import {
 
 const PREVIEW_ROWS = 10;
 
-// Fixed course decks (bulk-seeded, meant to be studied start-to-end) get a
-// single-button "Continue" launcher instead of the full due/weak/shuffle/
-// custom-builder picker — there is exactly one way anyone should work through
-// these, so offering five is just noise. Add a slug here to simplify its
-// launcher the same way.
-const SEQUENTIAL_DOMAIN_SLUGS = new Set(['deep-learning', 'machine-learning']);
-
 const selectCls =
   'bg-surface border border-border rounded-lg px-2.5 py-2 text-sm text-fg cursor-pointer ' +
   'focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
@@ -54,62 +47,6 @@ const PRESETS: readonly Preset[] = [
   { id: 'newest', label: 'Last added',  hint: 'Your most recent questions first',
     spec: b => ({ ...b, scope: 'all',  order: 'newest' }) },
 ];
-
-/** The single-preset "Continue" launcher for a fixed, sequential course deck. */
-function ContinueLauncher({ domainId, domainName, slug }: {
-  domainId: string; domainName: string; slug: string;
-}) {
-  const { data } = useStore();
-  const today = clientToday();
-  const resumeSpec: PracticeSpec = {
-    domain: domainId, scope: 'unattempted', order: 'oldest', limit: null,
-    proficiency: '', field: '', value: '', seed: 0,
-  };
-  const remaining = buildPracticeSet(data, resumeSpec, today);
-
-  return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <Link
-          href={`/${slug}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg mb-3 transition-colors"
-        >
-          <ArrowLeft size={13} /> {domainName}
-        </Link>
-        <h1 className="text-2xl font-semibold text-fg tracking-tight">{domainName} · Continue</h1>
-        <p className="text-sm text-muted mt-1">
-          A fixed course deck — pick up where you left off, in order. Every answer still counts as a real attempt.
-        </p>
-      </div>
-
-      {remaining.length > 0 ? (
-        <Link
-          href={practiceHref(resumeSpec)}
-          data-testid="practice-preset-resume"
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-accent px-5 py-4 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover cursor-pointer"
-        >
-          <Play size={14} /> Continue
-          <span className="font-normal opacity-70">({remaining.length} left)</span>
-        </Link>
-      ) : (
-        <span className="flex items-center justify-center rounded-xl border border-border bg-surface px-5 py-4 text-sm font-medium text-muted">
-          Every question has been attempted at least once — nothing left to start fresh.
-        </span>
-      )}
-
-      {remaining.length > 0 && (
-        <div className="flex flex-col gap-2.5">
-          <p className="text-xs text-muted">
-            First {Math.min(PREVIEW_ROWS, remaining.length)} of {remaining.length} remaining
-          </p>
-          {remaining.slice(0, PREVIEW_ROWS).map(item => (
-            <ProblemListRow key={item.id} problem={item} basePath={`/${slug}`} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function PracticeLauncherInner({ domainId, domainName, slug }: {
   domainId: string; domainName: string; slug: string;
@@ -325,10 +262,6 @@ export default function DomainPracticePage() {
 
   if (!ready) return null;
   if (!domain) return <p className="text-sm text-muted py-12 text-center">Domain not found.</p>;
-
-  if (SEQUENTIAL_DOMAIN_SLUGS.has(domain.slug)) {
-    return <ContinueLauncher domainId={domain.id} domainName={domain.name} slug={domain.slug} />;
-  }
 
   return (
     <Suspense fallback={null}>
