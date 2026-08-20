@@ -875,6 +875,7 @@ Anchor: professional-mock-interviews
 Link: https://www.hellointerview.com/learn/behavioral/course/common-pitfalls
 
 **Q:** What's the first thing to do after hearing a behavioral question?
+Anchor: pitfall-1-missing-the-underlying-assessment
 **A:** Pause for a few seconds and identify the signal area being tested — then pick your story.
 
 “Tell me about a challenging project” isn't asking for architecture; **challenging** means Perseverance. Answer the technical question instead and the interviewer leaves without the signal they came for.
@@ -882,6 +883,7 @@ Link: https://www.hellointerview.com/learn/behavioral/course/common-pitfalls
 Taking a few seconds to think is fine.
 
 **Q:** What is the 30-second rule?
+Anchor: pitfall-2-not-enough-actions
 **A:** If you've talked for thirty seconds without sharing an action that moves the story forward, you're over-detailing something that isn't the point.
 
 Actions are where the signal lives and what goes into the interviewer's notes. Context, Results and Learnings are supporting material.
@@ -889,6 +891,7 @@ Actions are where the signal lives and what goes into the interviewer's notes. C
 Interviewers care less about what happened than about what you did to make it happen.
 
 **Q:** What passive phrases should you strip out of your stories?
+Anchor: pitfall-2-not-enough-actions
 **A:**
 
 - “I was assigned this project”
@@ -900,6 +903,7 @@ These make work sound like something that happens to you rather than something y
 Even when you *were* handed the work, tell it from what you chose to do once you had it.
 
 **Q:** Which context details earn their place in a story?
+Anchor: pitfall-3-context-overload
 **A:** Only two kinds:
 
 - Details that **establish the stakes** — why this mattered to the organization and its customers
@@ -910,6 +914,7 @@ Cut everything else: your org chart, sprint process, team history, your manager'
 Preventing customer churn and shipping a nice-to-have are different stories, and that distinction is what the interviewer needs.
 
 **Q:** How do you cure the “we” disease?
+Anchor: pitfall-4-the-we-disease
 **A:** Replace each **we** with the specific thing you did:
 
 - “We decided to use Redis” → “I proposed Redis because our read-to-write ratio was 100:1”
@@ -918,6 +923,7 @@ Preventing customer churn and shipping a nice-to-have are different stories, and
 You aren't claiming you worked alone — the interviewer knows you had a team. Being specific isn't arrogance.
 
 **Q:** What are the three most common story-selection mistakes?
+Anchor: pitfall-5-picking-the-wrong-stories
 **A:**
 
 - **Scope mismatch** — a bug-fixing story for a senior role, unless the bug was genuinely hard
@@ -927,6 +933,7 @@ You aren't claiming you worked alone — the interviewer knows you had a team. B
 The interviewer only hears the stories you choose to tell.
 
 **Q:** Why do fairy tale endings backfire?
+Anchor: pitfall-6-fairy-tale-endings
 **A:** “We shipped on time, metrics improved, stakeholders loved it” reads as a problem, not a win.
 
 The interviewer concludes one of three things: you weren't close enough to the work to see the problems, you're hiding something, or you aren't self-aware enough to spot the weaknesses.
@@ -934,6 +941,7 @@ The interviewer concludes one of three things: you weren't close enough to the w
 A story with genuine trouble in it carries more signal than a smooth one.
 
 **Q:** How do you put credible trouble back into a story?
+Anchor: pitfall-6-fairy-tale-endings
 **A:**
 
 - **Obstacles** — “we hit a performance regression in staging that took a week to debug”
@@ -943,6 +951,7 @@ A story with genuine trouble in it carries more signal than a smooth one.
 Pick mistakes that show skill growth, not character flaws.
 
 **Q:** What are the pitfalls specific to a conflict story?
+Anchor: conflict-resolution
 **A:**
 
 - **Sideline conflict** — it has to be one you were directly involved in resolving, not one you watched
@@ -951,6 +960,7 @@ Pick mistakes that show skill growth, not character flaws.
 - **No aftermath** — show the repaired trust, and frame the resolution as win-win
 
 **Q:** What do senior candidates most often leave out?
+Anchor: leaving-out-frameworks
 **A:** The framework — *how* they decided, not just what they decided.
 
 - “I prioritized the work” → by what criteria?
@@ -960,6 +970,7 @@ Pick mistakes that show skill growth, not character flaws.
 At Staff and above your process matters as much as your outcomes, because the interviewer is judging whether your decision-making will transfer to their org.
 
 **Q:** What does it mean to think defensively about your story?
+Anchor: not-thinking-defensively
 **A:** Interviewers hiring senior people are risk-averse, so they fill any gap in your narrative with an unflattering assumption:
 
 - “My manager assigned me this” → *don't you seek out work yourself?*
@@ -969,6 +980,7 @@ At Staff and above your process matters as much as your outcomes, because the in
 Either cut the phrase or pre-frame it, so the gap never opens.
 
 **Q:** How do you steer the interview toward your best material?
+Anchor: not-steering-the-interview
 **A:**
 
 - **Seed it in TMAY** — name a complex project and the interviewer will likely ask about it next
