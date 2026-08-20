@@ -152,9 +152,9 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 **Q:** What are ECS, EKS, ECR, and Fargate, and how do they fit together?
 **A:**
 
-- **ECR** — registry; stores your container images.
-- **ECS** — AWS's own container orchestration service (start/stop/scale containers).
-- **EKS** — managed Kubernetes orchestration; same job as ECS, open-source Kubernetes instead.
+- **ECR** (Elastic Container Registry) — registry; stores your container images.
+- **ECS** (Elastic Container Service) — AWS's own container orchestration service (start/stop/scale containers).
+- **EKS** (Elastic Kubernetes Service) — managed Kubernetes orchestration; same job as ECS, open-source Kubernetes instead.
 - **Fargate** — serverless compute engine that *runs* containers for either ECS or EKS — no servers to manage.
 
 **Q:** What are Elastic Beanstalk, AWS Batch, Lightsail, and Outposts each for?
