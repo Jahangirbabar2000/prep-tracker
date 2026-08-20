@@ -26,13 +26,11 @@ Format:
 
 Every card gets `question_list: Hello Interview Course`.
 
-**Partial back-fill.** This file holds `Why the Behavioral Matters`, `Decode`,
-`Select`, `Practice` and `Common Pitfalls`. The 35 remaining older cards
-(Deliver, The Big Three) were seeded before this file existed and still live
-only in the DB — so the orphan check is scoped to the categories present here, and won't
-flag them. Back-fill those sections when convenient: recover the exact question
-and answer text from the DB so the seed matches the existing rows instead of
-inserting duplicates, then add an `Anchor:` per card.
+**Complete.** Every card in the deck is now in this file, one section per
+course article, in course order — so the orphan check covers the whole deck
+rather than a subset. The cards that predated this file were recovered verbatim
+from the DB, which is why re-running the seed reports them unchanged instead of
+inserting duplicates. Recover text the same way if a section ever drifts.
 
 ## Card style — match the existing behavioral cards
 
@@ -463,6 +461,300 @@ Anchor: responding-to-hypothetical-questions
 
 I should avoid asking too many questions or using clarification to delay giving an answer.
 
+## Deliver: Telling a Good Story
+Link: https://www.hellointerview.com/learn/behavioral/course/deliver-telling-a-good-story
+
+**Q:** What does CARL stand for, and how does it differ from STAR?
+Anchor: the-carl-framework
+**A:** **Context, Actions, Results, Learnings.**
+
+It replaces STAR's separate Situation/Task (which often blur together) with one combined **Context**, and adds **Learnings** as an explicit closing section — a place to show reflection and growth that STAR has no room for.
+
+**Q:** Why does STAR fall short for senior candidates specifically?
+Anchor: the-carl-framework
+**A:** It has no explicit place for **reflection** — what you learned, how you'd extract wisdom for future projects — which is exactly what interviewers use to assess seniority/scope.
+
+STAR also artificially forces Situation and Task apart even when the distinction doesn't hold on large projects.
+
+**Q:** What's the goal of the Context section, and how long should it take?
+Anchor: context
+**A:** Orient the interviewer — company/team context (only if relevant), the problem/opportunity, and **the stakes** — in about **30–45 seconds**.
+
+Many candidates burn 1–3 minutes here and lose the interviewer before reaching what they actually did.
+
+**Q:** Give the "weak → better → best" example of stating stakes in Context.
+Anchor: context
+**A:** > **Weak:** *"I worked on a performance project..."*
+> **Better:** *"We needed to improve performance for users"*
+> **Best:** *"Our checkout flow had a 40% abandonment rate, costing us an estimated $2M per quarter"*
+
+Specificity turns a vague setup into stakes the listener actually feels.
+
+**Q:** Name three Context mistakes to avoid.
+Anchor: context-mistakes-to-avoid
+**A:** - **The project history lesson** — narrating the system's whole timeline instead of just where you started
+- **Unnecessary org-chart detail** — reporting lines that don't affect the story
+- **Explaining technology the interviewer already knows** — e.g. defining Kubernetes to a technical interviewer
+
+**Q:** What's the single most important rule for the Actions section?
+Anchor: actions
+**A:** Use **"I" statements consistently** — not "we decided" but "I proposed and the team agreed."
+
+Every sentence should make your specific contribution clear.
+
+You can credit others without erasing your own agency.
+
+**Q:** What's the difference between a Senior-sounding story and a Staff-sounding one, in terms of Actions?
+Anchor: actions
+**A:** Including **non-technical actions** alongside the technical ones — not just "I wrote the code."
+
+Examples:
+
+- Scoping the project
+- Communicating with stakeholders
+- Mentoring
+- Resolving conflict
+
+**Q:** What two purposes does specificity/detail serve in Actions, and when should you stop adding it?
+Anchor: the-value-of-detail-in-actions
+**A:** Detail serves two purposes:
+
+1. Makes the story **understandable**.
+2. **Establishes credibility**.
+
+Once credibility is established, more detail just wastes time — go deep on the one point worth it, then keep the narrative moving.
+
+Rule of thumb: if you've talked more than **~30 seconds** on one point, you're over-explaining it.
+
+**Q:** List the 8 categories of Actions worth pulling from.
+Anchor: what-actions-should-you-include
+**A:** - **Designing** — architecture/alternatives
+- **Aligning** — consensus, stakeholder management
+- **Communicating** — docs, presentations, hard conversations
+- **Implementing** — execution, resource allocation, risk
+- **Iterating** — feedback loops, course corrections
+- **Testing & Debugging** — QA, diagnosis, optimization
+- **Releasing** — deployment, monitoring, post-launch support
+- **Thinking & Deciding** — analysis, strategic choices
+
+**Q:** What three dimensions should Results cover, and give a quantified example.
+Anchor: results
+**A:** Three dimensions:
+
+- **Business impact** (revenue/cost/efficiency)
+- **User impact** (satisfaction, friction)
+- **Team impact** (velocity, on-call burden)
+
+Quantify: not "improved performance" but *"reduced p99 latency by 85%, from 800ms to 120ms."*
+
+**Q:** How do you show impact when you don't have hard metrics?
+Anchor: when-you-don-t-have-metrics
+**A:** - **Compare before/after states** — "deploys took 3 people 4 hours; now one engineer, 15 minutes"
+- **Use qualitative feedback** from stakeholders
+- **Reference time/effort saved**
+- **Describe what became newly possible**
+
+**Q:** What makes a Learnings statement weak vs. strong?
+Anchor: learnings
+**A:** Weak: generic truisms like *"I learned communication is important."*
+
+Strong: **specific insight** tied to the actual experience, e.g. *"I learned that with a remote team I need to over-document decisions, since hallway conversations don't happen."*
+
+**Q:** Why should you be honest about mistakes in Learnings?
+Anchor: learnings
+**A:** It demonstrates you can **receive feedback** and actually grow.
+
+A story where everything went perfectly with nothing to improve reads as a red flag, not a strength.
+
+**Q:** What's the "different trailers, same movie" idea for adapting stories to questions?
+Anchor: adapting-to-the-question
+**A:** One story can support multiple angles — like cutting different trailers from the same footage.
+
+The same project story could emphasize different themes, depending on which question is asked:
+
+- **Perseverance** (learning new tech, grinding through obstacles)
+- **Ownership** ("nobody asked me to do this")
+- **Communication** (stakeholder updates)
+
+**Q:** What should you do with signal in your story that wasn't the one asked about?
+Anchor: adapting-to-the-question
+**A:** Don't drop it — mention it briefly, like a **footnote**, so it's available if the interviewer wants to dig deeper via a follow-up.
+
+**Q:** List signs during delivery that you're losing the interviewer.
+Anchor: adapting-to-the-audience
+**A:** Signs you're losing the interviewer:
+
+- Eyes glazing over
+- No follow-up questions on technical bits
+- Seeming to wait for you to finish
+- Unmuting or opening their mouth to speak
+- Stopping note-taking
+- Frequent "yeah"/"hmm"
+
+These usually signal *move on*, not active listening.
+
+**Q:** How should you structure a genuinely long, multi-phase story?
+Anchor: telling-complex-stories
+**A:** Give a **"Table of Contents"** right after Context — list the themes you'll cover before diving in (e.g. *"this happened in three phases: alignment, implementation, rollout"*).
+
+It:
+
+- Helps the listener track the narrative
+- Signals organized thinking
+- Keeps you on track
+
+**Q:** Why include takeaways, not just topic labels, in a story's Table of Contents?
+Anchor: telling-complex-stories
+**A:** A **bare topic** ("Technical design") just organizes the talk.
+
+A **takeaway** ("working with the TL to design around complex constraints") tells the interviewer **why they should hire you** — the conclusion, not just the category.
+
+**Q:** For a very long story, when should you state the Results?
+Anchor: telling-complex-stories
+**A:** Consider **front-loading** them right after the Table of Contents (with a condensed Learnings too).
+
+Otherwise, follow-up questions may pull you into rabbit holes before you ever reach the outcome.
+
+**Q:** Name the four most common behavioral follow-up questions.
+Anchor: prepare-for-follow-up-questions
+**A:** - *"What would you do differently?"* (mistakes/depth)
+- *"What was the hardest part?"* (technical depth)
+- *"How did you measure success?"* (rigor)
+- *"What happened after?"* (lasting impact)
+
+**Q:** What's the target length for a delivered CARL story, and what does exceeding it usually signal?
+Anchor: exercise-develop-your-core-stories
+**A:** **2–4 minutes.**
+
+Going longer usually means too much Context or over-detailed Actions — trim rather than pad.
+
+## The Big Three Questions
+Link: https://www.hellointerview.com/learn/behavioral/course/preparing-for-the-big-three-questions
+
+**Q:** What is TMAY and what does a strong answer accomplish?
+Anchor: tell-me-about-yourself-tmay
+**A:** TMAY = "Tell Me About Yourself." A strong one does 4 things:
+
+- **Breaks the ice** and leaves a first impression.
+- **Sets context/scope** — many interviewers haven't read your resume.
+- **Steers the rest of the conversation** toward your best stories.
+- **Shows genuine passion** for the role.
+
+Keep it to 30 seconds–2 minutes — long enough to orient, short enough that the interviewer gets to their real questions.
+
+**Q:** What are the three parts of the TMAY structure?
+Anchor: a-simple-structure-for-tmay
+**A:** - **Personal Summary** — role, years of experience, a distinguishing trait (like a condensed LinkedIn About), tailored to the job you're interviewing for.
+- **Accomplishments (2-3)** — one sentence each, business impact + a touch of technical detail, ideally ones you can expand on later (e.g. your "favorite project" story).
+- **Forward-Looking Statement** — connects your past to this specific role, hands the conversation back to the interviewer.
+
+**Q:** How should you handle a career gap, layoff, or short stints in TMAY?
+Anchor: handling-complex-situations-in-tmay
+**A:** Address it briefly and proactively so you control the narrative, then move on — don't dwell.
+
+- **Gap** → counter "have your skills atrophied?": mention what you did to stay sharp (e.g. a certification).
+- **Layoff** → counter "are you a performance risk?": give a neutral business reason (e.g. the team/division was cut).
+- **Short stints** → counter "will you commit / do you know what you want?": frame it as intentional (e.g. accelerated learning across early-stage startups).
+
+Never trash a former employer — frame what you're moving *toward*, not what you're fleeing.
+
+**Q:** What are the 4 common TMAY mistakes to avoid?
+Anchor: tmay-mistakes-to-avoid
+**A:** - **History Lesson** — a chronological walk through every job; makes old roles seem as important as recent ones.
+- **Childhood Origin Story** — "I've coded since I was 6..."; irrelevant unless explicitly asked.
+- **Less is Not More** — skipping accomplishments because "it's on my resume"; most interviewers haven't read it.
+- **Negativity about a former employer** — makes the listener wonder if *you're* the problem.
+
+**Q:** Why does "Tell me about your favorite project" matter so much?
+Anchor: tell-me-about-your-favorite-project
+**A:** It's often the single highest-signal question in the interview — the answer alone can predict the outcome.
+
+Interviewers want to see your scope and how you operate end-to-end over a long period.
+
+The specific wording (*"favorite,"* *"most impactful,"* *"an ambiguous problem"*) doesn't matter — answer with the same story regardless.
+
+**Q:** What three dimensions should you optimize for when choosing your favorite project?
+Anchor: choosing-your-favorite-project
+**A:** - **Impact** — moved a real business metric (revenue, retention, performance, cost).
+- **Scope** — substantial breadth/duration, cross-functional, relevant to your target role.
+- **Personal Contribution** — you drove it, not just participated in a team that did.
+
+If you can't max all three, **prioritize Personal Contribution** — a small project you fully owned beats a huge one where your role was peripheral.
+
+**Q:** What follow-up questions should you always prepare for your flagship project story?
+Anchor: choosing-your-favorite-project
+**A:** - *"Were there any conflicts you encountered?"*
+- *"What was the hardest part?"*
+- *"What would you do differently?"*
+
+The interviewer will likely park on this story since they assume it's your best one, so don't get caught off guard.
+
+**Q:** Why is "I don't have conflicts with coworkers" a red flag in an interview?
+Anchor: how-tech-companies-view-conflicts
+**A:** It doesn't match how tech companies view conflict — disagreement among smart, invested people is expected and healthy, not something to avoid.
+
+Claiming you never have conflicts reads as inexperience or as hiding something, not as a strength.
+
+**Q:** What behaviors do tech companies look for in how you handle conflict?
+Anchor: how-tech-companies-view-conflicts
+**A:** - **Be assertive** — speak up if you think you're right, regardless of hierarchy.
+- **Go directly to the source** — don't triangulate through management.
+- **Stay emotionally in control** — calm and professional even if others aren't.
+- **Stay focused on outcomes** — the org/product/user, not personal gain.
+- **Make data-driven decisions** — persuade with facts, and be persuadable by them too.
+
+**Q:** How do you choose the right conflict story to tell?
+Anchor: choosing-the-right-conflict-story
+**A:** Pick one where:
+
+- **The stakes were high** (system design/team charter, not code formatting)
+- **You were deeply involved** (a central player, not a bystander)
+- **You ended up being right** (at least partially)
+
+This is lower-risk than a story where you were clearly wrong from the start.
+
+If asked specifically for a time you were wrong, pick a story where your initial position was still reasonable given what you knew then.
+
+**Q:** What should the "Result" of a conflict story always include?
+Anchor: the-result-includes-the-relationship
+**A:** The state of the relationship afterward, not just the project outcome — e.g. explicitly stating the other person was satisfied with the compromise, or citing a later successful collaboration.
+
+A resolved project with a damaged relationship still casts doubt on your conflict-resolution skills.
+
+**Q:** What should you NOT scrub out of a conflict story?
+Anchor: full-example-data-quality-vs-timeline
+**A:** The real emotional content — if someone yelled, was angry, or leadership threatened the team, say so (in an even, factual tone).
+
+Sanitizing it removes the evidence that you can actually handle emotionally charged situations, not just easy ones.
+
+**Q:** What are the common elements of a successful conflict-resolution story?
+Anchor: common-elements-of-successful-conflict-stories
+**A:** - Be **proactive** in raising concerns — or at least receptive when raised.
+- **Seek to understand before being understood** — gather info/evidence first.
+- Pick the **right communication channel** — comments/docs rarely resolve conflict; a real conversation usually does.
+- **Involve the right people at the right time** — not before (drama) or after (too late).
+- **Don't drag it out** — timebox deliberation relative to the stakes.
+- Reach a **clear resolution** and **preserve the relationship**, regardless of outcome.
+
+**Q:** What question categories should you prepare to ask interviewers, and what should you avoid asking?
+Anchor: good-questions-to-ask
+**A:** Prepare 3–5 questions across these categories:
+
+- **Role**: *"what does success look like in 90 days?"*
+- **Team dynamics**: *"how does the team handle technical disagreements?"*
+- **Growth**
+- **Challenges**
+- **Culture**
+
+Tailor them to who's asking (hiring manager vs. peer vs. leadership).
+
+Avoid:
+
+- Anything Googleable
+- Comp/benefits (ask **the recruiter** instead)
+- Anything that sounds like pre-offer negotiating
+- *"How did I do?"*
+
 ## Practice
 Link: https://www.hellointerview.com/learn/behavioral/course/practicing
 
@@ -474,6 +766,7 @@ Scripting sentences is what sounds rehearsed. Drilling takeaways lets you rebuil
 Done this way, practice doesn't cost you naturalness — it buys you confidence.
 
 **Q:** What are the four stages of progressive practice, and what does each buy you?
+Anchor: progressive-practice
 **A:**
 
 - **Solo** — muscle memory and fluency
@@ -486,6 +779,7 @@ Start in controlled, low-pressure settings where you can focus purely on content
 Skipping stages wastes both time and money.
 
 **Q:** When reviewing a solo recording, how should your story time be split?
+Anchor: recording-your-core-stories
 **A:** Roughly **10% Context / 60% Actions / 30% Results and Learnings**.
 
 Most candidates invert this — over-building the situation, under-delivering on what they actually did.
@@ -493,6 +787,7 @@ Most candidates invert this — over-building the situation, under-delivering on
 The diagnostic: if you're three minutes into a story and haven't described a single action you took, that's a problem.
 
 **Q:** What five things should you watch for when reviewing a solo recording?
+Anchor: recording-your-core-stories
 **A:**
 
 - **Pacing** — 10% Context, 60% Actions, 30% Results
@@ -504,6 +799,7 @@ The diagnostic: if you're three minutes into a story and haven't described a sin
 Record 2–3 video takes per story, applying each review to the next.
 
 **Q:** What deserves special attention when practicing the Big Three?
+Anchor: mastering-the-big-three
 **A:**
 
 - **TMAY opening** — the first 20 seconds set the tone for the whole interview; confident, not “So, um, I've been an engineer for about, like, seven years…”
@@ -513,6 +809,7 @@ Record 2–3 video takes per story, applying each review to the next.
 Practice these until you can deliver them conversationally without notes.
 
 **Q:** How do you drill Decode → Select → Deliver?
+Anchor: practicing-decode-select-deliver
 **A:** Pull up a list of behavioral questions and, for each one:
 
 - **Decode** — which signal area is this testing?
@@ -522,6 +819,7 @@ Practice these until you can deliver them conversationally without notes.
 You're building the reflex of mapping a question to a story you already have. Where nothing fits, that's not a delivery problem — it's a hole in your catalog to fill before the interview.
 
 **Q:** What are the three highest-value uses of AI in behavioral practice?
+Anchor: practicing-with-ai
 **A:**
 
 - **Unfamiliar questions** — prompt for questions built around your target company's values, past the standard banks
@@ -531,6 +829,7 @@ You're building the reflex of mapping a question to a story you already have. Wh
 Use AI after solo practice, not instead of it.
 
 **Q:** What can't AI practice give you?
+Anchor: practicing-with-ai
 **A:**
 
 - Nonverbal feedback — facial expressions, body language
@@ -541,6 +840,7 @@ Use AI after solo practice, not instead of it.
 These four gaps are why AI is a stage rather than a substitute. You still need mock interviews with a human.
 
 **Q:** What does a peer mock give you that solo and AI practice can't?
+Anchor: peer-mock-interviews
 **A:**
 
 - **Pressure** — a real human waiting on your answer
@@ -552,6 +852,7 @@ These four gaps are why AI is a stage rather than a substitute. You still need m
 Behavioral interviews are fundamentally subjective, so human feedback isn't optional.
 
 **Q:** How do you prepare a peer interviewer to be useful?
+Anchor: preparing-your-peer-interviewer
 **A:**
 
 - **Span the signal areas** — questions across areas, not clustered on one type
@@ -562,6 +863,7 @@ Behavioral interviews are fundamentally subjective, so human feedback isn't opti
 “That was great” teaches you nothing. “I got lost in the architecture” does.
 
 **Q:** What does a professional mock interviewer add over a peer?
+Anchor: professional-mock-interviews
 **A:**
 
 - **Calibration** — they know a strong Senior story from a weak one, and what flies at Amazon vs. Google
