@@ -27,8 +27,8 @@ Format:
 Every card gets `question_list: Hello Interview Course`.
 
 **Partial back-fill.** This file holds `Why the Behavioral Matters`, `Decode`,
-`Practice` and `Common Pitfalls`. The 49 remaining older cards (Select,
-Deliver, The Big Three) were seeded before this file existed and still live
+`Select`, `Practice` and `Common Pitfalls`. The 35 remaining older cards
+(Deliver, The Big Three) were seeded before this file existed and still live
 only in the DB — so the orphan check is scoped to the categories present here, and won't
 flag them. Back-fill those sections when convenient: recover the exact question
 and answer text from the DB so the seed matches the existing rows instead of
@@ -296,6 +296,172 @@ Look for leadership moments hidden inside technical stories, such as:
 - Unblocking teammates
 - Running a decision-making meeting
 - Influencing a project without authority
+
+## Select: Choosing Responses
+Link: https://www.hellointerview.com/learn/behavioral/course/select-choosing-responses-strategically
+
+**Q:** Why should I build a behavioral story catalog before an interview?
+Anchor: why-you-need-a-story-catalog
+**A:** Because searching through my entire career during the interview wastes working memory I need for listening, structuring my response, and reading the interviewer.
+
+A prepared catalog lets me quickly choose a strong, relevant story without scrambling.
+
+**Q:** What should my story catalog contain?
+Anchor: why-you-need-a-story-catalog
+**A:** - **3–5 core stories:** My strongest, highest-scope projects that demonstrate multiple signal areas
+- **5–7 additional stories:** Examples that fill coverage gaps, provide variety, or replace stories I have already used
+
+The goal is not hitting an exact number; it is having enough coverage to answer most questions confidently.
+
+**Q:** How should I identify my core behavioral stories?
+Anchor: finding-your-core-stories-through-journaling
+**A:** Journal through:
+
+- High-impact projects
+- Challenging situations
+- Leadership moments
+- Learning experiences
+- Career transitions
+
+The projects and experiences that repeatedly appear across these categories are usually my strongest core stories.
+
+**Q:** What should I document for every story in my catalog?
+Anchor: building-a-story-catalog
+**A:** - **Context:** My role, the stakes, constraints, and why the situation mattered
+- **Actions:** What I specifically thought, decided, communicated, and executed
+- **Results:** Quantitative or credible qualitative impact
+- **Learnings:** What changed in my behavior or judgment afterward
+- **Signal Areas:** Which competencies and company values the story demonstrates
+
+This should be a memory aid, not a script to memorize word for word.
+
+**Q:** What counts as a strong Action in a behavioral story?
+Anchor: building-a-story-catalog
+**A:** Actions include more than implementation.
+
+I should capture how I:
+
+- Designed
+- Planned
+- Made decisions
+- Aligned stakeholders
+- Communicated
+- Implemented
+- Iterated
+- Released
+- Followed up
+
+Thinking and deciding also count as actions when they demonstrate judgment.
+
+**Q:** How do I fill gaps in my story catalog?
+Anchor: filling-coverage-gaps
+**A:** Map my core stories against the eight signal areas:
+
+- Scope
+- Ownership
+- Ambiguity
+- Perseverance
+- Conflict Resolution
+- Communication
+- Growth
+- Leadership
+
+Then add stories for any areas that are weak or missing.
+
+I can use the following to recover forgotten examples:
+
+- Old resumes
+- Performance reviews
+- Calendars
+- Emails
+- Documents
+- Repositories
+- Retrospectives
+- Former coworkers
+
+**Q:** What is the correct order for selecting a story during an interview?
+Anchor: choosing-stories-in-the-interview
+**A:** 1. **Scope**
+2. **Relevance**
+3. **Uniqueness**
+4. **Recency**
+
+Choose the story that best demonstrates the highest level of my capabilities.
+
+Then consider how directly it answers the question, whether it adds variety, and how recent it is.
+
+**Q:** What does Scope mean, and why does it come first?
+Anchor: choosing-stories-in-the-interview
+**A:** Scope is the size of the “box” I operated in:
+
+- Breadth of my actions
+- Technical and organizational complexity
+- Timescale
+- Number and type of stakeholders
+- Business or user impact
+- Consequences of my decisions
+
+It comes first because interviewers are trying to understand the high-water mark of my capabilities.
+
+I should not save my best stories for later.
+
+**Q:** How should Relevance, Uniqueness, and Recency affect my story choice?
+Anchor: why-this-priority-order-matters
+**A:** - **Relevance:** The story should naturally demonstrate the signal being assessed.
+- **Uniqueness:** Later in the interview, prefer stories that show new experiences or capabilities.
+- **Recency:** Recent stories usually reflect my current skills more accurately.
+
+However, I should never sacrifice major Scope or Relevance simply to tell a different or newer story.
+
+**Q:** What is the Menu Technique, and when should I use it?
+Anchor: the-menu-technique-when-you-have-multiple-strong-options
+**A:** When I have two genuinely strong options, I can briefly offer both:
+
+*“I have one example involving a cross-team architecture disagreement and another involving resource allocation with my manager. Which would be more useful?”*
+
+This helps clarify the signal the interviewer wants, demonstrates depth, and gives me a moment to organize my thoughts.
+
+I should use it selectively.
+
+**Q:** What should I do if I do not have a story that exactly matches the question?
+Anchor: when-you-don-t-have-a-relevant-story
+**A:** Choose the closest relevant example and honestly explain my actual role and contribution.
+
+Interviewers care about repeatable behavior, not just whether my experience literally matches every word of the question.
+
+If I truly lack the experience, I should say so and explain how I would approach the situation based on similar experiences.
+
+**Q:** Why should I never exaggerate or fabricate a behavioral story?
+Anchor: don-t-lie
+**A:** Fabricated stories usually break down under follow-up questions because the details, decisions, and timelines are not real.
+
+Instead of inflating my role, I should confidently describe the part I genuinely owned and the impact I had.
+
+Honest contribution is stronger than fake leadership.
+
+**Q:** How should I answer a values question?
+Anchor: responding-to-values-questions
+**A:** 1. Present a simple framework.
+2. Explain how my approach changes based on two or three meaningful variables.
+3. Support it with a real example.
+
+To build a framework quickly, ask:
+
+- What varies here—stakeholders, risk, time, resources, or impact?
+- How would my approach change across those variations?
+- When would I use each approach?
+
+A clear framework demonstrates systematic thinking.
+
+**Q:** How should I answer a hypothetical behavioral question?
+Anchor: responding-to-hypothetical-questions
+**A:** 1. Ask one or two clarifying questions that would materially change my approach.
+2. Identify the underlying tension, such as speed versus quality or time versus scope.
+3. Present a simple decision framework.
+4. Use lessons from similar experiences.
+5. Ground the answer with a related real story.
+
+I should avoid asking too many questions or using clarification to delay giving an answer.
 
 ## Practice
 Link: https://www.hellointerview.com/learn/behavioral/course/practicing
