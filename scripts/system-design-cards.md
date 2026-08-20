@@ -435,6 +435,7 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/networking-essentials
 
 **Q:** What are the three networking layers most relevant to system design interviews?
+Anchor: networking-layers
 **A:** Network Layer (Layer 3), Transport Layer (Layer 4), and Application Layer (Layer 7).
 
 - Network Layer: IP, handles routing and addressing, breaking data into packets
@@ -442,6 +443,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/networkin
 - Application Layer: DNS, HTTP, WebSockets, WebRTC, providing abstractions for web application data
 
 **Q:** What are the four key stages of a simple web request over HTTP/TCP?
+Anchor: example-a-simple-web-request
 **A:** DNS resolution, TCP three-way handshake, HTTP request/response, TCP four-way teardown.
 
 - *DNS Resolution* — domain name resolved to an IP address
@@ -450,9 +452,11 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/networkin
 - *TCP Teardown* — four-way FIN/ACK exchange closes the connection
 
 **Q:** Why does TCP connection setup matter for system design, specifically for persistent connections?
+Anchor: example-a-simple-web-request
 **A:** Without features like HTTP keep-alive or HTTP/2 multiplexing, the handshake process repeats for every request, adding significant overhead. This becomes especially relevant when designing systems needing persistent connections, like real-time update systems.
 
 **Q:** What are the key characteristics of UDP, and when should you choose it?
+Anchor: udp-fast-but-unreliable
 **A:** UDP is *connectionless*, has *no delivery guarantee*, *no ordering guarantee*, and *lower latency* due to less overhead.
 
 Choose UDP when:
@@ -463,11 +467,13 @@ Choose UDP when:
 - You don't need to support web browsers, or have an alternative for that client
 
 **Q:** What are the key characteristics of TCP, and when is it the default choice?
+Anchor: tcp-reliable-but-with-overhead
 **A:** TCP is *connection-oriented*, guarantees *reliable and ordered delivery*, and includes *flow control* and *congestion control*.
 
 TCP is the default expectation in most system design interviews and is ideal for essentially everything where UDP isn't a good fit, since data integrity matters more than raw speed in most applications.
 
 **Q:** What are the three main API paradigms covered for system design interviews, and which is the recommended default?
+Anchor: rest-simple-and-flexible
 **A:** REST, GraphQL, and gRPC. **REST is the recommended default**, since it's well understood and a good baseline for building scalable systems.
 
 - REST: models resources and operations using HTTP verbs and conventions
@@ -475,21 +481,25 @@ TCP is the default expectation in most system design interviews and is ideal for
 - gRPC: a binary, high-performance RPC framework using Protocol Buffers, better suited to internal service-to-service communication
 
 **Q:** What are under-fetching and over-fetching, and how does GraphQL address them?
+Anchor: graphql-flexible-data-fetching
 **A:** Under-fetching means a page requires many separate API calls to render, adding latency from multiple round trips. Over-fetching means an API returns far more data than needed to guard against future use-cases, slowing load times.
 
 GraphQL solves both by letting the frontend specify exactly which fields and nested objects it needs in a single query, so the backend returns data shaped to that specific request.
 
 **Q:** When does gRPC make sense, and when should you avoid it?
+Anchor: grpc-efficient-service-communication
 **A:** gRPC is ideal for **internal service-to-service communication**, especially in microservices architectures, where performance is critical and strong typing catches errors at compile time. Its binary protocol can be roughly **10x more efficient** in throughput than JSON over HTTP.
 
 Avoid gRPC for public-facing APIs, since browsers don't support it natively and the tooling for external clients is less mature than plain JSON over HTTP. A common pattern is gRPC internally and REST externally.
 
 **Q:** What is Server-Sent Events (SSE) and what is its main limitation?
+Anchor: server-sent-events-sse-real-time-push-communication
 **A:** SSE is a spec built on top of HTTP that lets a server push many messages to a client over a single, long-lived HTTP connection, useful for one-directional real-time notifications like live auction prices.
 
 Main limitation: connections can't stay open indefinitely, since servers, load balancers, or proxies will eventually close them. The spec handles this by having the client automatically reconnect and resume from the last received message ID.
 
 **Q:** What are WebSockets and when should you avoid reaching for them?
+Anchor: websockets-real-time-bidirectional-communication
 **A:** WebSockets provide a persistent, TCP-style connection enabling real-time, bidirectional communication between client and server, initiated by upgrading an existing HTTP connection.
 
 Avoid WebSockets when a simple request-response model or SSE's one-directional push would suffice.
@@ -499,6 +509,7 @@ Avoid WebSockets when a simple request-response model or SSE's one-directional p
 The required infrastructure is expensive and stateful connections add significant complexity at scale, so hold off unless truly needed.
 
 **Q:** What is WebRTC and what two mechanisms does it use to work around NAT restrictions?
+Anchor: webrtc-peer-to-peer-communication
 **A:** WebRTC enables direct peer-to-peer communication between browsers without an intermediary server for the actual data exchange, and is the only application-layer protocol covered here that runs over UDP.
 
 - **STUN** — lets peers discover their public IP address and port to attempt direct connections
@@ -507,16 +518,19 @@ The required infrastructure is expensive and stateful connections add significan
 Best used for audio/video calling and conferencing; most other collaborative use-cases still need a central server anyway.
 
 **Q:** What is the difference between client-side and dedicated load balancing?
+Anchor: types-of-load-balancing
 **A:** *Client-side* load balancing has the client itself decide which server to contact, typically by querying a service registry, and works well for a small number of controlled clients or use-cases tolerant of slow updates, like DNS-based rotation.
 
 *Dedicated* load balancing places a server or hardware device between clients and backend servers to make routing decisions, adding a network hop in exchange for fast updates to the server list and fine-grained routing control.
 
 **Q:** What is the difference between Layer 4 and Layer 7 load balancers?
+Anchor: types-of-load-balancing
 **A:** **Layer 4** load balancers operate at the transport layer, routing based on IP and port without inspecting packet content, making them fast and well-suited for persistent connections like WebSockets.
 
 **Layer 7** load balancers operate at the application layer, inspecting request content such as URLs, headers, and cookies to make more intelligent routing decisions, making them better suited for general HTTP-based traffic.
 
 **Q:** What are the five common load balancing algorithms?
+Anchor: types-of-load-balancing
 **A:** - **Round Robin** — sequential distribution across servers
 - **Random** — random distribution across servers
 - **Least Connections** — routes to the server with fewest active connections, ideal for persistent-connection services like SSE or WebSockets
@@ -524,20 +538,24 @@ Best used for audio/video calling and conferencing; most other collaborative use
 - **IP Hash** — client IP determines the server, useful for session persistence
 
 **Q:** What two strategies help reduce latency caused by geographic distribution?
+Anchor: regionalization-and-latency
 **A:** - **CDNs** — cache highly cacheable data, such as static assets or search results, at edge locations close to users
 - **Regional Partitioning** — splits data and services by geography, such as bundling nearby cities into a region with its own local database, so regional queries stay fast
 
 **Q:** What is "retry with exponential backoff and jitter," and why does jitter matter?
+Anchor: handling-failures-and-fault-modes
 **A:** A strategy for handling transient failures where a failed request is retried after a wait period that increases with each subsequent failure, giving the system time to recover.
 
 *Jitter* (randomness added to the backoff interval) matters because without it, all failing clients could retry simultaneously in a synchronized pattern, worsening the load spike instead of relieving it.
 
 **Q:** Why does idempotency matter for retryable APIs, and how is it implemented for writes?
+Anchor: handling-failures-and-fault-modes
 **A:** If a retried request has side effects, such as a payment charge, retrying without idempotency could cause duplicate charges. GET requests are naturally idempotent since they don't change system state.
 
 For writes, an **idempotency key** — a unique identifier for a specific request — lets the server detect and skip reprocessing a request it has already handled or is currently handling.
 
 **Q:** What is a circuit breaker and what are its four states/transitions?
+Anchor: handling-failures-and-fault-modes
 **A:** A pattern that protects a system from cascading failures when calls to a dependency repeatedly fail.
 
 ---
@@ -556,6 +574,7 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/api-design
 
 **Q:** What are the three main API protocols to choose between in a system design interview, and which should you default to?
+Anchor: api-types
 **A:** **REST**, **GraphQL**, and **RPC**. Default to **REST** unless you have a specific reason not to — it's well-understood, has great tooling, and works for 90% of use cases.
 
 - REST: standard HTTP methods on resources, best for standard CRUD in web/mobile apps
@@ -565,6 +584,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/api-desig
 > If you're unsure, just say "I'll use REST APIs" and move on.
 
 **Q:** What are the five main HTTP methods and which are idempotent?
+Anchor: rest
 **A:** - **GET** — retrieves data, changes nothing. *Idempotent.*
 - **POST** — creates a new resource. *Not safe, not idempotent* — repeated calls create multiple resources.
 - **PUT** — replaces an entire resource, or creates it if missing. *Idempotent* — same data sent repeatedly yields the same final state.
@@ -574,6 +594,7 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/api-desig
 *Note:* idempotency matters most when networks fail and clients retry requests — you don't want duplicate bookings from a retry.
 
 **Q:** What are the three ways to pass data into a REST API, and what role does each serve?
+Anchor: rest
 **A:** - **Path parameters** — structural, identify which specific resource you're working with (required)
 - **Query parameters** — modifiers, filter/sort/paginate (optional)
 - **Request body** — payload, the actual data being created or updated
@@ -591,6 +612,7 @@ POST /events/123/bookings?notify=true
 ```
 
 **Q:** What is the core principle of REST resource modeling?
+Anchor: rest
 **A:** Resources should represent *things* that exist in your system, not *actions* users can take. Think events, venues, bookings, not "book" or "purchase." Resources should also always be plural nouns.
 
 Example resource mapping for a Ticketmaster-style system:
@@ -604,25 +626,30 @@ POST /events/{id}/bookings     # Create a new booking for an event
 ```
 
 **Q:** When should you nest a resource under a path vs. use a query parameter for filtering?
+Anchor: rest
 **A:** Use a **path parameter** (or nested resource) when the value is *required* to identify what's being requested, such as `/events/{id}/tickets`. Use a **query parameter** when the filter is *optional*, such as `/tickets?event_id=123&section=VIP`.
 
 - Path parameters are *structural* — they determine which endpoint you're hitting
 - Query parameters are *modifiers* — they change how the endpoint behaves
 
 **Q:** What problem does GraphQL solve, and what phrase from an interviewer signals you should bring it up?
+Anchor: graphql
 **A:** GraphQL solves the tension between under-fetching (needing multiple REST endpoints or round trips) and over-fetching (returning more data than a client needs) by letting clients specify exactly the shape of data they want from a single endpoint.
 
 Signal phrases: *"the mobile app needs different data than the web app"* or *"avoiding over-fetching and under-fetching."*
 
 **Q:** What is the N+1 problem in GraphQL, and how is it solved?
+Anchor: graphql
 **A:** When a client queries a list of items along with a related sub-object, GraphQL may execute one query for the list, then a separate query for each related object individually. Querying 100 events with venues could mean 101 database queries instead of 2.
 
 Solved with **batching/dataloader patterns** that group related queries together — though this adds complexity you don't have with plain REST.
 
 **Q:** How does GraphQL handle authorization differently from REST?
+Anchor: graphql
 **A:** REST typically secures entire *endpoints*. GraphQL secures individual *fields* — a user might be allowed to see an event's name and date but not its venue data, controlled at the schema resolver level.
 
 **Q:** When should you reach for RPC (e.g. gRPC) instead of REST?
+Anchor: rpc
 **A:** When performance is critical, type safety matters, communication is service-to-service (not public-facing), or streaming is needed.
 
 - Uses **Protocol Buffers** for binary serialization and **HTTP/2** for transport — significantly faster than JSON over HTTP
@@ -631,6 +658,7 @@ Solved with **batching/dataloader patterns** that group related queries together
 *Note:* unless explicitly asked, only outline user-facing APIs during the API step of an interview — internal RPC communication is usually just mentioned in passing during the high-level design.
 
 **Q:** What are the two main pagination strategies, and when should you use each?
+Anchor: pagination
 **A:** **Offset-based** and **cursor-based** pagination.
 
 - *Offset-based* — `/events?offset=20&limit=10`. Simple and intuitive, but can produce duplicates or skipped records if data changes while paginating.
@@ -639,16 +667,19 @@ Solved with **batching/dataloader patterns** that group related queries together
 For interviews, offset-based pagination is usually fine unless the problem involves real-time data or the interviewer specifically asks about high-volume scenarios.
 
 **Q:** What are the two common API versioning strategies, and which is preferred in interviews?
+Anchor: versioning-strategies
 **A:** **URL versioning** (`/v1/events`) and **header versioning** (`Accept-Version: v2`).
 
 **URL versioning** is the safer default for interviews — it's explicit, widely understood, and easy to explain and test. Header versioning keeps URLs cleaner but is less obvious and harder to test in a browser.
 
 **Q:** What is the difference between authentication and authorization?
+Anchor: authentication-and-authorization
 **A:** **Authentication** verifies *identity* — proving the user is who they claim to be. 
 ---
 **Authorization** verifies *permissions* — checking if that authenticated user is allowed to perform the specific action requested.
 
 **Q:** When should you use API keys vs. JWT tokens?
+Anchor: authentication-and-authorization
 **A:** **API keys** — for server-to-server communication and third-party developer access, where you control both sides or are exposing programmatic access. They act like a password for an application, not a person.
 
 **JWT tokens** — for user-facing sessions in web and mobile apps. A JWT encodes user ID, permissions, and expiration directly into a signed token, so any service holding the verification key can validate it independently, without a database lookup.
@@ -663,6 +694,7 @@ For interviews, offset-based pagination is usually fine unless the problem invol
 ```
 
 **Q:** What is Role-Based Access Control (RBAC)?
+Anchor: authentication-and-authorization
 **A:** A model that assigns *roles* to users and *permissions* to roles, rather than managing permissions per individual user.
 
 *Example:* a `customer` role can book tickets and view their own bookings; a `venue_manager` can create events and view sales for their venues; an `admin` can access everything.
@@ -670,6 +702,7 @@ For interviews, offset-based pagination is usually fine unless the problem invol
 In an interview, checking a request typically means answering two questions: is the user authenticated (valid token), and is the user authorized (owns the resource, or holds the right role)?
 
 **Q:** What is rate limiting and what are three common strategies for it?
+Anchor: rate-limiting-and-throttling
 **A:** Rate limiting restricts how many requests a client can make in a given time period, protecting the system from abuse and accidental overuse. Exceeded limits typically return a **429 Too Many Requests** status code.
 
 - **Per-user limits** — e.g. 1000 requests/hour per authenticated user
@@ -679,6 +712,7 @@ In an interview, checking a request typically means answering two questions: is 
 > A simple "we'll implement rate limiting to prevent abuse" is usually sufficient in an interview — don't spend time designing the specific algorithm unless asked.
 
 **Q:** How much interview time should API design typically take, and what's the most common mistake candidates make with it?
+Anchor: conclusion
 **A:** Aim for **no more than 5 minutes** outlining APIs. The most common mistake is *overinvesting* in this step rather than underinvesting — candidates get bogged down perfecting endpoint structure when there are bigger architectural challenges still to solve.
 
 ## Data Modeling
@@ -686,21 +720,25 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/data-modeling
 
 **Q:** What database type should you default to in system design interviews, and why?
+Anchor: relational-databases-sql
 **A:** **Relational databases (SQL)**, with **PostgreSQL** as the safe default. Most system design problems map naturally onto entities with clear relationships (users, posts, orders), and the scalability concerns often raised against SQL are exaggerated — modern SQL scales via read replicas, sharding, connection pooling, and caching.
 
 > Some of the largest companies in the world (Facebook, Airbnb) rely on relational foundations.
 
 **Q:** When should you consider a document database instead of SQL, and what's the catch for interviews specifically?
+Anchor: document-databases
 **A:** Consider document databases (MongoDB, Firestore) when your schema changes frequently, data is deeply nested, or different records have wildly different structures.
 
 The catch: system design interviews intentionally scope requirements to a clear, concise set, so you're unlikely to actually have "evolving schemas" in the first place — the main reason to pick document databases rarely applies. Only reach for one if the interviewer explicitly signals rapidly changing data structures.
 
 **Q:** What is the data modeling tradeoff of a document database, using the embedded-posts example?
+Anchor: document-databases
 **A:** Embedding related data (like a user's posts) directly inside a parent document eliminates joins, but means updating a single post requires finding and rewriting the *entire* parent document.
 
 This trades storage space and update complexity for read performance — heavier denormalization than SQL would typically use.
 
 **Q:** When should you consider a key-value store, and what's the real-world usage pattern?
+Anchor: key-value-stores
 **A:** For caching, session storage, feature flags, or any scenario needing lookup by a single identifier with maximum write throughput.
 
 In practice, you'll typically use *both together*: SQL as your source of truth, with a key-value cache (like Redis) in front for hot data — giving fast access without sacrificing durability or complex queries.
@@ -708,6 +746,7 @@ In practice, you'll typically use *both together*: SQL as your source of truth, 
 *Data modeling impact:* schema becomes very flat, with heavy duplication across keys to support different access patterns, since joins/queries across relationships aren't possible.
 
 **Q:** When should you consider a wide-column database, and what makes its writes fast?
+Anchor: wide-column-databases
 **A:** For massive write-heavy workloads and time-series data — telemetry, event logging, IoT sensor data.
 
 Writes are fast because rows sharing a partition key (e.g. `user_id`) are stored together — a new post is just an append to that user's partition, and reads become an efficient scan of a contiguous range.
@@ -715,11 +754,13 @@ Writes are fast because rows sharing a partition key (e.g. `user_id`) are stored
 *Data modeling impact:* you design around query patterns even more aggressively than SQL, often duplicating data across column families, with time as a first-class dimension.
 
 **Q:** When should you consider a graph database, according to the guide?
+Anchor: graph-databases
 **A:** **Almost never in interviews.** Even "graph-heavy" companies like Facebook, LinkedIn, and Twitter model their core social graph relationships using SQL rather than a dedicated graph database.
 
 > Graph databases are a common mistake in interviews. They sound sophisticated but add unnecessary complexity.
 
 **Q:** What three factors should drive every schema design decision, and how does each shape the schema?
+Anchor: start-with-requirements
 **A:** - **Data volume** — determines whether data must be physically split across multiple stores, which forces distinct schemas with careful cross-referencing
 - **Access patterns** — the most important factor; how data will be queried drives whether you denormalize, which indexes you add, and how tables are structured
 - **Consistency requirements** — determines how tightly coupled data can be; strong consistency (e.g. financial transactions) needs ACID guarantees in one database, while eventual consistency (e.g. activity feeds) allows distributing data across separate, differently-optimized systems
@@ -727,19 +768,23 @@ Writes are fast because rows sharing a partition key (e.g. `user_id`) are stored
 *In interviews:* explicitly tie schema choices back to these factors — e.g. "Since feeds need to load quickly and likes can be eventually consistent, I'll denormalize like counts into the posts table."
 
 **Q:** What convention should primary keys follow, and why?
+Anchor: entities-keys-relationships
 **A:** Use **system-generated IDs** (like `user_id`, `post_id`) rather than business data (like email addresses) as primary keys. System-generated keys stay stable even when business rules change — an email address can change, but an internal ID never should.
 
 **Q:** What are the three relationship cardinalities, and which one is a design smell?
+Anchor: entities-keys-relationships
 **A:** - **One-to-many (1:N)** — a user has many posts, a post has many comments
 - **Many-to-many (N:M)** — users like many posts, posts are liked by many users
 - **One-to-one (1:1)** — rare in practice, often a sign that the two tables should just be merged
 
 **Q:** What do foreign keys enforce, and what's the tradeoff of using them at scale?
+Anchor: entities-keys-relationships
 **A:** Foreign keys enforce **referential integrity** — preventing orphaned records like a post referencing a nonexistent user, or a comment pointing to a deleted post.
 
 Tradeoff: the database validates every insert/update against them, adding write overhead. At very large scale, some companies drop foreign keys entirely for write performance and enforce integrity at the application layer instead. Mentioning this tradeoff signals awareness in an interview.
 
 **Q:** How should you decide what to index, and how should you justify it in an interview?
+Anchor: indexing-for-access-patterns
 **A:** Indexes should directly support your **most important queries** — the ones driven by your actual API endpoints.
 
 *Example for a social feed:*
@@ -751,6 +796,7 @@ Tradeoff: the database validates every insert/update against them, adding write 
 > Connect your indexes directly to your API endpoints: "The `GET /users/{id}/posts` endpoint needs an index on `posts.user_id`."
 
 **Q:** What is normalization vs. denormalization, and what's the recommended default in interviews?
+Anchor: normalization-vs-denormalization
 **A:** **Normalization** stores each piece of data in exactly one place, preventing update anomalies (e.g. a username living only in the `users` table, not duplicated onto every post).
 
 **Denormalization** duplicates data for read performance, but risks inconsistency — e.g. if `username` is copied onto every post row, changing it means updating every single post, and missing even one leaves inconsistent data.
@@ -758,6 +804,7 @@ Tradeoff: the database validates every insert/update against them, adding write 
 *Default:* start with a clean normalized model, and only denormalize when there's a clear, justified need.
 
 **Q:** What are the three legitimate exceptions where denormalization makes sense?
+Anchor: normalization-vs-denormalization
 **A:** - **Analytics/reporting systems** aggregating data that changes infrequently
 - **Event logs and audit trails** capturing a snapshot at a point in time
 - **Heavily read-optimized systems** like search engines, where consistency matters less than speed
@@ -765,11 +812,13 @@ Tradeoff: the database validates every insert/update against them, adding write 
 *Alternative:* even when fast denormalized access is needed, you can keep your source of truth clean and normalized while putting a **cache** in front containing the denormalized/pre-computed view.
 
 **Q:** What sharding strategy is recommended, and what is the specific anti-pattern to avoid?
+Anchor: scaling-and-sharding
 **A:** **Shard by the primary access pattern.** If you mostly query "posts by user," shard by `user_id`, keeping a user's posts together on one shard and avoiding expensive cross-shard queries.
 
 **Anti-pattern: time-range sharding.** While tempting for "recent posts" queries, it means all current writes land on the same shard (the latest time range), creating a hot shard. This is only appropriate for archival/analytics workloads where recent data is read-heavy but writes are naturally spread out over time, not for write-heavy systems.
 
 **Q:** What should you avoid whenever possible when choosing a shard key, and why?
+Anchor: scaling-and-sharding
 **A:** **Cross-shard queries.** If a timeline feature needs posts from multiple followed users, and data is sharded by `user_id`, that query has to hit multiple shards and merge results client-side or at the query layer — expensive and complex.
 
 Your shard key choice is often effectively permanent and affects every subsequent query, so it deserves careful upfront thought based on the dominant access pattern.
