@@ -7,10 +7,10 @@ import { ArrowLeft, Play, Shuffle } from 'lucide-react';
 import ProblemListRow from '@/components/ProblemListRow';
 import { useStore } from '@/lib/store/store';
 import { clientToday } from '@/lib/store/queries';
-import { domainBySlugWithFallback, fieldsForDomain, optionsForField } from '@/lib/domains';
+import { domainBySlugWithFallback, fieldsForDomain, optionsForField, orderFieldValues } from '@/lib/domains';
 import { QUEUE_PROFICIENCY_OPTIONS } from '@/lib/filters';
 import {
-  buildPracticeSet, practiceHref, parsePracticeSpec, fieldValuesPresent,
+  buildPracticeSet, practiceHref, parsePracticeSpec,
   PRACTICE_SCOPES, PRACTICE_ORDERS, PRACTICE_LIMITS,
   type PracticeSpec,
 } from '@/lib/practice';
@@ -65,26 +65,52 @@ function PracticeLauncherInner({ domainId, domainName, slug }: {
 
   const spec: PracticeSpec = { ...draft, domain: domainId, seed };
 
-  const domainProblemList = useMemo(
-    () => data.problems.filter(p => p.domain === domainId),
-    [data.problems, domainId],
-  );
-
-  // Only fields that are filterable AND actually carry values in this domain's
-  // data — same rule the domain page's dropdowns use.
+  // Each field's options reflect the REST of the spec — scope, proficiency and
+  // the other field — so choosing a bucket narrows Topic to that bucket's
+  // topics, and the builder can't offer a combination that matches nothing.
+  // Same rule as the domain page (components/DomainPageClient.tsx).
+  //
+  // Note a spec holds ONE field/value pair, so picking a topic replaces the
+  // bucket rather than adding to it. That stays correct because a topic sits
+  // inside exactly one bucket, so the topic filter alone selects the same cards.
   const fields = useMemo(
     () => fieldsForDomain(data.domain_fields, domainId)
       .filter(f => f.filterable)
-      .map(f => ({
-        field: f,
-        values: fieldValuesPresent(
-          domainProblemList,
-          f.key,
-          optionsForField(data.domain_field_options, f.id).map(o => o.value),
-        ),
-      }))
+      .map(f => {
+        // Everything the current spec admits, minus this field's own filter —
+        // a field never narrows itself, or the chosen value would be the only
+        // one left. Order and limit are irrelevant to which values exist.
+        const otherField = draft.field === f.key ? '' : draft.field;
+        const pool = buildPracticeSet(data, {
+          domain: domainId,
+          scope: draft.scope,
+          order: 'oldest',
+          limit: null,
+          proficiency: draft.proficiency,
+          field: otherField,
+          value: otherField ? draft.value : '',
+          seed: 0,
+        }, today);
+
+        const present = new Set<string>();
+        for (const p of pool) {
+          const v = p.metadata?.[f.key];
+          if (v != null && String(v) !== '') present.add(String(v));
+        }
+        // Keep the current selection listed even once the rest of the spec has
+        // narrowed past it, so the <select> can still render what it's set to.
+        if (draft.field === f.key && draft.value) present.add(draft.value);
+
+        return {
+          field: f,
+          values: orderFieldValues(
+            [...present],
+            optionsForField(data.domain_field_options, f.id).map(o => o.value),
+          ),
+        };
+      })
       .filter(({ values }) => values.length > 0),
-    [data.domain_fields, data.domain_field_options, domainId, domainProblemList],
+    [data, domainId, today, draft.scope, draft.proficiency, draft.field, draft.value],
   );
 
   const preview = buildPracticeSet(data, spec, today);
