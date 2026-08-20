@@ -746,7 +746,7 @@ with lock:
 ```
 
 **Q:** What are locks (mutexes) and what are the three common variants?
-Anchor: the-toolbox
+Anchor: locks-mutexes
 **A:** Locks provide mutual exclusion. When a thread holds a lock, other threads trying to acquire it block until it's released, creating a critical section where only one thread executes at a time.
 
 - **Coarse-grained** — one lock protects everything
@@ -899,7 +899,7 @@ Anchor: atomic-variables
 > Atomics are great for statistics. The moment you're enforcing a business rule, you're usually back to locks.
 
 **Q:** What is thread confinement (shared nothing), and what's its tradeoff?
-Anchor: thread-confinement
+Anchor: thread-confinement-shared-nothing
 **A:** Instead of having threads compete for the same data, you partition the data so each thread owns its own slice exclusively — no sharing means no race condition is even possible. Example: Thread 1 handles venue sections A-M, Thread 2 handles N-Z, each with its own private seat map.
 
 Tradeoff: you exchange *synchronization* complexity for *architectural* complexity. Operations spanning multiple partitions still need coordination, load imbalance can appear if some partitions run hotter than others, and confinement only works if strictly enforced.
@@ -957,7 +957,7 @@ Anchor: the-solutions
 - **Message passing coordination** — avoids shared state entirely; each component has its own inbox and communicates only via messages (the actor model)
 
 **Q:** What are condition variables, and what two things happen atomically when a thread calls wait()?
-Anchor: shared-state-coordination
+Anchor: wait-notify-condition-variables
 **A:** A low-level primitive letting a thread sleep until a condition becomes true, attached to a lock protecting the shared state.
 
 1. The thread **releases the lock** and goes to sleep
@@ -974,11 +974,11 @@ with condition:
 ```
 
 **Q:** Why must the condition check always be inside a `while` loop, never an `if`?
-Anchor: shared-state-coordination
+Anchor: wait-notify-condition-variables
 **A:** When a thread wakes from `wait()`, another thread might have already consumed whatever it was waiting for between being notified and reacquiring the lock. Some runtimes can also wake threads **spuriously**, with no `notify()` call at all. The `while` loop forces a recheck of the actual condition every time, rather than blindly trusting the wakeup.
 
 **Q:** What is the tradeoff between `notify()` (wake one) and `notify_all()` (wake all), and what's the best fix?
-Anchor: shared-state-coordination
+Anchor: wait-notify-condition-variables
 **A:** Waking **one** thread risks waking the wrong kind of waiter — e.g. a consumer waiting on the same condition variable as producers might get woken when space frees up, even though it needs *items*, not space, wasting the wakeup.
 
 Waking **all** threads fixes correctness but wastes context switches — if 50 threads wake and only one can actually proceed, 49 wake for nothing.
@@ -1127,7 +1127,7 @@ Anchor: limit-aggregate-consumption
 **A:** No — it limits **concurrent units in flight**, not a rate over time. True rate limiting (e.g. 100MB/s) needs a time-based algorithm like a **token bucket**, where permits replenish at a fixed rate rather than being a static pool.
 
 **Q:** Why can't a semaphore alone solve the connection-pool problem?
-Anchor: resource-pooling-with-queue
+Anchor: resource-pooling-with-blocking-queue
 **A:** A semaphore only limits *how many* threads can proceed; it doesn't track *which specific object* each thread gets. A **blocking queue** holds the actual reusable objects — threads `take()` one, use it, and `put()` it back.
 
 ```python
@@ -1145,21 +1145,21 @@ class ConnectionPool:
 ```
 
 **Q:** What's the most common mistake when building a blocking-queue resource pool, and why is it dangerous?
-Anchor: resource-pooling-with-queue
+Anchor: resource-pooling-with-blocking-queue
 **A:** Creating an **unbounded queue** (e.g. no maxsize argument). If connections are created on demand and never capped, the queue can grow forever, exhausting the database or memory — always pass an explicit capacity matching the pool size.
 
 **Q:** Should a resource pool be initialized upfront or lazily, and what's the default interview answer?
-Anchor: resource-pooling-with-queue
+Anchor: resource-pooling-with-blocking-queue
 **A:** Default to **upfront** — create all objects in the constructor. It's simpler, avoids lazy-init race conditions, and gives predictable performance once running. Only go lazy if the interviewer specifically flags startup time as a concern.
 
 > "I'll create all connections in the constructor — simpler, avoids races, and predictable once running."
 
 **Q:** Why is blocking forever (`take()`) on a resource pool dangerous in a request path?
-Anchor: resource-pooling-with-queue
+Anchor: resource-pooling-with-blocking-queue
 **A:** If all resources are stuck (e.g. a slow query holding a connection), the thread blocks indefinitely even after the upstream caller or load balancer has already given up — the user sees a timeout while your thread sits stuck holding nothing.
 
 **Q:** What's the fix for indefinite blocking when acquiring a pooled resource?
-Anchor: resource-pooling-with-queue
+Anchor: resource-pooling-with-blocking-queue
 **A:** Use the **timeout variant** (`poll(timeout)` instead of `take()`). If the timeout expires, raise/return an error (e.g. 503) instead of blocking forever, so the caller fails fast rather than hanging.
 
 ```python
@@ -1171,15 +1171,15 @@ def acquire(self):
 ```
 
 **Q:** How do you pick a timeout value for resource acquisition?
-Anchor: resource-pooling-with-queue
+Anchor: resource-pooling-with-blocking-queue
 **A:** Base it on expected operation time plus a buffer — e.g. queries run ~100ms, set a ~500ms timeout. Too short fails requests that would've succeeded; too long leaves callers waiting past their own deadline. Stay well under any upstream load balancer or client timeout.
 
 **Q:** A connection pool shows all connections "in use" but DB throughput is low — what's actually happening, and what's the fix?
-Anchor: maximize-utilization
+Anchor: maximizing-utilization
 **A:** Uneven task duration — a few slow operations hold connections for hundreds of ms while fast ones finish in 1ms, so reported utilization doesn't reflect actual work being done. Fix with **work stealing** (per-worker queues where idle workers steal from busy ones) so no single slow task stalls the whole pool.
 
 > "If task durations vary wildly, I'd use work stealing so idle workers pull from busier queues instead of sitting idle."
 
 **Q:** What are batching and adaptive sizing, and when do you reach for them over basic pooling?
-Anchor: maximize-utilization
+Anchor: maximizing-utilization
 **A:** **Batching** amortizes per-operation coordination cost by grouping many small operations under one acquire/release (trades latency for throughput). **Adaptive sizing** grows/shrinks the pool based on demand (e.g. HikariCP, pgbouncer) instead of a fixed size. Reach for these only when the interviewer pushes on *throughput*, not just correctness/capping.
