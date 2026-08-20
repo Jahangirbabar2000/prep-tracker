@@ -49,33 +49,43 @@ Bucket: In a Hurry
 Link: https://www.hellointerview.com/learn/system-design/in-a-hurry/core-concepts
 
 **Q:** Networking Essentials: When do you need WebSockets over Server-Sent Events?
+Anchor: networking-essentials
 **A:** WebSockets are necessary when you need true bidirectional communication where both client and server send messages frequently (chat, live collaboration). SSE is unidirectional—the server pushes data after an initial HTTP request from the client, but the client can't send data back over the same connection. SSE is simpler to implement and works better with standard HTTP infrastructure. Use SSE for notifications, live scores, or one-way feeds. Use WebSockets only when clients need to push data back frequently. A common mistake is choosing WebSockets for "real-time" problems where SSE or HTTP long polling would work fine, because WebSockets add significant complexity for maintaining stateful connections at scale.
 
 **Q:** API Design: How much time should you spend on API design in a system design interview?
+Anchor: api-design
 **A:** Spend 2-3 minutes sketching 4-5 key endpoints and move on. REST is your default for 90% of interviews—map resources to URLs, use HTTP methods (GET /users/{id}, POST /events/{id}/bookings). Most interviewers don't care about perfect API design; they want to see you can create reasonable endpoints quickly and then focus on the harder architectural problems. If you're still designing API details 10 minutes in, you're going too deep. Sloppy design signals inexperience, but perfectionism wastes time that should go toward database decisions, caching strategies, and scalability.
 
 **Q:** Data Modeling: When should you denormalize a relational schema?
+Anchor: data-modeling
 **A:** Start with normalization—split data across tables to avoid duplication and maintain consistency. **Denormalize only when you've identified read performance bottlenecks in a read-heavy system where data rarely changes**. Denormalization duplicates data to eliminate joins (store username directly in order records instead of joining to users table), making reads faster but updates expensive—you now have to update multiple tables. A safe pattern is normalized schema first, then denormalize specific hot paths when you have real evidence that joins are the problem. Denormalization is a performance optimization, not a default strategy.
 
 **Q:** Database Indexing: How do you choose what to index?
+Anchor: database-indexing
 **A:** Index the columns you query frequently. If you look up users by email for authentication, index email. If you fetch a user's orders, index user_id on the orders table. For composite queries like "find events in San Francisco on December 25th," use a compound index on both city and date. B-tree indexes (the default) support both exact lookups and range queries. For specialized needs your primary database can't handle—like full-text search or geospatial queries—use external systems (Elasticsearch, PostGIS). These external indexes sync from your primary database and will lag slightly, but the performance tradeoff is worth it.
 
 **Q:** Caching: What is a cache stampede and how do you prevent it?
+Anchor: caching
 **A:** A cache stampede happens when a popular cache entry expires and many concurrent requests all miss simultaneously, creating a thundering herd that hammers your database trying to regenerate the same entry. This spike can take down your system. Prevent it with three strategies: locking (only one request regenerates the entry while others wait), early recomputation (refresh entries before they expire), or staggering TTLs so entries don't all expire at once. The broader principle is don't cache everything—cache only data that's read frequently and doesn't change often. If you're caching data that changes on every request, you're just adding latency.
 
 **Q:** Sharding: When should you shard your database?
+Anchor: sharding
 **A:** Shard when you've justified the need with capacity math. A well-tuned single database with read replicas handles way more traffic than most candidates think—tens of thousands of queries per second, terabytes of storage. Bring up sharding when you hit real limits: storage (approaching TB limits), write throughput (over 10K transactions per second you can't handle), or read load that replicas can't absorb. If you're at 10K writes/sec and 100GB of data, you don't need sharding yet. The biggest mistake is proposing sharding too early as a default scaling strategy. Sharding creates major problems: cross-shard transactions become nearly impossible, hot spots emerge when one shard gets disproportionate traffic, and resharding is painful.
 
 **Q:** Consistent Hashing: Why does consistent hashing matter for distributed systems?
+Anchor: consistent-hashing
 **A:** Consistent hashing solves a specific problem with simple hash-based distribution. When you use hash(key) % N to pick which server stores data, adding or removing a server changes N and forces you to move most of your data. With consistent hashing, servers and keys sit on a virtual ring; when you add a new server, only about 10% of keys (those in the affected range) need to move instead of 90%. This makes it practical to add and remove cache nodes or database shards dynamically without massive data migration. You rarely need to explain how it works in interviews—just mention it when discussing elastic scaling or distributed caches: "we'll use consistent hashing to distribute data across cache nodes."
 
 **Q:** CAP Theorem: When should you choose consistency over availability?
+Anchor: cap-theorem
 **A:** Network partitions are unavoidable in distributed systems, so you're really choosing between consistency (all nodes see the same data) and availability (every request gets a response). For most systems, availability is the right default—users tolerate slightly stale data (Instagram feed being 2 seconds old) but can't tolerate the app being down. Strong consistency matters only when stale data causes real business problems: inventory systems need accurate stock counts or you'll oversell, banking systems need correct balances or you enable fraud, booking systems must prevent double-booking. You don't pick one model for your entire system—product reviews can be eventually consistent while inventory counts need strong consistency.
 
 **Q:** Capacity Math: How do you use numbers to justify architectural decisions?
+Anchor: numbers-to-know
 **A:** Modern hardware is far more powerful than candidates realize. A well-tuned database handles tens of thousands of queries per second. A single Redis instance handles hundreds of thousands of operations per second. Do math when you need to make a decision: "We're expecting 50K requests per second, each server handles 5K, so we need 10 servers plus headroom." Walk through it to show thinking, not memorized facts. Storage capacity matters for sharding—a single Postgres instance handles a few terabytes comfortably; you don't need sharding until tens or hundreds of terabytes. Latency numbers drive almost every design decision: memory access is nanoseconds, SSD reads are microseconds, datacenter calls are 1-10ms, cross-continent is tens to hundreds of milliseconds.
 
 **Q:** Consistency Models: How does the CAP tradeoff differ between product reviews and order processing?
+Anchor: cap-theorem
 **A:** Product reviews can be eventually consistent—users accept a 5-second delay before a new review appears. Order processing needs strong consistency—reading stale inventory counts could cause overselling, losing money. The same system can have different consistency requirements for different parts. E-commerce needs eventual consistency for product descriptions and reviews, but strong consistency for inventory counts and order processing. The PACELC theorem captures the broader picture: during a network partition, you choose availability or consistency; when the network is healthy, you still choose between latency and consistency. Strong consistency adds latency because nodes need to coordinate before responding.
 
 ## Key Technologies
