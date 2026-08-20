@@ -389,7 +389,7 @@ Choose the story that best demonstrates the highest level of my capabilities.
 Then consider how directly it answers the question, whether it adds variety, and how recent it is.
 
 **Q:** What does Scope mean, and why does it come first?
-Anchor: choosing-stories-in-the-interview
+Anchor: 1-scope
 **A:** Scope is the size of the “box” I operated in:
 
 - Breadth of my actions
@@ -404,7 +404,7 @@ It comes first because interviewers are trying to understand the high-water mark
 I should not save my best stories for later.
 
 **Q:** How should Relevance, Uniqueness, and Recency affect my story choice?
-Anchor: why-this-priority-order-matters
+Anchor: 2-relevance
 **A:** - **Relevance:** The story should naturally demonstrate the signal being assessed.
 - **Uniqueness:** Later in the interview, prefer stories that show new experiences or capabilities.
 - **Recency:** Recent stories usually reflect my current skills more accurately.
