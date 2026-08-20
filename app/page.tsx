@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Check, History, Play, Flame } from 'lucide-react';
 import { useStore } from '@/lib/store/store';
 import {
-  reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
+  activeCards, reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
 } from '@/lib/store/queries';
 import { proficiencyLabel } from '@/lib/proficiency';
 import { DEFAULT_QUEUE_ORDER, parseQueueOrder, QUEUE_PROFICIENCY_OPTIONS } from '@/lib/filters';
@@ -20,7 +20,7 @@ import type { QueueOrder } from '@/lib/store/queries';
 import { computeStreak } from '@/lib/streak';
 import { fmtDateOrToday } from '@/lib/fmt';
 import type { Problem } from '@/lib/types';
-import { allDomains, resolveDomain } from '@/lib/domains';
+import { activeDomains, resolveDomain } from '@/lib/domains';
 import { buildForecastWeeks, UPCOMING_MAX_WEEKS, UPCOMING_WEEK_DAYS } from '@/lib/upcoming';
 import { domainPalette } from '@/components/domainVisuals';
 
@@ -68,7 +68,7 @@ function ReviewQueueInner() {
     return () => window.removeEventListener('keydown', onKey);
   }, [router, sessionHref]);
 
-  const domainOrder = allDomains(data.domains).map(domain => domain.id);
+  const domainOrder = activeDomains(data.domains).map(domain => domain.id);
   // Everything in the queue has a due date and at least one attempt, so "New"
   // can't appear here — but a card logged once still reads New, not Struggling.
   const PROFICIENCY_ORDER = QUEUE_PROFICIENCY_OPTIONS;
@@ -131,7 +131,9 @@ function ReviewQueueInner() {
   const doneToday   = (filterDomain || filterProficiency) ? reviewed.filter(inScope).length : todayCount;
   const totalToday  = doneToday + items.length;
   const progressPct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
-  const streak      = computeStreak(data.attempts.map(a => a.attempted_at), today);
+  // Archived domains are out of the streak too, so this and the Stats page's
+  // streak read the same number off the same cards.
+  const streak      = computeStreak(activeCards(data).attempts.map(a => a.attempted_at), today);
 
   const pendingByDomain: Record<string, number> = {};
   for (const item of items) {

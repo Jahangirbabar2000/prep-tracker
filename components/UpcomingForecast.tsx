@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from 'motion/react';
 import { CalendarDays, ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '@/lib/store/store';
-import { allDomains, resolveDomain } from '@/lib/domains';
+import { activeDomains, resolveDomain } from '@/lib/domains';
 import { resolveCardSwipe } from '@/lib/swipeCard';
 import { totalUpcoming as sumWeeks, type ForecastWeek } from '@/lib/upcoming';
 import { domainPalette } from './domainVisuals';
@@ -23,7 +23,7 @@ export default function UpcomingForecast({ weeks }: Props) {
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(0);
   const reduceMotion = useReducedMotion();
-  const domainOrder = allDomains(data.domains).map(domain => domain.id);
+  const domainOrder = activeDomains(data.domains).map(domain => domain.id);
 
   if (weeks.length === 0) return null;
 

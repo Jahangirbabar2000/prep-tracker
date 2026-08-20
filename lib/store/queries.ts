@@ -127,6 +127,26 @@ export function reviewQueue(
     .sort((a, b) => compareByDueDate(a, b, order));
 }
 
+/**
+ * Everything an archived domain leaves behind — the cards outside one, and the
+ * attempts on those cards.
+ *
+ * This is the admission rule for the aggregate views the way
+ * archivedDomainIds() is for the queue and the practice sets. Archiving takes a
+ * domain out of every view except Settings, history included: read
+ * `problems`/`attempts` off this instead of `data.problems`/`data.attempts` and
+ * an archived deck stops contributing a row, a chip, a percentage or a study
+ * day. Nothing is deleted, so restoring the domain brings every number back
+ * exactly as it was.
+ */
+export function activeCards(data: StoreData): { problems: Problem[]; attempts: Attempt[] } {
+  const archived = archivedDomainIds(data.domains);
+  if (archived.size === 0) return { problems: data.problems, attempts: data.attempts };
+  const problems = data.problems.filter(p => !archived.has(p.domain));
+  const kept = new Set(problems.map(p => p.id));
+  return { problems, attempts: data.attempts.filter(a => kept.has(a.problem_id)) };
+}
+
 /** All problems in a domain with attempt_count + avg_time, newest first. */
 export function domainProblems(data: StoreData, domain: Domain): Problem[] {
   return data.problems
@@ -148,8 +168,9 @@ export function todayStats(data: StoreData, today: string): { counts: Record<str
   // "Added today" is literally that: the card was created today. It used to mean
   // "first-ever attempt was today", which made the badge invisible for the case
   // it exists to report — cards are seeded with zero attempts, so a batch you
-  // just added counted for nothing until you studied it the next day.
-  for (const p of data.problems) {
+  // just added counted for nothing until you studied it the next day. Cards in
+  // an archived domain don't count: an archived deck reports nothing anywhere.
+  for (const p of activeCards(data).problems) {
     if (dateOf(p.created_at) === today) counts[p.domain] = (counts[p.domain] ?? 0) + 1;
   }
 
@@ -176,23 +197,30 @@ export interface TodayAttempt {
   metadata: Record<string, string>;
 }
 
-/** Today's attempts split into reviewed (re-attempt) vs added (first time). */
+/**
+ * Today's attempts split into reviewed (re-attempt) vs added (first time).
+ *
+ * Archived domains are excluded — an archived deck leaves the history page as
+ * completely as it leaves the queue, so it contributes no row, no group and no
+ * count towards the day's totals.
+ */
 export function historyBuckets(
   data: StoreData,
   today: string,
   domainFilter?: string,
 ): { reviewed: TodayAttempt[]; added: TodayAttempt[] } {
-  const problemById = new Map(data.problems.map(p => [p.id, p]));
+  const active = activeCards(data);
+  const problemById = new Map(active.problems.map(p => [p.id, p]));
   // problems that have any attempt on a date strictly before today
   const hasEarlier = new Set<number>();
-  for (const a of data.attempts) {
+  for (const a of active.attempts) {
     if (dateOf(a.attempted_at) < today) hasEarlier.add(a.problem_id);
   }
 
   const reviewed: TodayAttempt[] = [];
   const added: TodayAttempt[] = [];
 
-  for (const a of data.attempts) {
+  for (const a of active.attempts) {
     if (dateOf(a.attempted_at) !== today) continue;
     const p = problemById.get(a.problem_id);
     if (!p) continue;
@@ -208,7 +236,7 @@ export function historyBuckets(
       domain: p.domain,
       interval_level: p.interval_level,
       next_due_date: p.next_due_date ?? null,
-      attempt_count: data.attempts.filter(x => x.problem_id === p.id).length,
+      attempt_count: active.attempts.filter(x => x.problem_id === p.id).length,
       metadata: p.metadata,
     };
     (hasEarlier.has(p.id) ? reviewed : added).push(row);

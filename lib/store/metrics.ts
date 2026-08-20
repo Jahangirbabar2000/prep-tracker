@@ -12,8 +12,8 @@ import { StoreData } from './store';
 import { computeNextDue, MAX_LEVEL } from '@/lib/sr';
 import { PROFICIENCY_LABELS, type ProficiencyLabel } from '@/lib/proficiency';
 import { computeStreak } from '@/lib/streak';
-import { reviewQueue, proficiencyOf } from './queries';
-import { allDomains } from '@/lib/domains';
+import { activeCards, reviewQueue, proficiencyOf } from './queries';
+import { activeDomains } from '@/lib/domains';
 
 const dateOf = (datetime: string) => datetime.slice(0, 10);
 
@@ -138,7 +138,7 @@ export interface Metrics {
   reviewsByDay7d: number[]; // review count per day, oldest -> today (length 7)
   streak: number;
 
-  // 5. Mastery by domain — ALWAYS all domains (ignores domainFilter)
+  // 5. Mastery by domain — ALWAYS every active domain (ignores domainFilter)
   masteryByDomain: DomainMastery[];
 
   // 6. Leeches (+ fallback flag)
@@ -162,10 +162,16 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
   const recentStart = addDays(today, -6);
   const priorStart = addDays(today, -13);
 
+  // Archived domains are out of every metric here, headline numbers and streak
+  // included — the same rule the queue and the practice sets apply, so "Due to
+  // review" and "Retained" can't disagree about which cards exist. Restoring the
+  // domain brings its cards, and therefore every number, straight back.
+  const active = activeCards(data);
+
   // Scope problems/attempts to the active domain filter (mastery-by-domain stays global).
-  const problems = domainFilter ? data.problems.filter(p => p.domain === domainFilter) : data.problems;
+  const problems = domainFilter ? active.problems.filter(p => p.domain === domainFilter) : active.problems;
   const problemIds = new Set(problems.map(p => p.id));
-  const attempts = domainFilter ? data.attempts.filter(a => problemIds.has(a.problem_id)) : data.attempts;
+  const attempts = domainFilter ? active.attempts.filter(a => problemIds.has(a.problem_id)) : active.attempts;
 
   // Group scoped attempts per problem and replay each.
   const byProblem = new Map<number, Attempt[]>();
@@ -209,10 +215,10 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
   const promotions7d = recentReviews.filter(r => r.isPromotion).length;
   const demotions7d = recentReviews.filter(r => r.isDemotion).length;
 
-  // 5. Mastery by domain — always all domains
-  const masteryByDomain: DomainMastery[] = allDomains(data.domains).map(definition => {
+  // 5. Mastery by domain — every active domain, whatever the filter says
+  const masteryByDomain: DomainMastery[] = activeDomains(data.domains).map(definition => {
     const domain = definition.id;
-    const dProblems = data.problems.filter(p => p.domain === definition.id);
+    const dProblems = active.problems.filter(p => p.domain === definition.id);
     const total = dProblems.length;
     const familiarPlus = dProblems.filter(p => p.interval_level >= 2).length;
     return {
@@ -221,7 +227,7 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
       total,
       familiarPlus,
       pct: total ? Math.round((familiarPlus / total) * 100) : 0,
-      attempts: data.attempts.filter(a => dProblems.some(p => p.id === a.problem_id)).length,
+      attempts: active.attempts.filter(a => dProblems.some(p => p.id === a.problem_id)).length,
     };
   });
 

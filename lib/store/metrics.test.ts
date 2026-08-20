@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { replayAttempts, computeMetrics, dailyActivity } from './metrics';
+import { replayAttempts, computeMetrics, dailyActivity, type Metrics } from './metrics';
 import type { StoreData } from './store';
-import type { Attempt, Problem } from '@/lib/types';
+import type { Attempt, Problem, StudyDomain } from '@/lib/types';
 import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
 
 const TODAY = '2026-07-26'; // sevenAgo = 2026-07-19, fourteenAgo = 2026-07-12
@@ -12,17 +12,27 @@ function attempt(over: Partial<Attempt> & { id: number; problem_id: number }): A
 function problem(over: Partial<Problem> & { id: number }): Problem {
   return { name: `P${over.id}`, domain: 'dsa', interval_level: 0, created_at: `${TODAY} 00:00:00`, ...over } as Problem;
 }
-function store(problems: Problem[], attempts: Attempt[]): StoreData {
+function store(
+  problems: Problem[],
+  attempts: Attempt[],
+  domains: StudyDomain[] = LEGACY_DOMAIN_FALLBACKS,
+): StoreData {
   return {
     problems,
     attempts,
     notes: [],
     links: [],
     config_options: [],
-    domains: LEGACY_DOMAIN_FALLBACKS,
+    domains,
     domain_fields: [],
     domain_field_options: [],
   };
+}
+/** The standard domains with some archived — archiving never touches the cards. */
+function archiving(...ids: string[]): StudyDomain[] {
+  return LEGACY_DOMAIN_FALLBACKS.map(domain =>
+    ids.includes(domain.id) ? { ...domain, archived_at: '2026-07-25T12:00:00Z' } : domain,
+  );
 }
 /** Attempts for one problem across ascending days from `day`; s = struggled flags. */
 function seq(problemId: number, startDay: number, struggles: number[]): Attempt[] {
@@ -158,7 +168,7 @@ describe('computeMetrics — scoping & edges', () => {
     );
     const m = computeMetrics(data, TODAY, 'dsa');
     expect(m.familiarPlusCount).toBe(1);            // scoped to dsa (only P1)
-    expect(m.masteryByDomain).toHaveLength(7);      // always all domains
+    expect(m.masteryByDomain).toHaveLength(7);      // always every active domain
     expect(m.masteryByDomain.find(d => d.domain === 'dsa')).toMatchObject({ total: 2, familiarPlus: 1, pct: 50 });
     expect(m.masteryByDomain.find(d => d.domain === 'ai')).toMatchObject({ total: 1, familiarPlus: 1 });
   });
@@ -239,6 +249,74 @@ describe('computeMetrics — window boundaries & correctness', () => {
     );
     const dsa = computeMetrics(data, TODAY).masteryByDomain.find(d => d.domain === 'dsa')!;
     expect(dsa).toMatchObject({ total: 3, familiarPlus: 1, pct: 33, attempts: 2 }); // round(1/3*100)
+  });
+});
+
+describe('computeMetrics — archived domains', () => {
+  // Two identical Familiar cards in two domains, four attempts each (a first
+  // sighting, two passing reviews, then a struggle from Familiar — a lapse).
+  // Archiving 'ai' is the only variable, so every number below halves.
+  const problems = [
+    problem({ id: 1, domain: 'dsa', interval_level: 2, next_due_date: '2026-07-20' }),
+    problem({ id: 2, domain: 'ai', interval_level: 2, next_due_date: '2026-07-20' }),
+  ];
+  const attempts = [...seq(1, 20, [0, 0, 0, 1]), ...seq(2, 20, [0, 0, 0, 1])];
+  const both = computeMetrics(store(problems, attempts), TODAY);
+  const m = computeMetrics(store(problems, attempts, archiving('ai')), TODAY);
+  const day = (metrics: Metrics, date: string) =>
+    metrics.activityByDay.find(d => d.date === date)!.count;
+
+  it('drops the archived domain from Retention by Domain', () => {
+    expect(both.masteryByDomain.map(d => d.domain)).toContain('ai');
+    expect(m.masteryByDomain.map(d => d.domain)).not.toContain('ai');
+    // The domains around it are untouched.
+    expect(m.masteryByDomain.find(d => d.domain === 'dsa'))
+      .toEqual(both.masteryByDomain.find(d => d.domain === 'dsa'));
+  });
+
+  it('leaves its cards out of the headline numbers, not just the queue', () => {
+    expect([both.dueCount, m.dueCount]).toEqual([2, 1]);
+    expect([both.totalProblems, m.totalProblems]).toEqual([2, 1]);
+    expect([both.familiarPlusCount, m.familiarPlusCount]).toEqual([2, 1]);
+    expect([both.reviewCountRecent, m.reviewCountRecent]).toEqual([6, 3]);
+    expect([both.proficiencyCounts.Familiar, m.proficiencyCounts.Familiar]).toEqual([2, 1]);
+  });
+
+  it('leaves its attempts out of the leeches, the sparkline and the heatmap', () => {
+    expect(both.leeches.map(l => l.domain)).toContain('ai');
+    expect(m.leeches.map(l => l.domain)).not.toContain('ai');
+    expect(m.reviewsByDay7d.reduce((a, b) => a + b, 0)).toBe(m.reviewsCompleted7d);
+    expect(both.reviewsCompleted7d).toBe(2 * m.reviewsCompleted7d);
+    expect([day(both, '2026-07-21'), day(m, '2026-07-21')]).toEqual([2, 1]);
+
+    // A day only the archived deck contributed to empties out entirely.
+    const extra = [...attempts, attempt({ id: 99, problem_id: 2, attempted_at: '2026-07-24 09:00:00' })];
+    expect(day(computeMetrics(store(problems, extra), TODAY), '2026-07-24')).toBe(1);
+    expect(day(computeMetrics(store(problems, extra, archiving('ai')), TODAY), '2026-07-24')).toBe(0);
+  });
+
+  it('stops counting a study day that only the archived deck contributed', () => {
+    // dsa was studied today; ai yesterday and today.
+    const atts = [
+      attempt({ id: 1, problem_id: 1, attempted_at: `${TODAY} 09:00:00` }),
+      attempt({ id: 2, problem_id: 2, attempted_at: '2026-07-25 09:00:00' }),
+      attempt({ id: 3, problem_id: 2, attempted_at: `${TODAY} 09:00:00` }),
+    ];
+    expect(computeMetrics(store(problems, atts), TODAY).streak).toBe(2);
+    expect(computeMetrics(store(problems, atts, archiving('ai')), TODAY).streak).toBe(1);
+  });
+
+  it('reports zeros when the filter names an archived domain', () => {
+    const ai = computeMetrics(store(problems, attempts, archiving('ai')), TODAY, 'ai');
+    expect(ai.totalProblems).toBe(0);
+    expect(ai.dueCount).toBe(0);
+    expect(ai.recallRateRecent).toBeNull();
+    expect(day(ai, '2026-07-21')).toBe(0);
+  });
+
+  it('restores every number when the domain comes back', () => {
+    // Same cards and attempts, domains active again — archiving touched neither.
+    expect(computeMetrics(store(problems, attempts), TODAY)).toEqual(both);
   });
 });
 

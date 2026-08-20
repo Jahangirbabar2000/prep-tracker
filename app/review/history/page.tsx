@@ -11,7 +11,7 @@ import { Domain, StudyDomain } from '@/lib/types';
 import { useStore } from '@/lib/store/store';
 import { historyBuckets, clientToday } from '@/lib/store/queries';
 import { computeLoggedSessionTime, computeStudyVelocity } from '@/lib/studyVelocity';
-import { allDomains, isTimedMode, resolveDomain } from '@/lib/domains';
+import { activeDomains, isTimedMode, resolveDomain } from '@/lib/domains';
 
 function fmtMins(mins: number): string {
   if (mins < 60) return `${mins} min`;
@@ -29,7 +29,7 @@ function totalTimeSpentMins(reviewed: TodayAttempt[], domains: StudyDomain[]): n
   }
 
   let total = 0;
-  for (const domain of allDomains(domains).map(definition => definition.id)) {
+  for (const domain of activeDomains(domains).map(definition => definition.id)) {
     const attempts = byDomain[domain];
     if (!attempts?.length) continue;
 
@@ -63,7 +63,7 @@ function HistoryInner() {
   const recallPct     = totalReviewed ? Math.round((gotIt / totalReviewed) * 100) : 0;
   const recallTone    = recallPct >= 80 ? 'text-accent' : recallPct >= 50 ? 'text-amber-500' : 'text-danger';
   const totalMins     = totalTimeSpentMins(reviewed, data.domains);
-  const domainOrder = allDomains(data.domains).map(domain => domain.id);
+  const domainOrder = activeDomains(data.domains).map(domain => domain.id);
 
   const byDomain: Partial<Record<Domain, number>> = {};
   for (const a of reviewed) byDomain[a.domain] = (byDomain[a.domain] ?? 0) + 1;

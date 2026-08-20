@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store/store';
-import { allDomains } from '@/lib/domains';
+import { activeDomains } from '@/lib/domains';
 
 const selectCls = 'bg-surface border border-border rounded-lg px-3 py-1.5 text-base sm:text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 transition cursor-pointer';
 
@@ -10,7 +10,8 @@ export default function HistoryFilters({ currentDomain, basePath = '/review/hist
   const router = useRouter();
   const sp = useSearchParams();
   const { data } = useStore();
-  const domains = allDomains(data.domains);
+  // Active only — an archived domain has nothing to show on either page.
+  const domains = activeDomains(data.domains);
 
   function set(key: string, value: string) {
     const params = new URLSearchParams(sp.toString());

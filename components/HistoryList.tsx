@@ -26,7 +26,7 @@ export interface TodayAttempt {
   metadata: Record<string, string>;
 }
 
-import { allDomains, domainPath, isTimedMode, resolveDomain, tagsForMetadata } from '@/lib/domains';
+import { activeDomains, domainPath, isTimedMode, resolveDomain, tagsForMetadata } from '@/lib/domains';
 import { useStore } from '@/lib/store/store';
 function fmtTime(iso: string) {
   return new Date(iso.replace(' ', 'T')).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -223,7 +223,8 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
   );
 }
 
-// Collapsible domain group for added items — shows all 5 domains, greyed out if empty
+// Collapsible domain group for added items — every active domain gets a row,
+// greyed out if it added nothing today
 function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: TodayAttempt[] }) {
   const { data } = useStore();
   const definition = resolveDomain(data.domains, domain);
@@ -397,7 +398,12 @@ interface Props {
 
 export default function HistoryList({ reviewed, added }: Props) {
   const { data } = useStore();
-  const domainOrder = allDomains(data.domains).map(domain => domain.id);
+  // "Added today" renders a row per domain in this order, including the empty
+  // ones, so an archived domain would sit here as a greyed-out "0 added" — the
+  // one place archiving was still visible. Active domains only, then any domain
+  // the rows themselves reach that the registry doesn't have (see fallbackDomain,
+  // which treats an unregistered domain as active too).
+  const domainOrder = activeDomains(data.domains).map(domain => domain.id);
   for (const domain of [...reviewed, ...added].map(attempt => attempt.domain)) {
     if (!domainOrder.includes(domain)) domainOrder.push(domain);
   }
@@ -413,7 +419,7 @@ export default function HistoryList({ reviewed, added }: Props) {
   const [reviewOpenMap, setReviewOpenMap] = useState<Partial<Record<Domain, boolean>>>({});
   const anyReviewOpen = activeReviewDomains.some(d => reviewOpenMap[d]);
 
-  // Group added by domain — all domains always shown
+  // Group added by domain — every domain in domainOrder always shown
   const addedByDomain: Record<Domain, TodayAttempt[]> = Object.fromEntries(
     domainOrder.map(domain => [domain, []]),
   );
@@ -451,7 +457,7 @@ export default function HistoryList({ reviewed, added }: Props) {
         </CollapsibleSection>
       )}
 
-      {/* Added today — all 5 domains, empty ones greyed out */}
+      {/* Added today — every active domain, empty ones greyed out */}
       {added.length > 0 && (
         <CollapsibleSection
           title="Added today"

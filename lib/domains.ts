@@ -135,6 +135,13 @@ export function isValidDomainSlug(value: string): boolean {
     && !RESERVED_DOMAIN_SLUGS.has(value);
 }
 
+/**
+ * Domains in Settings order, archived ones dropped — what every list of domains
+ * outside Settings is built from: the sidebar, the filter dropdowns, and the
+ * domain-ordered rows on the queue, history and stats pages. Reach for
+ * allDomains() only where archived domains are the point (Settings, so you can
+ * restore one).
+ */
 export function activeDomains(domains: StudyDomain[]): StudyDomain[] {
   return domains
     .filter(domain => !domain.archived_at)
@@ -143,11 +150,13 @@ export function activeDomains(domains: StudyDomain[]): StudyDomain[] {
 
 /**
  * IDs of the archived domains. Their cards stay in the store and on the domain
- * page, but they are out of rotation — see reviewQueue() in store/queries.ts and
- * buildPracticeSet() in practice.ts, which both skip them. An id that isn't in
- * this set counts as active, including one missing from `domains` entirely: that
- * is the same call fallbackDomain() below makes with `archived_at: null`, and it
- * keeps a store that hasn't hydrated its domains yet from blanking the queue.
+ * page, but they are out of everything else: reviewQueue() in store/queries.ts
+ * and buildPracticeSet() in practice.ts skip them for the queue and the practice
+ * sets, and activeCards() in store/queries.ts skips them for the history and
+ * stats aggregates. An id that isn't in this set counts as active, including one
+ * missing from `domains` entirely: that is the same call fallbackDomain() below
+ * makes with `archived_at: null`, and it keeps a store that hasn't hydrated its
+ * domains yet from blanking the queue.
  */
 export function archivedDomainIds(domains: StudyDomain[]): Set<string> {
   return new Set(domains.filter(domain => domain.archived_at).map(domain => domain.id));

@@ -80,6 +80,33 @@ async function stubSync(page: Page, cards: Card[], domain = DOMAIN) {
   }));
 }
 
+/** YYYY-MM-DD in Eastern time — what the client calls "today" (lib/store/queries). */
+function clientToday(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+}
+
+/**
+ * As stubSync, but each card's last attempt lands today, so the cards reach
+ * Today's History. A card keeps its earlier attempts, so one with two of them
+ * still counts as reviewed rather than added.
+ */
+async function stubSyncStudiedToday(page: Page, cards: Card[], domain = DOMAIN) {
+  const payload = syncPayload(cards, domain);
+  const lastPerCard = new Map(payload.attempts.map(a => [a.problem_id, a.id]));
+  payload.attempts = payload.attempts.map(a =>
+    a.id === lastPerCard.get(a.problem_id) ? { ...a, attempted_at: `${clientToday()} 09:00:00` } : a,
+  );
+  await page.route('**/api/sync', route => route.fulfill({
+    contentType: 'application/json',
+    json: payload as unknown as Record<string, unknown>,
+  }));
+}
+
+/** The section a given heading titles — the sidebar names domains too. */
+function section(page: Page, heading: RegExp) {
+  return page.locator('section', { has: page.getByRole('heading', { name: heading }) });
+}
+
 /** Keep graded attempts off the real database. */
 async function stubAttempts(page: Page) {
   await page.route('**/api/problems/*/attempts', route => route.fulfill({
@@ -182,4 +209,36 @@ test('an archived domain leaves the queue and empties its own practice launcher'
   await page.goto(`/${archived.slug}/review`);
   await expect(page.getByTestId('practice-count-due')).toHaveText('0');
   await expect(page.getByTestId('practice-count-newest')).toHaveText('0');
+});
+
+test("Today's History and Stats show a domain studied today", async ({ page }) => {
+  // The active-domain baseline for the archived case below: the same fixture
+  // reaches both pages, so their emptiness there is the archiving, not the stub.
+  await stubSyncStudiedToday(page, [DUE_CARD, UNTOUCHED_CARD]);
+
+  await page.goto('/review/history');
+  // The group is collapsed by default, so its header is what's on screen.
+  const reviewed = section(page, /Reviewed from queue/);
+  await expect(reviewed.getByText(DOMAIN.name).first()).toBeVisible();
+  await expect(reviewed.getByText('1 reviewed')).toBeVisible();
+
+  // Retention by Domain lists it, and so does the domain filter beside it.
+  await page.goto('/stats');
+  await expect(section(page, /Retention by Domain/).getByText(DOMAIN.name).first()).toBeVisible();
+  await expect(page.getByRole('option', { name: DOMAIN.name })).toHaveCount(1);
+});
+
+test("an archived domain leaves Today's History and Stats as well", async ({ page }) => {
+  // Its cards, due dates and attempt history are all still in the store — the
+  // archived flag alone has to keep them off both pages.
+  const archived = { ...DOMAIN, archived_at: '2000-07-01 00:00:00' };
+  await stubSyncStudiedToday(page, [DUE_CARD, UNTOUCHED_CARD], archived);
+
+  await page.goto('/review/history');
+  await expect(page.getByText('No activity yet today.')).toBeVisible();
+  await expect(page.getByText(DOMAIN.name)).toHaveCount(0);
+
+  await page.goto('/stats');
+  await expect(page.getByText(DOMAIN.name)).toHaveCount(0);
+  await expect(page.getByRole('option', { name: DOMAIN.name })).toHaveCount(0);
 });

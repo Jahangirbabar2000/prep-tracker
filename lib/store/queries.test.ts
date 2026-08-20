@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { reviewQueue, matchesProficiency, todayStats, toQueueItem, compareByDueDate, forecast } from './queries';
+import {
+  activeCards, compareByDueDate, forecast, historyBuckets, matchesProficiency,
+  reviewQueue, todayStats, toQueueItem,
+} from './queries';
 import type { StoreData } from './store';
 import type { Problem, Attempt, StudyDomain } from '@/lib/types';
 import { LEGACY_DOMAIN_FALLBACKS } from '@/lib/domains';
@@ -336,14 +339,70 @@ describe('archived domains', () => {
     expect(reviewQueue(data, TODAY).map(i => i.id)).toEqual([9]);
   });
 
-  it('still counts an archived card as added today — that half of todayStats is history', () => {
-    const data = store(
-      [problem({ id: 1, domain: 'ai', next_due_date: TODAY })],
-      [],
-      archiving('ai'),
-    );
-    const { counts, due } = todayStats(data, TODAY);
-    expect(counts.ai).toBe(1);
+  it('stops counting an archived card as added today', () => {
+    const cards = [problem({ id: 1, domain: 'ai', next_due_date: TODAY })];
+    expect(todayStats(store(cards, []), TODAY).counts.ai).toBe(1);
+
+    const { counts, due } = todayStats(store(cards, [], archiving('ai')), TODAY);
+    expect(counts.ai).toBe(0);
     expect(due.ai).toBe(0);
+  });
+
+  it('keeps the archived cards and their attempts out of activeCards', () => {
+    const attempts = [
+      attempt({ id: 1, problem_id: 1 }),
+      attempt({ id: 2, problem_id: 2 }),
+      attempt({ id: 3, problem_id: 3 }),
+    ];
+    const active = activeCards(store(problems, attempts, archiving('ai')));
+    expect(active.problems.map(p => p.id)).toEqual([1]);
+    expect(active.attempts.map(a => a.id)).toEqual([1]);
+
+    // Nothing was dropped from the store, so restoring the domain restores both.
+    const restored = activeCards(store(problems, attempts));
+    expect(restored.problems.map(p => p.id)).toEqual([1, 2, 3]);
+    expect(restored.attempts.map(a => a.id)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('historyBuckets', () => {
+  // One card reviewed today (it has an earlier attempt) and one added today, in
+  // each of two domains. Archiving is the only variable.
+  const problems = [
+    problem({ id: 1, domain: 'dsa', created_at: '2026-07-10T09:00:00' }),
+    problem({ id: 2, domain: 'dsa' }),
+    problem({ id: 3, domain: 'ai', created_at: '2026-07-10T09:00:00' }),
+    problem({ id: 4, domain: 'ai' }),
+  ];
+  const attempts = [
+    attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-10T09:00:00' }),
+    attempt({ id: 2, problem_id: 1 }),
+    attempt({ id: 3, problem_id: 2 }),
+    attempt({ id: 4, problem_id: 3, attempted_at: '2026-07-10T09:00:00' }),
+    attempt({ id: 5, problem_id: 3 }),
+    attempt({ id: 6, problem_id: 4 }),
+  ];
+
+  it('splits today into reviewed (has an earlier attempt) and added (does not)', () => {
+    const { reviewed, added } = historyBuckets(store(problems, attempts), TODAY);
+    expect(reviewed.map(r => r.id)).toEqual([3, 1]);
+    expect(added.map(r => r.id)).toEqual([4, 2]);
+  });
+
+  it('drops an archived domain from both buckets', () => {
+    const { reviewed, added } = historyBuckets(store(problems, attempts, archiving('ai')), TODAY);
+    expect(reviewed.map(r => r.id)).toEqual([1]);
+    expect(added.map(r => r.id)).toEqual([2]);
+  });
+
+  it('is empty when the only activity today is in an archived domain', () => {
+    const data = store(problems.slice(2), attempts.slice(3), archiving('ai'));
+    expect(historyBuckets(data, TODAY)).toEqual({ reviewed: [], added: [] });
+  });
+
+  it('reports nothing when the filter names an archived domain', () => {
+    const data = store(problems, attempts, archiving('ai'));
+    expect(historyBuckets(data, TODAY, 'ai')).toEqual({ reviewed: [], added: [] });
+    expect(historyBuckets(data, TODAY, 'dsa').added.map(r => r.id)).toEqual([2]);
   });
 });
