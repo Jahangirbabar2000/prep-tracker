@@ -10,6 +10,11 @@
 // an error rather than something to build. Category values found in the file
 // are appended to the Category field's options in file order.
 //
+// A card may add an "Anchor: <slug>" line between its Q and its A to deep-link
+// into the section's article (the slugs are the article's own "On This Page"
+// entries), so the card's link lands on the paragraph it came from instead of
+// the top of a 2,000-word page.
+//
 // New cards go in with ZERO attempts, interval_level 0, and next_due_date set
 // to TOMORROW — level 0's interval in lib/sr.ts. That is what puts a card you
 // add today into the Review Queue tomorrow, which admits on the due date alone.
@@ -78,12 +83,15 @@ let inFence = false;
 let mode = null;           // 'q' | 'a' | null
 let qBuf = '';
 let aBuf = [];
+let anchorBuf = null;      // per-card "Anchor:" slug, deep-links into the article
 
 function flushCard() {
   if (mode === 'a' && currentCategory && qBuf) {
+    const article = linkByCategory.get(currentCategory) ?? null;
     cards.push({
       category: currentCategory,
-      link: linkByCategory.get(currentCategory) ?? null,
+      article,
+      link: article && anchorBuf ? `${article}#${anchorBuf}` : article,
       q: qBuf.trim(),
       // Trim both ends: "**A:**" followed by a bulleted list otherwise leaves
       // leading blank lines in the stored answer.
@@ -92,6 +100,7 @@ function flushCard() {
   }
   qBuf = '';
   aBuf = [];
+  anchorBuf = null;
   mode = null;
 }
 
@@ -125,6 +134,10 @@ for (const line of lines) {
     qBuf = qMatch[1];
     continue;
   }
+  // "Anchor:" deep-links this one card into its section's article.
+  const anchorMatch = line.match(/^Anchor:\s*#?([\w-]+)\s*$/);
+  if (anchorMatch && mode === 'q') { anchorBuf = anchorMatch[1]; continue; }
+
   const aMatch = line.match(/^\*\*A:\*\*\s*(.*)$/);
   if (aMatch && mode === 'q') {
     mode = 'a';
@@ -240,13 +253,23 @@ for (const { category, q, a } of cards) {
 
 // ── Attach each section's article link, labelled with the card's question ───
 let linked = 0;
-for (const { q, link } of cards) {
+let relinked = 0;
+for (const { q, link, article } of cards) {
   const id = cardIdByQuestion.get(q);
   if (!id || !link) continue;
-  const has = (await db.execute({
-    sql: 'SELECT 1 FROM links WHERE problem_id = ? AND url = ?', args: [id, link],
-  })).rows[0];
-  if (has) continue;
+  const rows = (await db.execute({
+    sql: 'SELECT id, url FROM links WHERE problem_id = ?', args: [id],
+  })).rows;
+  if (rows.some(row => row.url === link)) continue;
+  // Same article, different URL — the card gained or changed its anchor, so
+  // move the existing row rather than leaving the card with two links to the
+  // same page.
+  const stale = rows.find(row => String(row.url).split('#')[0] === article);
+  if (stale) {
+    await db.execute({ sql: 'UPDATE links SET url = ? WHERE id = ?', args: [link, stale.id] });
+    relinked++;
+    continue;
+  }
   await db.execute({
     sql: 'INSERT INTO links (problem_id, url, label) VALUES (?, ?, ?)',
     args: [id, link, q],
@@ -254,6 +277,7 @@ for (const { q, link } of cards) {
   linked++;
 }
 if (linked) console.log(`Attached article link to ${linked} card(s).`);
+if (relinked) console.log(`Re-pointed ${relinked} card link(s) at a section anchor.`);
 
 // ── Warn about cards in the DB with no matching question in the markdown ───
 // Matching is by exact question text, so editing a Q (not just its A) makes

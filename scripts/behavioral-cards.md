@@ -17,15 +17,22 @@ Format:
   to the field's options in file order.
 - `Link: <url>` — the article every card in that section came from. Attached to
   each card as a `links` row, labelled with the card's own question text.
+- `Anchor: <slug>` — optional, one line between a card's `**Q:**` and `**A:**`.
+  Deep-links that card into the section's article, so the link lands on the
+  paragraph the card came from instead of the top of a 2,000-word page. The
+  slugs are the article's own "On This Page" entries. Adding or changing one
+  moves the card's existing link rather than adding a second.
 - `**Q:** …` / `**A:** …` — one card. Answers may span multiple lines.
 
 Every card gets `question_list: Hello Interview Course`.
 
-**Partial back-fill.** This file holds the `Practice` and `Common Pitfalls`
-sections. The 74 older cards (Why the Behavioral Matters, Decode, Select,
-Deliver, The Big Three) were seeded before this file existed and still live only
-in the DB — so the orphan check is scoped to the categories present here, and
-won't flag them. Back-fill those sections when convenient.
+**Partial back-fill.** This file holds `Why the Behavioral Matters`, `Practice`
+and `Common Pitfalls`. The 64 remaining older cards (Decode, Select, Deliver,
+The Big Three) were seeded before this file existed and still live only in the
+DB — so the orphan check is scoped to the categories present here, and won't
+flag them. Back-fill those sections when convenient: recover the exact question
+and answer text from the DB so the seed matches the existing rows instead of
+inserting duplicates, then add an `Anchor:` per card.
 
 ## Card style — match the existing behavioral cards
 
@@ -42,6 +49,81 @@ won't flag them. Back-fill those sections when convenient.
 - Curly quotes and apostrophes, not straight ones. No headings inside answers.
 
 ---
+
+## Why the Behavioral Matters
+Link: https://www.hellointerview.com/learn/behavioral/course/why-the-behavioral-matters
+
+**Q:** What are behavioral interviewers actually trying to predict?
+Anchor: what-are-behavioral-interviews
+**A:** Behavioral interviewers are forecasters.
+
+They're using your past experiences to predict how you'll think, act, and interact in the role—not judging the story itself, but the patterns of behavior it reveals.
+
+**Q:** What three things do you need to succeed in behavioral interviews?
+Anchor: what-are-behavioral-interviews
+**A:** - Understand what interviewers are actually evaluating (Decode)
+- Know your own stories and choose the right one (Select)
+- Deliver your story clearly and memorably (Deliver)
+
+**Q:** What is the Decode → Select → Deliver framework?
+Anchor: the-behavioral-interview-cycle-decode-select-deliver
+**A:** - **Decode:** Identify what the interviewer is *really* assessing.
+- **Select:** Choose the best story (highest scope → most relevant → most unique → most recent).
+- **Deliver:** Tell it using the **CARL** framework (Context, Actions, Results, Learnings).
+
+**Q:** What three frameworks do interviewers use to evaluate behavioral responses?
+Anchor: frameworks-interviewers-use-to-assess-you
+**A:** - **Signal Areas** (competencies like ownership, conflict resolution, perseverance)
+- **Company Values**
+- **Cultural Assessment** (how well you fit the company's way of operating)
+
+Every behavioral question can usually be mapped to one or more of these.
+
+**Q:** Why are behavioral interviews becoming more important than technical interviews for senior engineers?
+Anchor: ai-is-making-soft-skills-more-important-not-less
+**A:** As AI handles more implementation work, companies differentiate engineers by:
+
+- Judgment
+- Leadership
+- Communication
+- Business understanding
+- The ability to drive alignment
+
+These qualities are primarily assessed during behavioral interviews.
+
+**Q:** How can you stand out in a behavioral interview even without the flashiest accomplishments?
+Anchor: companies-are-ruthlessly-selective
+**A:** - Use concrete details instead of vague claims.
+- Show genuine enthusiasm for your work.
+- Demonstrate self-awareness by explaining what you learned and what you'd do differently.
+
+Interviewers remember authenticity and reflection more than perfect outcomes.
+
+**Q:** What are the biggest misconceptions candidates have about behavioral interviews?
+Anchor: common-misconceptions
+**A:** - *"Just be yourself"* (be authentic, but intentional).
+- *"I should memorize company-specific questions."* (Prepare stories, not questions.)
+- *"STAR is enough."* (Structure alone doesn't teach story selection or positioning.)
+- *"They're only judging culture fit."* (They're predicting future job performance.)
+
+**Q:** Why should behavioral preparation start with your stories instead of common interview questions?
+Anchor: common-misconceptions
+**A:** Behavioral questions vary widely across interviewers and companies.
+
+You can't predict the exact questions, but you can prepare a strong catalog of stories that can be adapted to many different prompts.
+
+**Q:** If you have limited time before an interview, what should you prioritize?
+Anchor: how-to-use-this-course
+**A:** 1. Decode → Select → Deliver framework
+2. The Big Three answers ("Tell me about yourself," favorite project, conflict)
+3. Common behavioral pitfalls
+4. Practice delivering your stories aloud
+
+**Q:** What's the biggest reason candidates underperform in behavioral interviews?
+Anchor: conclusion
+**A:** Most candidates don't lack good experiences.
+
+They lack a framework for selecting, structuring, and communicating those experiences in a way that gives interviewers evidence to confidently hire them.
 
 ## Practice
 Link: https://www.hellointerview.com/learn/behavioral/course/practicing
