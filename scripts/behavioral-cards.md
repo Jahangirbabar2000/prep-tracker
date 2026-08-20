@@ -21,11 +21,11 @@ Format:
 
 Every card gets `question_list: Hello Interview Course`.
 
-**Partial back-fill.** This file currently holds only the `Practice` section.
-The 74 older cards (Why the Behavioral Matters, Decode, Select, The Big Three)
-were seeded before this file existed and still live only in the DB — so the
-orphan check below is scoped to the categories present here, and won't flag
-them. Back-fill those sections when convenient.
+**Partial back-fill.** This file holds the `Practice` and `Common Pitfalls`
+sections. The 74 older cards (Why the Behavioral Matters, Decode, Select,
+Deliver, The Big Three) were seeded before this file existed and still live only
+in the DB — so the orphan check is scoped to the categories present here, and
+won't flag them. Back-fill those sections when convenient.
 
 ## Card style — match the existing behavioral cards
 
@@ -148,3 +148,109 @@ Behavioral interviews are fundamentally subjective, so human feedback isn't opti
 - **Expert follow-ups** — they probe where other managers will probe, which is where you're weakest
 - **Pattern recognition** — hundreds of sessions means they've seen your mistake, and the fix
 - **Confidence** — someone who's made real hiring calls telling you you're ready
+
+## Common Pitfalls
+Link: https://www.hellointerview.com/learn/behavioral/course/common-pitfalls
+
+**Q:** What's the first thing to do after hearing a behavioral question?
+**A:** Pause for a few seconds and identify the signal area being tested — then pick your story.
+
+“Tell me about a challenging project” isn't asking for architecture; **challenging** means Perseverance. Answer the technical question instead and the interviewer leaves without the signal they came for.
+
+Taking a few seconds to think is fine.
+
+**Q:** What is the 30-second rule?
+**A:** If you've talked for thirty seconds without sharing an action that moves the story forward, you're over-detailing something that isn't the point.
+
+Actions are where the signal lives and what goes into the interviewer's notes. Context, Results and Learnings are supporting material.
+
+Interviewers care less about what happened than about what you did to make it happen.
+
+**Q:** What passive phrases should you strip out of your stories?
+**A:**
+
+- “I was assigned this project”
+- “My manager asked me to…”
+- “The ticket came to me”
+
+These make work sound like something that happens to you rather than something you drive.
+
+Even when you *were* handed the work, tell it from what you chose to do once you had it.
+
+**Q:** Which context details earn their place in a story?
+**A:** Only two kinds:
+
+- Details that **establish the stakes** — why this mattered to the organization and its customers
+- Details that **make your actions understandable**
+
+Cut everything else: your org chart, sprint process, team history, your manager's background.
+
+Preventing customer churn and shipping a nice-to-have are different stories, and that distinction is what the interviewer needs.
+
+**Q:** How do you cure the “we” disease?
+**A:** Replace each **we** with the specific thing you did:
+
+- “We decided to use Redis” → “I proposed Redis because our read-to-write ratio was 100:1”
+- “We built a service” → “I designed the architecture, implemented the core endpoints, and wrote the integration tests”
+
+You aren't claiming you worked alone — the interviewer knows you had a team. Being specific isn't arrogance.
+
+**Q:** What are the three most common story-selection mistakes?
+**A:**
+
+- **Scope mismatch** — a bug-fixing story for a senior role, unless the bug was genuinely hard
+- **Too old** — five-year-old stories make the interviewer wonder what you've done since; stay within 0–3 years
+- **Not your project** — if your real contribution was attending meetings and giving input, they'll see through it
+
+The interviewer only hears the stories you choose to tell.
+
+**Q:** Why do fairy tale endings backfire?
+**A:** “We shipped on time, metrics improved, stakeholders loved it” reads as a problem, not a win.
+
+The interviewer concludes one of three things: you weren't close enough to the work to see the problems, you're hiding something, or you aren't self-aware enough to spot the weaknesses.
+
+A story with genuine trouble in it carries more signal than a smooth one.
+
+**Q:** How do you put credible trouble back into a story?
+**A:**
+
+- **Obstacles** — “we hit a performance regression in staging that took a week to debug”
+- **Mistakes and recoveries** — “I underestimated the cross-team dependencies and lost two weeks, then set up daily syncs to catch issues earlier”
+- **Imperfections** — “we shipped on time, but test coverage wasn't where I wanted it, so I added those tests the next sprint”
+
+Pick mistakes that show skill growth, not character flaws.
+
+**Q:** What are the pitfalls specific to a conflict story?
+**A:**
+
+- **Sideline conflict** — it has to be one you were directly involved in resolving, not one you watched
+- **Level mismatch** — disagreeing with a peer is a smaller conflict than disagreeing with a partner team
+- **No empathy** — make the other person look bad and the interviewer marks *you* as uncharitable
+- **No aftermath** — show the repaired trust, and frame the resolution as win-win
+
+**Q:** What do senior candidates most often leave out?
+**A:** The framework — *how* they decided, not just what they decided.
+
+- “I prioritized the work” → by what criteria?
+- “I made the technical decision” → against what tradeoffs?
+- “I mentored a junior engineer” → using what approach?
+
+At Staff and above your process matters as much as your outcomes, because the interviewer is judging whether your decision-making will transfer to their org.
+
+**Q:** What does it mean to think defensively about your story?
+**A:** Interviewers hiring senior people are risk-averse, so they fill any gap in your narrative with an unflattering assumption:
+
+- “My manager assigned me this” → *don't you seek out work yourself?*
+- “It took me three months” → *was that reasonable?*
+- “The codebase had no test coverage” → *why didn't you fix it?*
+
+Either cut the phrase or pre-frame it, so the gap never opens.
+
+**Q:** How do you steer the interview toward your best material?
+**A:**
+
+- **Seed it in TMAY** — name a complex project and the interviewer will likely ask about it next
+- **Drop breadcrumbs** — “I also had to navigate some stakeholder concerns, but the key technical challenge was…” signals a conflict story is available
+- **Offer a menu** — two options, and let them pick the signal they need
+
+It's your job to guide the interviewer, not just follow their questions.
