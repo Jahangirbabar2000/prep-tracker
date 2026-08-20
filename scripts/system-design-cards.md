@@ -1204,9 +1204,11 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/consistent-hashing
 
 **Q:** Why does simple modulo hashing (hash(key) % N) break down when nodes are added or removed?
+Anchor: first-attempt-simple-modulo-hashing
 **A:** Changing `N` changes the modulo result for almost every key, not just the ones that should move. Adding a 4th database or losing one causes massive unnecessary data movement across the entire cluster, spiking load everywhere at once.
 
 **Q:** How does the hash ring solve this, and how much data actually moves when a node is added or removed?
+Anchor: consistent-hashing
 **A:** Servers and keys are placed on a circular hash space; a key belongs to the first server found moving **clockwise** from its hash position.
 
 - **Adding a node** — only keys between the new node and its counter-clockwise neighbor move; everything else stays put
@@ -1215,19 +1217,23 @@ Link: https://www.hellointerview.com/learn/system-design/core-concepts/consisten
 This bounds data movement to a small fraction of the dataset, instead of nearly all of it.
 
 **Q:** What are virtual nodes, and what problem do they solve?
+Anchor: consistent-hashing
 **A:** Each physical server is hashed multiple times under different name variants (e.g. `"DB1-vn1"`, `"DB1-vn2"`), giving it many scattered positions on the ring instead of one.
 
 This fixes the **uneven failover load** problem: without virtual nodes, a failed server's entire load dumps onto one lucky neighbor; with them, the load scatters across many neighbors at once. It also helps new nodes absorb load from multiple existing servers immediately, rather than just one.
 
 **Q:** What is a hot spot, and why doesn't consistent hashing solve it on its own?
+Anchor: addressing-hot-spots
 **A:** A node getting disproportionate **traffic** because some keys are simply more popular than others (e.g. a celebrity's data). Consistent hashing only distributes *keys* evenly — it has no concept of which keys will be hit more often.
 
 Fixes: **read replicas** for popular keys (most common), **key-space salting** (append a random suffix so one hot key spreads across several nodes), or **adaptive rebalancing** (some systems, like DynamoDB, do this automatically).
 
 **Q:** Does consistent hashing itself move data when a node fails?
+Anchor: data-movement-in-practice
 **A:** No — it only defines where data *should* live. Real systems pair it with **replication** to avoid data movement on failure entirely: DynamoDB replicates each partition across availability zones and promotes a replica via consensus (e.g. Raft) when a primary dies. Data movement only happens on *planned* changes, like adding capacity, and even then only a bounded fraction of keys are affected.
 
 **Q:** When should you go deep on consistent hashing in an interview vs. just naming it?
+Anchor: when-to-use-consistent-hashing-in-an-interview
 **A:** For most interviews using a managed system (DynamoDB, Cassandra), it's enough to say it uses consistent hashing under the hood. Go deep only in **infrastructure-focused interviews** asking you to design a distributed database, cache, or message broker from scratch — where you should be ready to explain the ring, virtual nodes, failure handling, and hot spot mitigation.
 
 ## CAP Theorem
@@ -1235,26 +1241,31 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/cap-theorem
 
 **Q:** What does CAP theorem state, and why does it really boil down to a single choice in practice?
+Anchor: what-is-cap-theorem
 **A:** In a distributed system you can only guarantee two of three properties: **Consistency** (all nodes see the same data at the same time), **Availability** (every request to a non-failing node gets a response), and **Partition Tolerance** (the system keeps working despite network failures between nodes).
 
 Since partition tolerance is non-negotiable in any real distributed system, the practical choice always comes down to: **when a partition happens, do you prioritize consistency or availability?**
 
 **Q:** What is the single diagnostic question for choosing between consistency and availability?
+Anchor: when-to-choose-availability
 **A:** "Would it be catastrophic if users briefly saw inconsistent data?" If yes, choose **consistency**. If not, choose **availability**.
 
 - *Choose consistency:* ticket booking (prevents double-booking a seat), inventory (prevents overselling the last unit), financial/trading systems (stale prices cause bad trades)
 - *Choose availability:* social media profile updates, content descriptions, review site info — a few seconds/minutes of staleness is harmless
 
 **Q:** What design choices typically accompany each priority?
+Anchor: cap-theorem-in-system-design-interviews
 **A:** - **Consistency-first** — distributed transactions (e.g. two-phase commit) or a single-node database; both trade scalability/latency for a guaranteed single source of truth. *Technologies:* PostgreSQL/MySQL, Google Spanner, DynamoDB in strong consistency mode.
 - **Availability-first** — asynchronous read replicas and Change Data Capture (CDC) to propagate updates in the background while staying responsive. *Technologies:* Cassandra, DynamoDB multi-AZ, Redis clusters.
 
 **Q:** Can consistency requirements vary within a single system, and what's an example?
+Anchor: advanced-cap-theorem-considerations
 **A:** Yes — real systems often need different consistency models per feature. **Ticketmaster** needs strong consistency for booking a seat (prevents double-booking) but can prioritize availability for browsing event details (a stale description is fine). Same logic applies to **Tinder**: matching needs consistency, viewing a profile doesn't.
 
 > "I'll prioritize consistency for booking transactions but optimize for availability when users are just browsing."
 
 **Q:** What's the difference between strong consistency and eventual consistency, and where do the in-between models fit?
+Anchor: different-levels-of-consistency
 **A:** **Strong consistency** — every read reflects the most recent write; needed for things like bank balances. **Eventual consistency** — the system converges over time but may be briefly inconsistent; this is the default in most distributed databases and what you're implicitly accepting whenever you choose availability.
 
 In between: **causal consistency** (dependent events, like a comment and its post, stay in order) and **read-your-own-writes** (you always see your own updates immediately, even if others see a slightly older version) — both useful nuances for senior-level discussions, but rarely need to be named explicitly in most interviews.
@@ -1264,16 +1275,19 @@ Bucket: Core Concepts
 Link: https://www.hellointerview.com/learn/system-design/core-concepts/numbers-to-know
 
 **Q:** Modern Hardware — How much memory and CPU does one modern instance have?
+Anchor: modern-hardware-limits
 **A:** **512 GiB and 128 vCPUs** on a general-purpose M6i.32xlarge.
 
 Memory-optimized goes far past that: **4TB** on an X1e.32xlarge, **24TB** on a U-24tb1.metal. Many workloads that once demanded a distributed system now fit on a single machine.
 
 **Q:** Modern Hardware — How much storage can one instance hold?
+Anchor: modern-hardware-limits
 **A:** **60TB of local SSD** (i3en.24xlarge), or **336TB of HDD** (D3en.12xlarge) for data-heavy workloads. Object storage like S3 is effectively unlimited — petabyte-scale is standard practice.
 
 Storage as a primary design constraint is largely behind us.
 
 **Q:** Modern Hardware — What is the network latency ladder within and across regions?
+Anchor: modern-hardware-limits
 **A:** - **Same AZ:** sub-1ms
 - **Cross-AZ, same region:** 1–2ms
 - **Cross-region:** 50–150ms
@@ -1281,21 +1295,25 @@ Storage as a primary design constraint is largely behind us.
 Bandwidth is **25 Gbps** standard, **50–100 Gbps** on high-performance instances; cross-AZ bandwidth inside a region is capped only by instance capacity.
 
 **Q:** Caching — What latency should I assume for a modern in-memory cache?
+Anchor: caching
 **A:** **Reads: <1ms** within the same region. **Writes: <1ms same-AZ**, **1–2ms cross-AZ** in the same region.
 
 Use ~1ms as your working figure for a cache round trip — set against **1–5ms** for a cached DB read and **5–30ms** from disk.
 
 **Q:** Caching — How much data can a single cache instance realistically hold?
+Anchor: caching
 **A:** **Up to 1TB** on memory-optimized instances.
 
 That is enough to hold an entire mid-sized dataset in memory, which is why "cache everything" is usually the right call. Past ~1TB the pain is operational — backup, replication, recovery — not capacity.
 
 **Q:** Caching — What throughput can a single cache instance handle?
+Anchor: caching
 **A:** **100k–200k+ ops/sec per instance** (ElastiCache Redis on Graviton; reads and writes roughly equal for simple ops).
 
 ~1M ops/sec is reachable with small values on tuned nodes, but quote the **100k order of magnitude**. Redis is single-threaded, so you go **CPU**-bound before memory-bound.
 
 **Q:** Caching — When do you scale/shard a cache?
+Anchor: caching
 **A:** Any one of:
 
 - Dataset approaching **1TB**
@@ -1306,26 +1324,31 @@ That is enough to hold an entire mid-sized dataset in memory, which is why "cach
 The binding constraint is usually ops/sec or network bandwidth — **not** memory size.
 
 **Q:** Caching — When should you cache only part of a dataset instead of the whole thing?
+Anchor: caching
 **A:** **Cache everything, whenever it fits.** With up to **1TB** of memory, datasets of hundreds of GB fit whole — and brute force costs less than the engineering time selective caching logic takes.
 
 Go partial only when the dataset genuinely exceeds that, or when only a small hot slice is ever read.
 
 **Q:** Databases — How much data can a single database instance hold?
+Anchor: databases
 **A:** **64 TiB** for most engines, **256 TiB** on Aurora.
 
 The sharding signal sits near **50 TiB**, but raw volume is rarely what forces it — backup windows stretching into hours, or a need for geographic distribution, usually bite first.
 
 **Q:** Databases — What read latency should you assume for indexed database lookups?
+Anchor: databases
 **A:** **1–5ms for cached data, 5–30ms from disk** on indexed lookups. Write commit latency is **5–15ms** single-node.
 
 Candidates badly overestimate SSD latency. An indexed row lookup is already fast, which is why fronting one with a cache buys nothing — cache *expensive* queries instead.
 
 **Q:** Databases — What write throughput can a single-node database handle before scaling concerns?
+Anchor: databases
 **A:** **Writes: 10–20k TPS. Reads: up to 50k TPS.** Single-node Aurora/RDS. Plus **5–20k concurrent connections**, depending on engine and instance type.
 
 Consistently exceeding **10k write TPS** is the signal to start considering how you'll scale.
 
 **Q:** Databases — When do you actually need to shard a database?
+Anchor: databases
 **A:** Five signals, only one of which is size:
 
 - Dataset approaching **50 TiB**
@@ -1337,21 +1360,25 @@ Consistently exceeding **10k write TPS** is the signal to start considering how 
 Premature sharding is the single most common interview mistake — do the math first.
 
 **Q:** Databases — Does having read replicas mean you have high availability?
+Anchor: databases
 **A:** No — and a "single instance" isn't a single point of failure either. You still run a **primary with read replicas** and multi-AZ failover (e.g. Aurora).
 
 The distinction that matters: **replication for availability is a separate concern from horizontal partitioning for scale.** Needing HA is not a reason to shard.
 
 **Q:** Application Servers — How many concurrent connections can one app server instance handle?
+Anchor: application-servers
 **A:** **100k+ concurrent connections per instance** for optimized configurations.
 
 Connection limits are rarely the first bottleneck — **CPU** hits its ceiling first. Long-lived or CPU-heavy connections push the number well below 100k, so qualify the connection type rather than quoting it blind.
 
 **Q:** Application Servers — What’s the first bottleneck on app servers, CPU or memory?
+Anchor: application-servers
 **A:** **CPU, almost always.** A modern instance carries 8–64 cores and 64–512GB of memory (up to 2TB), so memory and connection limits rarely bind first.
 
 So don't shy away from memory-hungry optimizations — local caching, in-memory computation, session handling. Memory leads only for very large responses or a leak.
 
 **Q:** Application Servers — When do you horizontally scale app servers?
+Anchor: application-servers
 **A:** Four signals:
 
 - **CPU utilization** consistently above **70–80%**
@@ -1362,46 +1389,55 @@ So don't shy away from memory-hungry optimizations — local caching, in-memory 
 Containerized apps start in **30–60s**, so aggressive auto-scaling beats over-provisioning.
 
 **Q:** Message Queues — What throughput can a single Kafka broker handle?
+Anchor: message-queues
 **A:** **Up to 1 million messages/sec per broker** in modern configurations, with **up to 50TB storage per broker** and retention of weeks to months.
 
 Scale when throughput nears **800k msgs/sec** per broker, partitions approach **~200k per cluster**, or consumer lag grows consistently.
 
 **Q:** Message Queues — What latency should you assume for a message queue end-to-end?
+Anchor: message-queues
 **A:** **1–5ms end-to-end** within a region for optimized setups, handling **1KB–10MB** messages efficiently.
 
 Sub-5ms is the number that changes the design: it is fast enough to sit inside a *synchronous* request flow — as long as there is no backlog.
 
 **Q:** Message Queues — Should message queues be used in synchronous request flows by default?
+Anchor: message-queues
 **A:** **Yes — modern queues are fast enough.** At **1–5ms end-to-end** a queue can sit inside a synchronous request flow, giving you reliable delivery and decoupling without forcing the API to be async.
 
 The caveat is backlog: once consumer lag grows, that latency guarantee is gone.
 
 **Q:** Message Queues — When do you actually need a message queue?
+Anchor: message-queues
 **A:** Above **20k+ WPS** for a single Postgres instance, or when you need guaranteed delivery through downstream failure, event sourcing, spike absorption, or producer/consumer decoupling.
 
 **Not at 5k WPS.** Try batch writes, better indexes, connection pooling or async commits first.
 
 **Q:** Common Interview Mistakes — Candidate says 100GB of data needs sharding. Correct response?
+Anchor: premature-sharding
 **A:** **No.** Design Yelp: 10M businesses × 1KB = **10GB**; 10× that for reviews is still only **100GB**. One instance handles it comfortably — the shard signal is nearer **50 TiB**.
 
 Candidates introduce a data model and immediately name a shard column. Do the arithmetic first.
 
 **Q:** Common Interview Mistakes — LeetCode leaderboard, 100k competitions × 100k users. Shard the cache?
+Anchor: premature-sharding
 **A:** **No.** 100k × 100k × (36B ID + 4B float rating) = **400GB**.
 
 That is more than Yelp keeps on disk, and it still fits on one large cache instance (up to **1TB**). Do the multiplication before proposing to shard a cache.
 
 **Q:** Common Interview Mistakes — Candidate adds a cache to speed up a simple indexed row lookup. Justified?
+Anchor: overestimating-latency
 **A:** **No.** An indexed row lookup on SSD is already **sub-millisecond to a few ms** — the cache saves nothing and adds infrastructure to justify.
 
 Cache **expensive queries**, not simple indexed lookups. Overestimating SSD latency is one of the most common interview errors.
 
 **Q:** Common Interview Mistakes — Candidate adds a message queue at 5k writes/sec. Justified?
+Anchor: over-engineering-given-a-high-write-throughput
 **A:** **No.** A well-tuned Postgres instance handles **20k+ simple writes/sec**, so 5k is not high throughput.
 
 What actually caps writes: multi-table transactions, write amplification from excess indexes, cascading updates, heavy concurrent reads. Reach for a queue above **~20k WPS**.
 
 **Q:** Costs — How much should you optimize for cost in a system design interview?
+Anchor: what-about-costs
 **A:** **Don't memorize pricing tables.** Interviewers aren't sensitive to exact dollars, and real pricing needs estimates you only have to an order of magnitude anyway.
 
 Do keep the abstract sense: 100 machines where 1 would do, or in-memory caches when hundreds of ms is fine, draws a flag.
