@@ -4,8 +4,21 @@
     {
       "name": "prep-tracker",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3007,
+      "autoPort": false
+    },
+    {
+      "name": "prep-tracker-noauth",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:noauth"
+      ],
+      "port": 3008,
       "autoPort": false
     }
   ]
