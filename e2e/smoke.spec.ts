@@ -243,3 +243,104 @@ test('Ask AI leaves the mobile dock and scrolls into normal page flow', async ({
   });
   expect(overlap).toBe(0);
 });
+
+// Two cards due in different weeks, so the Upcoming forecast has a pager.
+async function mockTwoWeekForecast(page: import('@playwright/test').Page) {
+  const dayKey = (offset: number) =>
+    new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+
+  await page.route('**/api/sync', route => route.fulfill({
+    contentType: 'application/json',
+    json: {
+      domains: [{
+        id: 'forecast_fixture',
+        slug: 'forecast-fixture',
+        name: 'Forecast Fixture',
+        short_name: 'Forecast',
+        study_mode: 'flashcard',
+        icon: 'book',
+        color: 'blue',
+        sort_order: 0,
+        item_label: 'Question',
+        log_label: 'Log Question',
+        log_title: 'Log Forecast Question',
+        empty_message: 'Empty',
+        answer_placeholder: 'Answer',
+        default_link: '',
+        archived_at: null,
+      }],
+      domain_fields: [],
+      domain_field_options: [],
+      config_options: [],
+      problems: [
+        {
+          id: 9401,
+          name: 'Forecast fixture due this week',
+          domain: 'forecast_fixture',
+          metadata: {},
+          notes_text: 'Answer',
+          interval_level: 1,
+          next_due_date: dayKey(2),
+          created_at: '2000-01-01 00:00:00',
+        },
+        {
+          id: 9402,
+          name: 'Forecast fixture due next week',
+          domain: 'forecast_fixture',
+          metadata: {},
+          notes_text: 'Answer',
+          interval_level: 1,
+          next_due_date: dayKey(10),
+          created_at: '2000-01-01 00:00:00',
+        },
+      ],
+      attempts: [],
+      notes: [],
+      links: [],
+    },
+  }));
+}
+
+test('forecast pager swipes to the next week on a phone', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'pager swipe is a phone-only gesture');
+  await mockTwoWeekForecast(page);
+  await page.goto('/');
+
+  const pager = page.getByTestId('forecast-pager');
+  await expect(pager).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next 7 days' })).toHaveAttribute('aria-current', 'true');
+
+  const box = await pager.boundingBox();
+  const startX = box!.x + box!.width - 20;
+  const startY = box!.y + box!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 140, startY, { steps: 6 });
+  await page.mouse.up();
+
+  await expect(page.getByRole('button', { name: 'Next 7 days' })).not.toHaveAttribute('aria-current', 'true');
+});
+
+test('forecast pager does not swipe outside phone viewports', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'desktop/tablet contract');
+  await mockTwoWeekForecast(page);
+  await page.goto('/');
+
+  const pager = page.getByTestId('forecast-pager');
+  await expect(pager).toBeVisible();
+  const thisWeek = page.getByRole('button', { name: 'Next 7 days' });
+  await expect(thisWeek).toHaveAttribute('aria-current', 'true');
+
+  const box = await pager.boundingBox();
+  const startX = box!.x + box!.width - 20;
+  const startY = box!.y + box!.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX - 140, startY, { steps: 6 });
+  await page.mouse.up();
+
+  // Still on the first week; the chevrons remain the way forward.
+  await expect(thisWeek).toHaveAttribute('aria-current', 'true');
+  await page.getByRole('button', { name: 'Next week' }).click();
+  await expect(thisWeek).not.toHaveAttribute('aria-current', 'true');
+});

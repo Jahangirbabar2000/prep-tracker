@@ -6,6 +6,7 @@ import { CalendarDays, ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useStore } from '@/lib/store/store';
 import { activeDomains, resolveDomain } from '@/lib/domains';
 import { resolveCardSwipe } from '@/lib/swipeCard';
+import { usePhone } from '@/lib/usePhone';
 import { totalUpcoming as sumWeeks, type ForecastWeek } from '@/lib/upcoming';
 import { domainPalette } from './domainVisuals';
 
@@ -23,6 +24,9 @@ export default function UpcomingForecast({ weeks }: Props) {
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState(0);
   const reduceMotion = useReducedMotion();
+  // Swiping is a phone-only gesture, same as the review card; the chevrons and
+  // dots above are the control everywhere else (see lib/usePhone.ts).
+  const swipeEnabled = usePhone();
   const domainOrder = activeDomains(data.domains).map(domain => domain.id);
 
   if (weeks.length === 0) return null;
@@ -130,7 +134,8 @@ export default function UpcomingForecast({ weeks }: Props) {
       {/* Drag surface: pan-y keeps vertical page scrolling native, so only a
           clearly horizontal gesture pages the forecast. */}
       <motion.div
-        drag={weeks.length > 1 ? 'x' : false}
+        data-testid="forecast-pager"
+        drag={swipeEnabled && weeks.length > 1 ? 'x' : false}
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.14}
         dragMomentum={false}
