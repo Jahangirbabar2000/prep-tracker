@@ -21,7 +21,9 @@ import type { QueueOrder } from '@/lib/store/queries';
 // Natural widths come back at sm+, where there's room for them. text-base
 // (16px) on mobile avoids iOS Safari's auto-zoom-on-focus for sub-16px form
 // controls, and just reads more comfortably on a phone.
-const cls = 'min-w-0 max-w-40 truncate sm:max-w-none sm:flex-none bg-surface border border-border rounded-lg px-2 sm:px-3 py-2 text-base sm:text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition cursor-pointer';
+// min-h-11 gives each control a 44px touch target on mobile, dropped at sm+
+// where a pointer doesn't need it.
+const cls = 'min-w-0 max-w-40 truncate min-h-11 sm:min-h-0 sm:max-w-none sm:flex-none bg-surface border border-border rounded-lg px-2 sm:px-3 py-2 text-base sm:text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition cursor-pointer';
 
 // Mirror of scrollToTop in UpcomingForecast — cover both the <main> scroll
 // container (desktop) and the window (mobile) so it works on every layout.
@@ -133,7 +135,7 @@ export default function ReviewQueueFilters({
           onClick={() => startTransition(() => router.replace('/', { scroll: false } as never))}
           title="Clear filters"
           aria-label="Clear filters"
-          className="shrink-0 inline-flex items-center px-1 py-2 sm:px-3 text-sm text-muted hover:text-fg transition-colors cursor-pointer"
+          className="shrink-0 inline-flex items-center min-h-11 sm:min-h-0 px-1 py-2 sm:px-3 text-sm text-muted hover:text-fg transition-colors cursor-pointer"
         >
           <X size={15} className="sm:hidden" />
           <span className="hidden sm:inline">Clear</span>
@@ -148,7 +150,7 @@ export default function ReviewQueueFilters({
         onClick={scrollToBottom}
         title="Go down"
         aria-label="Go down"
-        className="shrink-0 ml-auto inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-1.5 sm:px-2.5 py-1.5 sm:py-1 transition-colors cursor-pointer"
+        className="shrink-0 ml-auto inline-flex items-center justify-center gap-1 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 text-xs font-medium text-muted hover:text-fg border border-border hover:border-border-strong rounded-lg px-1.5 sm:px-2.5 py-1.5 sm:py-1 transition-colors cursor-pointer"
       >
         <ArrowDown size={13} /> <span className="hidden sm:inline">Go down</span>
       </button>
