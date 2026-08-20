@@ -35,7 +35,12 @@ const SORT_OPTIONS = [
 // where the "All x" phrasing clipped mid-word. The full placeholder still goes
 // to aria-label, so nothing is lost for screen readers.
 function shortLabel(placeholder: string): string {
-  const noun = placeholder.replace(/^All\s+/i, '').replace(/s$/, '');
+  // "categories" -> "category", not "categorie": the plural placeholders these
+  // come from are field labels, so -ies is as common as a plain -s.
+  const noun = placeholder
+    .replace(/^All\s+/i, '')
+    .replace(/ies$/, 'y')
+    .replace(/s$/, '');
   return noun.charAt(0).toUpperCase() + noun.slice(1);
 }
 

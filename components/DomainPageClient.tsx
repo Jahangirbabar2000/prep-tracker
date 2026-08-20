@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Problem } from '@/lib/types';
 import { PROFICIENCY_LABELS, proficiencyLabel } from '@/lib/proficiency';
+import { orderFieldValues } from '@/lib/domains';
 import ProblemList from './ProblemList';
 import DomainFilters from './DomainFilters';
 
@@ -10,6 +11,8 @@ export interface DomainFilterConfig {
   key: string;
   placeholder: string;
   field: string;
+  /** The field's options in configured order; see orderFieldValues(). */
+  order?: string[];
 }
 
 interface Props {
@@ -148,7 +151,7 @@ export default function DomainPageClient({
         const v = p.metadata[fc.field];
         if (v != null && String(v) !== '') vals.add(String(v));
       }
-      opts[fc.key] = [...vals].sort();
+      opts[fc.key] = orderFieldValues([...vals], fc.order ?? []);
     }
     const profSet = new Set(allProblems.map(labelOf));
     opts.proficiency = PROFICIENCY_ORDER.filter(l => profSet.has(l));

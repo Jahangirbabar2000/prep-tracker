@@ -7,7 +7,7 @@ import { ArrowLeft, Play, Shuffle } from 'lucide-react';
 import ProblemListRow from '@/components/ProblemListRow';
 import { useStore } from '@/lib/store/store';
 import { clientToday } from '@/lib/store/queries';
-import { domainBySlugWithFallback, fieldsForDomain } from '@/lib/domains';
+import { domainBySlugWithFallback, fieldsForDomain, optionsForField } from '@/lib/domains';
 import { QUEUE_PROFICIENCY_OPTIONS } from '@/lib/filters';
 import {
   buildPracticeSet, practiceHref, parsePracticeSpec, fieldValuesPresent,
@@ -75,9 +75,16 @@ function PracticeLauncherInner({ domainId, domainName, slug }: {
   const fields = useMemo(
     () => fieldsForDomain(data.domain_fields, domainId)
       .filter(f => f.filterable)
-      .map(f => ({ field: f, values: fieldValuesPresent(domainProblemList, f.key) }))
+      .map(f => ({
+        field: f,
+        values: fieldValuesPresent(
+          domainProblemList,
+          f.key,
+          optionsForField(data.domain_field_options, f.id).map(o => o.value),
+        ),
+      }))
       .filter(({ values }) => values.length > 0),
-    [data.domain_fields, domainId, domainProblemList],
+    [data.domain_fields, data.domain_field_options, domainId, domainProblemList],
   );
 
   const preview = buildPracticeSet(data, spec, today);

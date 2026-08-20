@@ -19,7 +19,7 @@ import {
   compareByDueDate, matchesProficiency, toQueueItem, type QueueOrder,
 } from '@/lib/store/queries';
 import { DEFAULT_QUEUE_ORDER } from '@/lib/filters';
-import { archivedDomainIds } from '@/lib/domains';
+import { archivedDomainIds, orderFieldValues } from '@/lib/domains';
 import { isStrugglingState } from '@/lib/proficiency';
 
 /** Which cards are eligible, independent of how they get ordered. */
@@ -241,11 +241,15 @@ export function buildPracticeSet(
  * page's derivedOptions (components/DomainPageClient.tsx), in a form the
  * practice launcher can reuse without pulling in that component's shape.
  */
-export function fieldValuesPresent(problems: Problem[], key: string): string[] {
+export function fieldValuesPresent(
+  problems: Problem[],
+  key: string,
+  configured: string[] = [],
+): string[] {
   const values = new Set<string>();
   for (const p of problems) {
     const v = p.metadata?.[key];
     if (v != null && String(v) !== '') values.add(String(v));
   }
-  return [...values].sort();
+  return orderFieldValues([...values], configured);
 }

@@ -237,6 +237,26 @@ export function fieldsForDomain(
     .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
 }
 
+/**
+ * Field values in the order Settings configures them, with anything not
+ * configured appended alphabetically.
+ *
+ * Filter dropdowns derive their options from the cards themselves, so they
+ * can't offer a value that would match nothing. That derivation used to end in
+ * a plain alphabetical sort, which scrambled any deck whose options carry a
+ * meaning order — the Behavioral categories follow the course's article order,
+ * and read as nonsense filed under C-D-D-P-S-T-W. `configured` comes from
+ * optionsForField(), so the dropdown and the log form agree.
+ */
+export function orderFieldValues(values: string[], configured: string[]): string[] {
+  const rank = new Map(configured.map((value, index) => [value, index]));
+  return [...values].sort((a, b) => {
+    const ra = rank.get(a) ?? Number.MAX_SAFE_INTEGER;
+    const rb = rank.get(b) ?? Number.MAX_SAFE_INTEGER;
+    return ra !== rb ? ra - rb : a.localeCompare(b);
+  });
+}
+
 export function optionsForField(
   options: DomainFieldOption[],
   fieldId: number,

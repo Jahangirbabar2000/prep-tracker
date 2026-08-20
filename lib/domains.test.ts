@@ -14,6 +14,7 @@ import {
   normalizeDomainSlug,
   normalizeProblem,
   normalizeStudyMode,
+  orderFieldValues,
   validateMetadataValues,
 } from './domains';
 
@@ -138,5 +139,35 @@ describe('runtime domains', () => {
     expect(validateMetadataValues({ pattern: 42 }, fields, options)).toEqual({
       error: 'Metadata field pattern must be a string',
     });
+  });
+});
+
+describe('orderFieldValues', () => {
+  // The Behavioral categories: a course order that alphabetical sorting ruins.
+  const configured = [
+    'Why the Behavioral Matters',
+    'Decode: How Interviews Work',
+    'Select: Choosing Responses',
+    'The Big Three Questions',
+  ];
+
+  it('follows the configured order rather than the alphabet', () => {
+    const present = ['Select: Choosing Responses', 'Why the Behavioral Matters', 'Decode: How Interviews Work'];
+    expect(orderFieldValues(present, configured)).toEqual([
+      'Why the Behavioral Matters',
+      'Decode: How Interviews Work',
+      'Select: Choosing Responses',
+    ]);
+  });
+
+  it('appends unconfigured values alphabetically, after everything configured', () => {
+    expect(orderFieldValues(['Zebra', 'Select: Choosing Responses', 'Ad hoc'], configured))
+      .toEqual(['Select: Choosing Responses', 'Ad hoc', 'Zebra']);
+  });
+
+  it('falls back to alphabetical when nothing is configured, and does not mutate its input', () => {
+    const present = ['Graphs', 'Arrays'];
+    expect(orderFieldValues(present, [])).toEqual(['Arrays', 'Graphs']);
+    expect(present).toEqual(['Graphs', 'Arrays']);
   });
 });

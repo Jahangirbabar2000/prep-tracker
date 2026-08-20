@@ -387,6 +387,16 @@ describe('fieldValuesPresent', () => {
     ];
     expect(fieldValuesPresent(problems, 't')).toEqual(['Arrays', 'Graphs']);
   });
+
+  it('follows the configured option order when one is given', () => {
+    const problems = [
+      problem({ id: 1, metadata: { t: 'Arrays' } }),
+      problem({ id: 2, metadata: { t: 'Graphs' } }),
+      problem({ id: 3, metadata: { t: 'Unlisted' } }),
+    ];
+    expect(fieldValuesPresent(problems, 't', ['Graphs', 'Arrays']))
+      .toEqual(['Graphs', 'Arrays', 'Unlisted']);
+  });
 });
 
 describe('buildPracticeSet · archived domains', () => {
