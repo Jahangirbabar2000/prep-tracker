@@ -738,22 +738,17 @@ Anchor: common-elements-of-successful-conflict-stories
 
 **Q:** What question categories should you prepare to ask interviewers, and what should you avoid asking?
 Anchor: good-questions-to-ask
-**A:** Prepare 3–5 questions across these categories:
+**A:** Prepare 3–5 questions spanning five categories:
 
-- **Role**: *"what does success look like in 90 days?"*
-- **Team dynamics**: *"how does the team handle technical disagreements?"*
-- **Growth**
-- **Challenges**
-- **Culture**
+- **Role** — *“what does success look like in the first 90 days?”*
+- **Team dynamics** — *“how does the team handle technical disagreements?”*
+- **Growth** — *“what learning and development opportunities are there?”*
+- **Challenges** — *“what's the biggest challenge the team faces now?”*
+- **Culture** — *“what do you enjoy most about working here?”*
 
-Tailor them to who's asking (hiring manager vs. peer vs. leadership).
+Avoid the Googleable, comp (ask **the recruiter**), pre-offer negotiation, and *“how did I do?”*
 
-Avoid:
-
-- Anything Googleable
-- Comp/benefits (ask **the recruiter** instead)
-- Anything that sounds like pre-offer negotiating
-- *"How did I do?"*
+Tailor each to who's asking.
 
 ## Practice
 Link: https://www.hellointerview.com/learn/behavioral/course/practicing
@@ -936,7 +931,11 @@ The interviewer only hears the stories you choose to tell.
 Anchor: pitfall-6-fairy-tale-endings
 **A:** “We shipped on time, metrics improved, stakeholders loved it” reads as a problem, not a win.
 
-The interviewer concludes one of three things: you weren't close enough to the work to see the problems, you're hiding something, or you aren't self-aware enough to spot the weaknesses.
+The interviewer concludes one of three things:
+
+1. You weren't close enough to the work to see the problems
+2. You're hiding something
+3. You aren't self-aware enough to spot the weaknesses
 
 A story with genuine trouble in it carries more signal than a smooth one.
 
@@ -988,3 +987,238 @@ Anchor: not-steering-the-interview
 - **Offer a menu** — two options, and let them pick the signal they need
 
 It's your job to guide the interviewer, not just follow their questions.
+
+## Special Interview Types
+Link: https://www.hellointerview.com/learn/behavioral/course/special-interview-types
+
+**Q:** What is a recruiter screen actually assessing?
+Anchor: recruiter-screens
+**A:** Basic qualifications and cultural fit — not your capabilities or leadership philosophy.
+
+They're deciding three things: should you move forward, do you meet the bar on paper, and are you roughly the right level.
+
+So your job is to be clear on why you fit, answer any subject-matter questions credibly, and use the remaining time to learn about the rounds ahead.
+
+**Q:** How should you deploy TMAY in a recruiter screen?
+Anchor: put-the-tmay-to-work
+**A:** As a case for passing you to the next round — connect your experience straight to the job description.
+
+**Mirror the posting's language.** If it asks for “cross-functional collaboration,” use that exact phrase.
+
+Then add the **Halo Effect**: a quick breadth sweep — *“payment processing to ML infrastructure, teams of 3 to 15, partnered across product, design and data science.”*
+
+Keep it to 60–90 seconds.
+
+**Q:** What should you ask a recruiter, and what shouldn't you?
+Anchor: gather-intelligence
+**A:** Ask what only they can answer:
+
+- What do the rounds after this look like, and who will I meet?
+- What signal areas matter most for this role?
+- Why do candidates fail the onsite, and what causes a down-level?
+
+Skip technical debt strategy and on-call rotation — save those for the team or hiring manager.
+
+Recruiters often have the hiring team's own talking points.
+
+**Q:** How does a behavioral screening interview differ from a deep round?
+Anchor: screening-interviews
+**A:** It's many shallow questions, not few deep ones — the interviewer is sampling breadth across signal areas rather than drilling one.
+
+They're deciding whether you fit the role, whether you're at level, and which loop to put you in.
+
+So keep answers short, and prepare real questions: with little else to go on, what you ask counts as evidence.
+
+**Q:** What three extra signal areas do leadership interviews add?
+Anchor: additional-signal-areas
+**A:**
+
+- **Driving Impact** — orchestrating outcomes across people and workstreams, not just executing: vision, alignment, unblocking, measurable goals, follow-through
+- **People Management** — hiring, coaching, performance, team organization; for senior ICs, mentoring and influence
+- **Cross-Functional Relationships** — fluency across disciplines, and translating between organizational languages
+
+**Q:** Why does your leadership interviewer's discipline change your emphasis?
+Anchor: know-your-audience
+**A:** Because each one probes their own domain:
+
+- **VP of Design** — business impact, organizational alignment, quality-versus-velocity tradeoffs
+- **Product Manager** — working with non-technical partners, engineering constraints against product vision
+- **Principal Engineer** — decision frameworks, driving architecture across teams, mentoring
+
+Watch what they press on and shift weight accordingly.
+
+**Q:** What does it mean when a leadership interviewer interrupts you?
+Anchor: expect-interruptions-and-pivots
+**A:** That they're engaged, not that you're failing. Senior interviewers are experienced and impatient, and they'll cut in to chase a decision, an alternative you considered, or a team dynamic you barely mentioned.
+
+Answer it, then bridge back: *“That decision ended up being crucial. The next major challenge we faced was…”*
+
+You keep control of what gets covered.
+
+**Q:** Which gaps in a leadership story get filled with bad assumptions?
+Anchor: think-defensively
+**A:** Hiring a leader reshapes an organization, so interviewers are risk-averse and read gaps uncharitably. The classics:
+
+- You waited too long to address a performance problem
+- You let tech debt or product misalignment persist
+- You described a broken team without saying how it broke — implying you broke it
+- You couldn't convince a stakeholder — implying you can't convince anyone
+
+Close the gap before they fill it.
+
+**Q:** How do you choose a project for a deep dive?
+Anchor: choosing-your-project
+**A:** Same intersection as your favorite project — **high impact** (quantifiable metrics), **large scope** (duration, complexity, org size), **strong personal contribution** (you drove it).
+
+Then add leadership complexity: multiple teams, ambiguous requirements, real risk.
+
+The best candidates span technical, people, process and strategic leadership in one project.
+
+**Q:** How do you organize a deep-dive conversation?
+Anchor: organizing-your-conversation
+**A:** CARL breaks down on a project spanning months and multiple workstreams. Instead:
+
+- **Open with a Table of Contents** — name the themes, then walk them
+- **Spend detail only on scope and judgment** — *“12 engineers across 4 time zones,”* *“500M daily transactions, zero downtime”*
+- **Cut redundant takeaways** — a third technical anecdote re-proves “I'm technical” instead of showing something new
+
+**Q:** Why should you front-load impact in a deep dive?
+Anchor: organizing-your-conversation
+**A:** Because senior interviewers interrupt, and you may never reach the end of your story — so the Results can't wait there.
+
+Lead with them: *“This cut deployment time 80% across a 200-person org and saved ~4,000 engineering hours a quarter. Here's how we got there.”*
+
+The outcome lands even if the narrative never finishes.
+
+**Q:** What is a cross-functional interview testing?
+Anchor: cross-functional-interviews
+**A:** Whether you can partner across disciplines — so it leans on **Communication, Conflict Resolution and Leadership**, not the full signal set.
+
+Specifically: translating between organizational languages, building trust with people who think differently, and influencing through collaboration rather than authority.
+
+Its presence in your loop tells you the role demands real partnership.
+
+**Q:** What are the two ways to lose a cross-functional interview?
+Anchor: cross-functional-interviews
+**A:**
+
+- **Jargon** — how well you communicate *is* the evaluation. Not “a CQRS pattern with event sourcing,” but “I separated our read and write systems so we could scale them independently.”
+- **Adversarial framing** — never “the PM kept changing requirements.” Try “the PM was responding to shifting market data, so I helped them see the engineering tradeoffs.”
+
+Your interviewer *is* that function.
+
+**Q:** How should you prepare for a follow-up behavioral interview?
+Anchor: follow-up-interviews
+**A:** Being brought back means they're still interested — start by asking the recruiter why. An inexperienced interviewer or a logistics problem is a different fix from a weak performance.
+
+If story choice was the doubt, offer a choice openly: *“Last time I answered that with the backend refactor — would you like me to go deeper there, or share a different example?”*
+
+Expect them to skip the warm-up and go straight at the missing signal.
+
+**Q:** What is the hiring manager chat really deciding?
+Anchor: hiring-manager-chats-and-team-matching
+**A:** Not “does this person deserve a closer look” but **“do I want to hire this person”** — the bar has moved.
+
+- Research the team and manager through the recruiter
+- Extend your TMAY; there's time here, and fewer questions to cover
+- Prepare questions about what makes you effective on a team
+- Connect as a person — they're choosing a daily colleague, not a candidate
+
+
+## Answering AI Questions
+Link: https://www.hellointerview.com/learn/behavioral/course/answering-ai-questions
+
+**Q:** What five areas do interviewers evaluate in AI questions?
+Anchor: the-five-ai-areas-interviewers-evaluate
+**A:**
+
+- **Work** — what you actually build with AI
+- **Trust** — how you verify and stay safe
+- **Iteration** — how you make AI better over time
+- **Growth** — how you learn and stay current
+- **Scaling** — how you spread practices beyond yourself
+
+Whatever you prepare here needs refreshing often; model capabilities move faster than your story catalog.
+
+**Q:** How do the five AI areas map to seniority?
+Anchor: the-five-ai-areas-interviewers-evaluate
+**A:** Junior candidates need strong **Work** and **Trust** answers — you build with it, and you catch what it gets wrong.
+
+Senior candidates are expected to demonstrate all five, and **Scaling** is the one they neglect.
+
+Using AI well yourself stops being a differentiator at senior level. Multiplying it through others doesn't.
+
+**Q:** Which AI areas are old signals in new clothing, and which one isn't?
+Anchor: the-five-ai-areas-interviewers-evaluate
+**A:** Four are familiar signals with a new setting:
+
+- **Work** → Scope
+- **Iteration** → Perseverance and Growth
+- **Growth** → Growth
+- **Scaling** → Leadership
+
+**Trust** is the genuinely new one. Debugger and language skills transfer between tools; judgment about AI's failure modes doesn't. You have to have actually caught its mistakes.
+
+**Q:** What separates a strong Work answer from a table-stakes one?
+Anchor: work-what-you-actually-build-with-ai
+**A:** Generating code is table stakes. The signal is using AI on the parts of the job that resist automation — bug investigation, design reviews, backlog grooming, incident postmortems.
+
+Stronger still is AI that changed what was *possible*, not just what was faster: a prototype delivered in a day that gave leadership the confidence to change direction.
+
+**Q:** Why is *not* using AI also a skill worth showing?
+Anchor: work-what-you-actually-build-with-ai
+**A:** Because knowing where it doesn't fit proves you have a real mental model of it, not enthusiasm.
+
+Name the line you drew and why: *“I started using AI for X, then switched off when Y happened — it was generating plausible guesses without the codebase context. I finished it manually.”*
+
+Delegation without that reasoning reads as untested.
+
+**Q:** What are the three facets of the Trust signal?
+Anchor: trust-how-you-verify-and-stay-safe
+**A:**
+
+- **Testing for correctness** — testing regimes and CI/CD hygiene, so AI volume doesn't degrade the codebase
+- **Recognizing domain mistakes** — what has the model gotten wrong *in your context* that a senior engineer would have avoided?
+- **Managing what you share** — customer data, internal logic, unreleased roadmap, security-sensitive code
+
+Tell only speed stories and you read as naive.
+
+**Q:** Why is AI more verifiable at code than at writing?
+Anchor: trust-how-you-verify-and-stay-safe
+**A:** Because code has a test that can fail, and good writing has no such definition.
+
+That asymmetry is what your verification strategy should exploit: lean on tests and CI for generated code, and stay hands-on where quality can't be asserted mechanically.
+
+Skip it and applying AI just makes the codebase worse.
+
+**Q:** What does a strong Iteration answer look like?
+Anchor: iteration-how-you-make-ai-better-over-time
+**A:** Treating AI tooling as infrastructure that needs maintenance — when it produces something poor, you change the *system*, not just the prompt.
+
+Concretely: a `CLAUDE.md` that has eliminated whole categories of repeat mistakes, a library of reusable prompts for migrations and reviews, a board tracking parallel agent runs.
+
+The question is what changed in the last month.
+
+**Q:** What separates a strong Growth answer from a weak one?
+Anchor: growth-how-you-learn-and-stay-current-with-latest-ai-best-practices
+**A:** Specificity, and evidence of action *after* learning.
+
+Name at least one real source — a newsletter, a practitioner you follow — then say what you tried because of it and what happened.
+
+“I keep up with AI” is not an answer. Interviewers also listen passively in your other stories for where a technique came from.
+
+**Q:** What does Scaling look like, and how does it change with level?
+Anchor: scaling-how-you-spread-ai-best-practices-outside-of-yourself
+**A:** Two dimensions: **breadth** (spreading practices around you) and **depth** (changing how the business works).
+
+Even juniors are expected to share learnings and contribute to shared configs. Senior engineers are expected to make structural change — rebuilding a workflow end to end rather than accelerating tasks inside it.
+
+Expect to be asked how you handled resistance *and* over-reliance.
+
+**Q:** How do you answer a values question about AI?
+Anchor: answering-values-questions-about-ai
+**A:** With a structured opinion, then evidence — they're judging your judgment against the state of the art inside their own company.
+
+The most useful dividing line is **verifiability**: delegate where the pattern is clear and you can check the result quickly; stay hands-on where mistakes are costly or context is hard to convey.
+
+Tier verification by risk, the way you'd already triage a PR.
