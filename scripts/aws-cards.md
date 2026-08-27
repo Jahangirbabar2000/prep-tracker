@@ -187,3 +187,89 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 **Q:** What is infrastructure as code, and what does CloudFormation do with it?
 **A:** IaC means defining your infrastructure in a **file** instead of clicking through the console by hand. **CloudFormation** takes a declarative template (what you want, not how to build it) and provisions everything for you — deploy the same template again and you get an **identical environment**, in any account or Region.
+
+### Networking
+
+**Q:** What is a VPC, and what's the difference between a public and private subnet?
+**A:** An **Amazon VPC** (Virtual Private Cloud) lets you provision a logically isolated section of the AWS Cloud where you can launch AWS resources in a virtual network that you define.
+
+- **Public subnet** — internet-accessible; e.g. a customer-facing website.
+- **Private subnet** — not internet-accessible; e.g. a database storing customer or transactional information.
+
+**Q:** Internet gateway vs. virtual private gateway — what's the difference?
+**A:**
+
+- **Internet gateway** — a connection between a VPC and the internet; lets public traffic in.
+- **Virtual private gateway** — lets you establish a VPN connection between your VPC and a private network, such as an on-premises data center or internal corporate network; allows traffic into the VPC only if it is coming from an approved network.
+
+**Q:** What are AWS Client VPN, Site-to-Site VPN, PrivateLink, and Direct Connect each for?
+**A:**
+
+- **Client VPN** — connects individual remote workers/on-premises networks to AWS; fully managed, scales with demand.
+- **Site-to-Site VPN** — a secure connection between your data center or branch offices and your AWS VPC.
+- **PrivateLink** — privately connects your VPC to other services/VPCs without gateways, NAT, or public IPs.
+- **Direct Connect** — a dedicated private connection between your network and your VPC, for consistent high bandwidth.
+
+**Q:** Security groups vs. network ACLs — what's the difference?
+**A:**
+
+- **Security groups** — instance level, **stateful** (return traffic is automatically allowed), only-allow rules.
+- **Network ACLs** — subnet level, **stateless** (every packet is checked both ways, remembers nothing), allow *and* deny rules.
+
+**Q:** What are Route 53, CloudFront, and Global Accelerator each for?
+**A:**
+
+- **Route 53** — DNS; translates domain names to IP addresses, routes users to your app, and can register/manage domain names.
+- **CloudFront** — CDN; caches content at edge locations closer to users for faster delivery.
+- **Global Accelerator** — routes traffic over AWS's private global network instead of the public internet, for faster, more reliable performance and fast failover.
+
+**Q:** When do you use VPN vs. Direct Connect, and can they work together?
+**A:**
+
+- **VPN** — secure, flexible remote access; fine for smaller transfers, no dedicated line needed.
+- **Direct Connect** — a dedicated physical line, high bandwidth; for large data transfers or compliance-sensitive workloads.
+- Often **both**: VPN serves as automatic failover if the Direct Connect line physically goes down.
+
+### Storage
+
+**Q:** Block, object, and file storage — what's each one for, and which AWS service backs it?
+**A:**
+
+- **Block storage** — data split into blocks, updated piece by piece; `EC2 instance store` (unmanaged, temporary) or `EBS` (managed, persistent). Good for **databases and apps needing frequent updates**.
+- **Object storage** — self-contained objects (data + ID + metadata) in flat buckets, rewrite the whole object to change it; `Amazon S3`. Good for **files that don't change constantly** — videos, backups, logs.
+- **File storage** — hierarchical, shared file system; `Amazon EFS` or `FSx`. Good for **apps needing shared access**, like content management systems.
+
+**Q:** EC2 instance store vs. EBS — what's the key difference?
+**A:**
+
+- **Instance store** — physically attached to the host; data is **deleted** if you stop or terminate the instance. Good for temporary data (scratch space, caches, buffers).
+- **EBS** — a separate virtual volume, not tied to the host; data **persists** across stop/start. Good for databases and anything needing retention.
+
+**Q:** What are EBS snapshots, and what does Data Lifecycle Manager automate?
+**A:**
+
+- **EBS snapshot** — a point-in-time, **incremental** backup of a volume (only changed blocks are saved since the last one); can create new, identical volumes from it.
+- **Data Lifecycle Manager** — automates snapshot creation, retention, and deletion on a schedule, so you're not clicking through the console manually.
+
+**Q:** What is Amazon S3's durability guarantee, and what does "private by default" mean for access?
+**A:** Objects get **99.999999999% durability** ("11 nines") — redundantly stored across multiple facilities. Access is **private by default**; you explicitly grant it via bucket policies, IAM, or a time-limited presigned URL for temporary sharing.
+
+**Q:** What are S3's general-access storage classes (not archive)?
+**A:**
+
+- **S3 Standard** — frequent access, fastest retrieval, the default class.
+- **Intelligent-Tiering** — auto-moves objects between tiers by access pattern; use when access patterns are unpredictable.
+- **Standard-IA** — infrequent access, same speed, lower storage cost.
+- **One Zone-IA** — like Standard-IA but single AZ; cheaper, less resilient.
+- **Express One Zone** — single AZ, optimized for the lowest latency.
+
+**Q:** What are S3's archive storage classes, and what does S3 on Outposts do?
+**A:**
+
+- **Glacier Instant Retrieval** — archive tier, still instant access.
+- **Glacier Flexible Retrieval** — archive, retrieval takes minutes to hours.
+- **Glacier Deep Archive** — cheapest, retrieval within ~12 hours.
+- **S3 on Outposts** — runs S3 on-premises, for data-residency/local-latency needs.
+
+**Q:** What does an S3 Lifecycle policy do?
+**A:** Automates two kinds of rules so you don't manage storage tiers by hand: **transition actions** move objects to a cheaper class after N days, and **expiration actions** permanently delete objects after N days.
