@@ -273,3 +273,166 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 **Q:** What does an S3 Lifecycle policy do?
 **A:** Automates two kinds of rules so you don't manage storage tiers by hand: **transition actions** move objects to a cheaper class after N days, and **expiration actions** permanently delete objects after N days.
+
+**Q:** EBS vs. EFS — what's the key difference?
+**A:**
+
+- **EBS** — attaches to one EC2 instance, block-level access; the right fit for **databases** needing rapid, continuous rewrite operations (S3 can't do this — it's not built for that access pattern).
+- **EFS** — a true file system; multiple instances/devices read/write **simultaneously**, scales automatically; the right fit when several locations need real-time shared access to the same files.
+
+**Q:** What is Amazon FSx, and how is it different from EFS?
+**A:** A fully managed, high-performance file storage service — but unlike EFS (NFS-only), FSx supports **multiple protocols**: Windows File Server, Lustre, OpenZFS, and NetApp ONTAP. That means you can lift-and-shift an existing file-system workload instead of being locked into NFS.
+
+**Q:** What are FSx's four file system options, and what's each for?
+**A:**
+
+- **Windows File Server** — SMB protocol, Active Directory integration; migrating Windows file servers.
+- **NetApp ONTAP** — ONTAP's data management features; migrating NetApp workloads.
+- **OpenZFS** — NFS protocol; dev/test environments, data analytics.
+- **Lustre** — high-performance; ML training, HPC, big data analytics.
+
+**Q:** What are the three AWS Storage Gateway types, and what's each for?
+**A:**
+
+- **S3 File Gateway** — appears as a local file server; files land in S3, recent ones cached locally.
+- **Volume Gateway** — presents cloud data as iSCSI block volumes; **Cached mode** keeps hot data local, **Stored mode** keeps everything local and backs up to EBS snapshots.
+- **Tape Gateway** — a virtual tape interface for existing backup software; replaces physical tapes.
+
+**Q:** What does AWS Elastic Disaster Recovery do, and what's its core mechanism?
+**A:** Continuously replicates your servers' **block-level data** to AWS (physical or virtual servers) — so during an outage you fail over to a near-instant recovery instance, with no secondary data center to build or maintain.
+
+### Databases
+
+**Q:** What is Amazon RDS, and what's its key reliability feature?
+**A:** A managed relational database service that handles routine database tasks such as backups, patching, and hardware provisioning. **Multi-AZ deployment** automatically replicates data to a standby instance in a different Availability Zone and fails over automatically during failures — without manual intervention, for continuous operation with minimal downtime.
+
+**Q:** What makes Amazon Aurora different from standard RDS engines?
+**A:** Aurora delivers up to **five times the throughput of standard MySQL** and **three times the throughput of PostgreSQL**. It automatically grows storage from 10 GB to 128 TB based on actual usage, and replicates data across **three Availability Zones with six copies** for 99.99% availability.
+
+**Q:** What is DynamoDB, and what's its defining characteristic vs. relational databases?
+**A:** A fully managed NoSQL database providing fast, predictable performance for key-value and document data. **Not every item in a table has to have the same attributes**, and you can add or remove them at any time. Delivers **single-digit millisecond** response times at any scale.
+
+**Q:** What is ElastiCache, and how does the cache-check pattern work with RDS?
+**A:** A fully managed in-memory caching service. The application **checks ElastiCache first** — if the data exists, it's returned immediately; if not, the application reads from RDS, stores the result in the cache, then returns it, so the next request is served from cache.
+
+**Q:** What are DocumentDB and Neptune each built for?
+**A:**
+
+- **DocumentDB** (MongoDB-compatible) — a fully managed service for **semistructured data**; manages JSON-like documents with dynamic schemas. Content management, catalogs, user profiles.
+- **Neptune** — a purpose-built **graph database** for highly connected data sets; processes **billions of relationships in milliseconds**, excelling at connections and patterns like user networks.
+
+**Q:** What problem does AWS Backup solve?
+**A:** AWS Backup streamlines data protection across AWS resources and on-premises deployments through a **single dashboard**, eliminating the complexity of managing separate backup strategies across services like EBS, EFS, RDS, and DynamoDB.
+
+### AI/ML and Data Analytics
+
+**Q:** How do artificial intelligence (AI) and machine learning (ML) relate?
+**A:** AI is the broad field of building systems that simulate human intelligence. ML is a subset of AI — systems that learn patterns from data and improve at a task without being explicitly programmed for it, rather than following hard-coded rules.
+
+**Q:** What are the three tiers of AWS's AI/ML stack?
+**A:**
+
+- **Tier 1 (AI services)** — pre-built, ready-to-use AI capabilities (e.g. Comprehend, Rekognition) needing no ML expertise.
+- **Tier 2 (ML services)** — SageMaker AI: build, train, and deploy your own custom models without managing infrastructure.
+- **Tier 3 (ML frameworks & infrastructure)** — full control via frameworks (PyTorch, TensorFlow) on your own compute, for teams with deep ML expertise.
+
+**Q:** What are AWS's four language AI services, and what's each for?
+**A:**
+
+- **Comprehend** — NLP to extract insights (sentiment, key phrases) from documents.
+- **Polly** — converts text to lifelike speech.
+- **Transcribe** — converts speech to text.
+- **Translate** — translates text between languages.
+
+**Q:** What are Kendra, Rekognition, and Textract each for?
+**A:**
+
+- **Kendra** — NLP-powered enterprise search; understands query context, not just keyword matching.
+- **Rekognition** — analyzes images/video (objects, people, text, scenes) stored in S3.
+- **Textract** — extracts typed/handwritten text from documents, forms, and tables.
+
+**Q:** What are Lex and Personalize each for?
+**A:**
+
+- **Lex** — adds voice/text conversational interfaces to apps, using NLU and speech recognition.
+- **Personalize** — uses historical data to build personalized recommendations for customers.
+
+**Q:** What is Amazon SageMaker AI, and what tier of the AI/ML stack is it?
+**A:** The core **Tier 2 (ML services)** offering — a fully managed service to build, train, and deploy your own ML models without managing infrastructure. Its IDE lets you track experiments, visualize data, and debug workflows in one place; also offers pre-trained models ready to deploy.
+
+**Q:** What's the difference between an ML framework and AWS ML infrastructure (Tier 3)?
+**A:**
+
+- **ML framework** — a software library with pre-built, optimized components for building models (e.g. PyTorch, TensorFlow).
+- **AWS ML infrastructure** — the compute that runs it: ML-optimized EC2 instances, EMR, ECS.
+
+**Q:** What is deep learning, and what is generative AI?
+**A:**
+
+- **Deep learning** — a subset of ML where models train on layered artificial neural networks (mimicking the human brain); each layer summarizes and passes info to the next.
+- **Generative AI** — a type of deep learning powered by huge, pre-trained **foundation models (FMs)**. Unlike traditional ML models built for one task, FMs adapt to many.
+
+**Q:** What is a large language model (LLM)?
+**A:** A popular type of foundation model trained on vast amounts of text to learn how human language works. FMs also generate images, video, and music — LLMs are the text-focused subset.
+
+**Q:** What are Amazon SageMaker JumpStart, Amazon Bedrock, and Amazon Q, and how do they differ?
+**A:**
+
+- **SageMaker JumpStart** — an ML hub with foundation models and pre-built solutions, deployable in a few clicks and customizable with your own data.
+- **Bedrock** — a fully managed service offering a broad choice of pre-trained FMs from Amazon and other AI companies; adapt them privately with your data and deploy without managing infrastructure, via one common API.
+- **Amazon Q** — an interactive AI assistant, tailored to your business, that integrates with your company's info repositories for contextualized conversations and actions (includes Q Business and Q Developer).
+
+**Q:** A team needs generative text+image output with no new infrastructure to manage — which service? What about a team needing faster code generation without sacrificing reliability/security?
+**A:**
+
+- **Amazon Bedrock** — access multiple FMs (text, image, etc.) via one API, fully managed, no infrastructure to run.
+- **Amazon Q Developer** — code recommendations, generates functions/logic blocks, IDE integration; built for faster, reliable, secure code.
+
+**Q:** What does ETL stand for, and what is data analytics?
+**A:**
+
+- **ETL** — Extract (pull data from sources), Transform (convert to a consistent usable format), Load (into a destination like a data warehouse). A data pipeline automates this.
+- **Data analytics** — analysts transforming raw historical data to uncover valuable insights and trends (e.g. loan decision explanations, clinical trial hypothesis testing, regulator-facing risk models).
+
+**Q:** What is a data lake, and how do ELT and zero-ETL differ from standard ETL?
+**A:**
+
+- **Data lake** — a central reservoir (e.g. S3) where businesses store data from many source systems in one place.
+- **ELT** — extract and load data first, then transform it as needed inside the target tools (vs. transforming before loading).
+- **Zero-ETL** — no transform step needed at all, when data is already in a usable format/location for the target system.
+
+**Q:** What are Kinesis Data Streams and Amazon Data Firehose each for?
+**A:**
+
+- **Kinesis Data Streams** — real-time ingestion of terabytes of data from apps/sensors/streams; serverless with auto-provisioning/scaling; multiple consumers can read the same stream (e.g. live stock-trading data).
+- **Data Firehose** — fully managed near-real-time streaming ETL; collects data from a source and delivers it (within seconds) to data lakes, warehouses, or analytics services (e.g. IoT device telemetry).
+
+**Q:** How do Amazon S3 and Amazon Redshift differ as data pipeline storage?
+**A:**
+
+- **S3** — object storage for a data lake; holds virtually unlimited structured/unstructured raw data, fully elastic.
+- **Redshift** — fully managed data warehouse; stores petabytes of structured/semi-structured data, structured and optimized for BI, pay-as-you-go.
+
+**Q:** What does the AWS Glue Data Catalog do?
+**A:** A centralized, scalable, managed metadata repository — an inventory of your organization's datasets — that improves data discovery and feeds metadata to data stores and analytics services across the pipeline.
+
+**Q:** What are AWS Glue and Amazon EMR each for, and how do they differ?
+**A:**
+
+- **Glue** — fully managed ETL; simplifies data prep with visual/code-free job creation and built-in scheduling; uses the Glue Data Catalog for metadata. Best for a simplified approach.
+- **EMR** — large-scale data processing on frameworks like Apache Spark, Hadoop, Hive; auto-handles infra/cluster/scaling. Best for orgs with existing big-data expertise needing custom configs.
+
+**Q:** How do Amazon Athena and Amazon Redshift differ as query solutions?
+**A:**
+
+- **Athena** — fully managed serverless SQL queries over data in S3, on-prem, or multi-cloud (relational, non-relational, object, custom sources); pay only per query.
+- **Redshift** — fully managed data warehouse with columnar storage + massively parallel processing; best for complex queries on large datasets and frequent high-performance analytical workloads.
+
+**Q:** What are Amazon QuickSight and Amazon OpenSearch Service each for?
+**A:**
+
+- **QuickSight** — unified BI dashboards/reports at scale for technical and non-technical users, no infra to manage; Amazon Q in QuickSight adds natural-language querying.
+- **OpenSearch Service** — real-time search, monitoring, and analysis (keyword or natural-language) with unified dashboards; used for app monitoring, log analytics, observability, and website search.
+
+**Q:** Why can't you send DynamoDB changes straight to Amazon Data Firehose, and how does Firehose transform data en route?
+**A:** There's no direct DynamoDB-to-Firehose integration — DynamoDB streams changes to **Kinesis Data Streams** first, which Firehose then aggregates and delivers (e.g. to S3) in near real time. Firehose can also invoke a **Lambda function** to transform the data in flight (e.g. JSON → CSV) before delivering it to the destination.
