@@ -436,3 +436,94 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 **Q:** Why can't you send DynamoDB changes straight to Amazon Data Firehose, and how does Firehose transform data en route?
 **A:** There's no direct DynamoDB-to-Firehose integration — DynamoDB streams changes to **Kinesis Data Streams** first, which Firehose then aggregates and delivers (e.g. to S3) in near real time. Firehose can also invoke a **Lambda function** to transform the data in flight (e.g. JSON → CSV) before delivering it to the destination.
+
+### Security
+
+**Q:** What's the difference between authentication and authorization?
+**A:**
+
+- **Authentication** — verifying identity via credentials (e.g. username/password) — "can you log in?"
+- **Authorization** — granting access rights/permissions that determine what an authenticated user can actually do — "what are you allowed to do once in?"
+
+**Q:** How does the AWS Shared Responsibility Model split security duties between customer and AWS?
+**A:**
+
+- **Customer — security *in* the cloud** — securing their own data, systems, apps; choosing what to run and where; controlling access to their resources.
+- **AWS — security *of* the cloud** — the foundational software, virtualization layer, and physical hardware/global infrastructure (Regions, AZs, edge locations).
+
+**Q:** What is the AWS account root user, and what are the two recommended protections for it?
+**A:** The identity created with the account — has unrestricted permission to do anything in it. Best practice: set a **strong password** immediately, then turn on **MFA** (multi-factor authentication) right after logging in, and avoid using the root user for daily tasks.
+
+**Q:** What permissions does a new IAM user have by default, and what principle does this enforce?
+**A:** **Zero permissions** — all actions are denied until explicitly granted. This enforces the **principle of least privilege**: give people and systems access only to what they need, nothing else.
+
+**Q:** What is an IAM policy, and what are its three key elements?
+**A:** A JSON document defining what API calls an identity can/cannot make. Each statement has: **Effect** (Allow or Deny — only two options), **Action** (the AWS API call, e.g. `s3:ListBucket`), and **Resource** (which specific resource it applies to, e.g. one bucket's ID).
+
+**Q:** What's the difference between an IAM user, group, and role?
+**A:**
+
+- **User** — a single identity with static credentials (username/password), permissions attached directly or via a group.
+- **Group** — a collection of users; attach a policy once and every member inherits it.
+- **Role** — no static credentials; **assumed temporarily** for rotating access — used by people, external identities, applications, or other AWS services.
+
+**Q:** What is federated identity management, and what does IAM Identity Center provide?
+**A:** Federated identity management lets users access multiple apps/services with **one set of credentials** (e.g. their corporate login). **IAM Identity Center** centralizes this across AWS accounts and connected apps, giving a **single sign-on (SSO)** experience without creating a separate IAM user per person.
+
+**Q:** What does AWS Secrets Manager do?
+**A:** Securely manages, rotates, and retrieves **secrets** — database credentials, API keys, and other confidential values — throughout their lifecycle, so applications and services never hard-code them.
+
+**Q:** What does AWS Systems Manager do?
+**A:** Gives a centralized view of **nodes** (connection points — servers, instances) across accounts, Regions, and hybrid/multi-cloud environments; lets you view node info and automate tasks like security patching and user management at scale.
+
+**Q:** What's the difference between a DoS and a DDoS attack?
+**A:**
+
+- **DoS** — an attacker floods a web app with excessive traffic from a single source, overloading it so legitimate requests are denied.
+- **DDoS** — the same goal, but launched from multiple compromised machines ("zombie bots") across the internet, unknowingly sending traffic at once — much harder to block by source.
+
+**Q:** What's the difference between AWS Shield Standard and Shield Advanced?
+**A:**
+
+- **Shield Standard** — free, automatic protection against the most common DDoS attacks; built into ELB, CloudFront, and Route 53 at no extra cost.
+- **Shield Advanced** — paid; adds detailed attack diagnostics and mitigation for sophisticated DDoS attacks; can combine with AWS WAF (custom rules) for complex cases.
+
+**Q:** How do Security Groups and AWS WAF each help defend against network/application attacks?
+**A:**
+
+- **Security groups** — only allow properly formed request traffic through at the AWS network level; a mismatched protocol (e.g. a UDP flood spoofing your address) never reaches your instance, and AWS Region-scale capacity absorbs it.
+- **AWS WAF** — a web application firewall that checks incoming requests' IPs against a **web ACL**, blocking listed bad actors while allowing legitimate traffic; uses ML to recognize new attack signatures.
+
+**Q:** What's the difference between encryption at rest and encryption in transit?
+**A:**
+
+- **At rest** — data is idle/not moving (e.g. stored in S3, a database).
+- **In transit** — data is moving between locations (e.g. database to app); protected via **SSL/TLS certificates**, which verify identity and establish an encrypted connection (HTTPS = TLS/SSL-secured site).
+
+**Q:** How do S3, EBS, and DynamoDB each handle encryption at rest?
+**A:**
+
+- **S3** — all new buckets and uploaded objects are encrypted **by default**.
+- **EBS** — volumes and snapshots can be encrypted, including both boot and data volumes.
+- **DynamoDB** — server-side encryption is enabled on **all table data** using keys stored in **KMS**.
+
+**Q:** What does AWS KMS do, and what's a key guarantee about its keys?
+**A:** Creates and manages **cryptographic keys** used to encrypt/decrypt data across AWS services, with fine-grained access control (which IAM users/roles can manage a key) and the ability to disable a key. Keys **never leave KMS** — you get full control without ever handling the raw key material.
+
+**Q:** What do Amazon Macie and AWS Certificate Manager (ACM) each protect?
+**A:**
+
+- **Macie** — uses ML to discover and monitor **sensitive data at rest** in S3, helping assess security posture and meet compliance.
+- **ACM** — centralizes management of **SSL/TLS certificates** for encryption **in transit**, protecting AWS services and connected on-prem resources.
+
+**Q:** What's the difference between Amazon Inspector and Amazon GuardDuty?
+**A:**
+
+- **Inspector** — runs automated security assessments on EC2, containers, and Lambda; flags vulnerabilities and best-practice deviations (e.g. open EC2 access, outdated software), with severity-ranked findings and fix recommendations.
+- **GuardDuty** — continuously monitors account metadata and network activity for **threats**, using known-malicious-IP intelligence, anomaly detection, and ML; findings can trigger automatic Lambda-based remediation.
+
+**Q:** What's the difference between Amazon Detective and AWS Security Hub?
+**A:**
+
+- **Detective** — investigates the **root cause** after a threat is found, using interactive visualizations (resource/user interactions over a timeline) built from ML and graph analytics.
+- **Security Hub** — aggregates findings from AWS and partner security services into **one comprehensive view**, grouped into actionable "insights," to speed up time-to-resolution.
