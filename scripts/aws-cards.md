@@ -458,7 +458,11 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 **A:** **Zero permissions** — all actions are denied until explicitly granted. This enforces the **principle of least privilege**: give people and systems access only to what they need, nothing else.
 
 **Q:** What is an IAM policy, and what are its three key elements?
-**A:** A JSON document defining what API calls an identity can/cannot make. Each statement has: **Effect** (Allow or Deny — only two options), **Action** (the AWS API call, e.g. `s3:ListBucket`), and **Resource** (which specific resource it applies to, e.g. one bucket's ID).
+**A:** A JSON document defining what API calls an identity can/cannot make. Each statement has:
+
+- **Effect** — Allow or Deny (only two options).
+- **Action** — the AWS API call, e.g. `s3:ListBucket`.
+- **Resource** — which specific resource it applies to, e.g. one bucket's ID.
 
 **Q:** What's the difference between an IAM user, group, and role?
 **A:**
