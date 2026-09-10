@@ -531,3 +531,80 @@ Spread resources across multiple AZs and one AZ's outage leaves your app running
 
 - **Detective** — investigates the **root cause** after a threat is found, using interactive visualizations (resource/user interactions over a timeline) built from ML and graph analytics.
 - **Security Hub** — aggregates findings from AWS and partner security services into **one comprehensive view**, grouped into actionable "insights," to speed up time-to-resolution.
+
+### Monitoring, Compliance, and Governance
+
+**Q:** What's the four-stage progression for governing AWS resources?
+**A:**
+
+- **Secure** — protect data, systems, and infrastructure from unauthorized access, use, disclosure, disruption, modification, or destruction.
+- **Monitor** — continuously observe activity, traffic, and events to detect threats or anomalies.
+- **Audit** — periodically review whether controls are effective and policies are followed.
+- **Compliance** — ensure practices meet regulations, industry standards, and contractual obligations.
+
+**Q:** What is monitoring in the AWS Cloud?
+**A:** The continuous process of collecting, visualizing, and tracking the health and performance of your AWS infrastructure, services, and applications — to ensure optimal performance and catch potential issues before they escalate (e.g. triggering an EC2 Auto Scaling event when an instance is over-utilized).
+
+**Q:** What are CloudWatch's four core features, and what does each do?
+**A:**
+
+- **Metrics** — variables tied to your resources (e.g. CPU utilization), tracked over time.
+- **Alarms** — trigger a threshold-based action (e.g. an SNS notification) when a metric crosses a set value.
+- **Dashboards** — near-real-time, auto-refreshing views of metrics across resources.
+- **Logs** — centralizes collection, storage, search, and filtering of log files from AWS resources.
+
+**Q:** What does AWS CloudTrail do, and why does it matter for auditing?
+**A:** Logs every API call made in your account — who made the request, when, from where, and what the response was — since every AWS action is an API call. This gives a complete audit trail of configuration changes, answering "who did what, where, and when?"
+
+**Q:** What's the difference between CloudTrail events, logs, and Insights?
+**A:**
+
+- **Events** — individual records of activity (one API call).
+- **Logs** — files containing those events, delivered to and retained in an S3 bucket for auditing/compliance.
+- **Insights** — automatically detects unusual API activity in your account.
+
+**Q:** How does AWS help customers meet compliance requirements?
+**A:**
+
+- **Inherited controls** — you inherit the security controls AWS already applies to its own infrastructure.
+- **Third-party validation** — thousands of global requirements already validated for AWS.
+- **Streamlined/automated compliance** — tooling to track and prove your own compliance.
+- **On-demand reports** — compliance documentation available anytime (e.g. via AWS Artifact).
+
+**Q:** What are AWS Artifact's two types, and what does each provide?
+**A:**
+
+- **Artifact Agreements** — review, accept, and manage agreements with AWS (e.g. a HIPAA BAA).
+- **Artifact Reports** — on-demand access to AWS's third-party security and compliance reports/certifications.
+
+No cost for either type.
+
+**Q:** What's the difference between AWS Config and AWS Audit Manager?
+**A:**
+
+- **Config** — continuously tracks and evaluates your resource configurations against rules you define; flags noncompliant resources and can trigger automated remediation.
+- **Audit Manager** — automates evidence collection across your AWS usage to simplify risk/compliance assessment, using prebuilt frameworks mapped to industry standards, for audit-ready reports.
+
+**Q:** How does AWS Organizations structure and bill multi-account environments?
+**A:** One parent (management) account with any number of child accounts; billing consolidates into the parent, with discounts applied at the top level. Accounts can be grouped into **organizational units (OUs)** — a hierarchical, tree-like structure — to apply security, compliance, or budget rules to a whole group at once.
+
+**Q:** What are SCPs, and what can they be applied to?
+**A:** Policies that set the **maximum permissions** available to accounts within an AWS Organization — controlling which services, resources, and API actions users/roles in a member account can reach. SCPs apply to an individual **member account** or an entire **OU** — not directly to IAM users, groups, or roles.
+
+**Q:** What does AWS Control Tower do?
+**A:** Enforces and manages governance rules (security, operations, compliance) at scale across all accounts/OUs in an organization. Automates account setup via blueprints, applies **guardrails** to prevent/detect noncompliant resources, and gives a dashboard to monitor compliance status org-wide.
+
+**Q:** What does AWS Service Catalog do?
+**A:** Lets you create, share, and organize a curated catalog of approved AWS resources so employees can self-service deploy pre-approved, governed infrastructure (e.g. baseline networking/security for new accounts) instead of guessing at settings.
+
+**Q:** What does AWS License Manager do?
+**A:** Manages and tracks software licenses — including **Bring Your Own License (BYOL)** from vendors like Microsoft — to fine-tune licensing costs and reduce noncompliance risk, enforcing usage limits and blocking launches that would violate license terms.
+
+**Q:** What does AWS Health / the Health Dashboard provide?
+**A:** The data source for events and changes affecting the health of your AWS resources — notifies you of service events, planned changes, and account-specific notifications, with actionable guidance to remedy issues (API access available with Premium Support).
+
+**Q:** What are AWS Trusted Advisor's five check categories?
+**A:** **Cost optimization, performance, security, fault tolerance,** and **service limits** — it continuously evaluates your account against AWS best practices in each, flagging items as action-recommended (red), investigation-recommended (orange), or no problem (green).
+
+**Q:** What does IAM Access Analyzer do?
+**A:** Analyzes your IAM policies to set, verify, and refine permissions toward **least privilege** — checking for external/unused access, validating policies against your security standards, and helping automate policy reviews.
