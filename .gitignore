@@ -52,3 +52,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# card-authoring seeds (kept local, not published)
+scripts/seed-*.mjs
+scripts/*-cards.md
