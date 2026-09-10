@@ -69,6 +69,12 @@ export interface DayActivity {
   date: string;   // YYYY-MM-DD
   count: number;  // total attempts logged that day
   future: boolean; // after `today` — grid padding, render blank
+  // What the heatmap's hover card reads. Deliberately just the split and the
+  // recall — a cell is a glance, not a report; the day's History page is one
+  // click away for anything more.
+  reviews: number;   // attempts that were not the card's first
+  recalled: number;  // of those reviews, the ones answered without struggling
+  newCards: number;  // cards seen for the first time that day
 }
 
 /**
@@ -76,21 +82,50 @@ export interface DayActivity {
  * Sun–Sat columns ending with the week containing `today`. Days after
  * `today` are included so the grid stays rectangular (weeks * 7 cells) but
  * flagged `future` for the UI to render as empty rather than "0 activity".
+ *
+ * The default window is 26 weeks (~6 months), not a year: the card it renders
+ * in is a fixed width, so fewer columns means bigger, readable cells instead
+ * of a year of 11px squares that has to scroll.
  */
-export function dailyActivity(attempts: Pick<Attempt, 'attempted_at'>[], today: string, weeks = 53): DayActivity[] {
+export function dailyActivity(replays: AttemptReplay[], today: string, weeks = 26): DayActivity[] {
   const dow = new Date(`${today}T00:00:00Z`).getUTCDay(); // 0 = Sun
   const weekStart = addDays(today, -dow);
   const gridStart = addDays(weekStart, -(weeks - 1) * 7);
 
-  const counts = new Map<string, number>();
-  for (const a of attempts) {
-    const d = dateOf(a.attempted_at);
-    counts.set(d, (counts.get(d) ?? 0) + 1);
+  interface Bucket {
+    count: number;
+    reviews: number;
+    recalled: number;
+    newCards: number;
+  }
+  const buckets = new Map<string, Bucket>();
+  for (const r of replays) {
+    const date = dateOf(r.attempt.attempted_at);
+    let b = buckets.get(date);
+    if (!b) {
+      b = { count: 0, reviews: 0, recalled: 0, newCards: 0 };
+      buckets.set(date, b);
+    }
+    b.count++;
+    if (r.isReview) {
+      b.reviews++;
+      if (!r.attempt.struggled) b.recalled++;
+    } else {
+      b.newCards++;
+    }
   }
 
   return Array.from({ length: weeks * 7 }, (_, i) => {
     const date = addDays(gridStart, i);
-    return { date, count: counts.get(date) ?? 0, future: date > today };
+    const b = buckets.get(date);
+    return {
+      date,
+      count: b?.count ?? 0,
+      future: date > today,
+      reviews: b?.reviews ?? 0,
+      recalled: b?.recalled ?? 0,
+      newCards: b?.newCards ?? 0,
+    };
   });
 }
 
@@ -289,7 +324,7 @@ export function computeMetrics(data: StoreData, today: string, domainFilter?: Do
 
     proficiencyCounts,
 
-    activityByDay: dailyActivity(attempts, today),
+    activityByDay: dailyActivity(allReplays, today),
 
     totalProblems: problems.length,
     attemptedProblems: byProblem.size,

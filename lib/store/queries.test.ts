@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  activeCards, compareByDueDate, forecast, historyBuckets, matchesProficiency,
+  activeCards, activityDays, compareByDueDate, forecast, historyBuckets, matchesProficiency,
   reviewQueue, todayStats, toQueueItem,
 } from './queries';
 import type { StoreData } from './store';
@@ -404,5 +404,65 @@ describe('historyBuckets', () => {
     const data = store(problems, attempts, archiving('ai'));
     expect(historyBuckets(data, TODAY, 'ai')).toEqual({ reviewed: [], added: [] });
     expect(historyBuckets(data, TODAY, 'dsa').added.map(r => r.id)).toEqual([2]);
+  });
+
+  // The `day` argument is not special-cased to today anywhere: it is the day the
+  // History page renders, which is what makes past days browsable.
+  it('splits a past day by that day, not by the real today', () => {
+    const { reviewed, added } = historyBuckets(store(problems, attempts), '2026-07-10');
+    // On 2026-07-10 both cards were brand new, so nothing is a "review" yet —
+    // even though by TODAY they both have earlier attempts.
+    expect(reviewed).toEqual([]);
+    expect(added.map(r => r.id)).toEqual([3, 1]);
+  });
+
+  it('shows nothing for a day with no attempts', () => {
+    expect(historyBuckets(store(problems, attempts), '2026-07-15')).toEqual({ reviewed: [], added: [] });
+  });
+
+  it('carries the domain filter on a past day', () => {
+    expect(historyBuckets(store(problems, attempts), '2026-07-10', 'ai').added.map(r => r.id)).toEqual([3]);
+  });
+
+  it('counts a card attempted twice on the same day as added, then reviewed', () => {
+    const twice = [
+      attempt({ id: 10, problem_id: 2, attempted_at: `${TODAY}T09:00:00` }),
+      attempt({ id: 11, problem_id: 2, attempted_at: `${TODAY}T14:00:00` }),
+    ];
+    const { reviewed, added } = historyBuckets(store([problem({ id: 2 })], twice), TODAY);
+    // Neither attempt predates today, so both land in `added` — the bucket split
+    // is "first day I touched this card", not "first attempt of the session".
+    expect(reviewed).toEqual([]);
+    expect(added.map(r => r.attempt_id)).toEqual([11, 10]);
+  });
+});
+
+describe('activityDays', () => {
+  const problems = [
+    problem({ id: 1, domain: 'dsa' }),
+    problem({ id: 2, domain: 'ai' }),
+  ];
+  const attempts = [
+    attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-10T09:00:00' }),
+    attempt({ id: 2, problem_id: 1, attempted_at: '2026-07-10T18:00:00' }),
+    attempt({ id: 3, problem_id: 2, attempted_at: '2026-07-20T09:00:00' }),
+    attempt({ id: 4, problem_id: 1, attempted_at: `${TODAY}T09:00:00` }),
+  ];
+
+  it('is the deduped, ascending set of days with an attempt', () => {
+    expect(activityDays(store(problems, attempts))).toEqual(['2026-07-10', '2026-07-20', TODAY]);
+  });
+
+  it("scopes to a domain so the arrows walk that deck's study days", () => {
+    expect(activityDays(store(problems, attempts), 'dsa')).toEqual(['2026-07-10', TODAY]);
+    expect(activityDays(store(problems, attempts), 'ai')).toEqual(['2026-07-20']);
+  });
+
+  it('drops an archived domain, so no arrow can land on an empty day', () => {
+    expect(activityDays(store(problems, attempts, archiving('ai')))).toEqual(['2026-07-10', TODAY]);
+  });
+
+  it('is empty with no attempts', () => {
+    expect(activityDays(store(problems, []))).toEqual([]);
   });
 });

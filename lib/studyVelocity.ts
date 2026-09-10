@@ -116,6 +116,8 @@ export interface LoggedSessionResult {
   loggedMins: number;
   /** Estimated time between questions (gaps minus the next question's solve time). */
   betweenMins: number;
+  /** Mean between-question time per gap, in seconds. 0 when there are no gaps. */
+  avgBetweenSeconds: number;
   /** loggedMins + betweenMins — total active session estimate. */
   sessionMins: number;
   /** Gaps dropped as unlogged breaks (> break threshold). */
@@ -148,6 +150,7 @@ export function computeLoggedSessionTime(
     return {
       loggedMins,
       betweenMins: 0,
+      avgBetweenSeconds: 0,
       sessionMins: loggedMins,
       breaksDropped: 0,
       gapSampleSize: 0,
@@ -175,9 +178,13 @@ export function computeLoggedSessionTime(
   }
 
   const betweenMins = Math.round(betweenSeconds / 60);
+  // Averaged over the gaps actually used, not over attempts: with n timed
+  // attempts there are at most n-1 gaps, and break gaps are dropped entirely.
+  const avgBetweenSeconds = gapSampleSize > 0 ? betweenSeconds / gapSampleSize : 0;
   return {
     loggedMins,
     betweenMins,
+    avgBetweenSeconds,
     sessionMins: loggedMins + betweenMins,
     breaksDropped,
     gapSampleSize,

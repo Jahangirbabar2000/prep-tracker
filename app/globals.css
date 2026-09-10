@@ -9,6 +9,10 @@
    secondary. Cards are warm ivory panels, never pure white — gold reads as
    precious only against a warm ground, not a bright one. */
 :root {
+  /* Native controls (the History date picker's calendar button, scrollbars)
+     draw themselves from color-scheme, not from our tokens — without this the
+     picker icon renders dark-on-dark once .dark is on. */
+  color-scheme: light;
   --bg:            #f4efe2;
   --surface:       #fdfbf4;
   --surface-2:     #efe7d5;
@@ -32,6 +36,7 @@
    accent, luminous teal for streaks/highlights. Cards are warm espresso
    panels — a clear step up from the ground, so nothing reads flat. */
 .dark {
+  color-scheme: dark;
   --bg:            #141009;
   --surface:       #1f1810;
   --surface-2:     #2a2114;

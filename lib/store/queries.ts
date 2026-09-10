@@ -247,6 +247,28 @@ export function historyBuckets(
   return { reviewed: reviewed.sort(byTimeDesc), added: added.sort(byTimeDesc) };
 }
 
+/**
+ * Every day that has at least one attempt, ascending — the days the History
+ * page's arrows can land on.
+ *
+ * Same admission rule as historyBuckets(): archived domains contribute no day,
+ * so the arrows can never step onto a day that then renders empty. Scoping by
+ * `domainFilter` matches too, so with a domain selected the arrows walk that
+ * domain's study days rather than every day you studied anything.
+ */
+export function activityDays(data: StoreData, domainFilter?: string): string[] {
+  const active = activeCards(data);
+  const domainOf = new Map(active.problems.map(p => [p.id, p.domain]));
+  const days = new Set<string>();
+  for (const a of active.attempts) {
+    const domain = domainOf.get(a.problem_id);
+    if (!domain) continue;
+    if (domainFilter && domain !== domainFilter) continue;
+    days.add(dateOf(a.attempted_at));
+  }
+  return [...days].sort();
+}
+
 /** Upcoming due counts by (date, domain) for today < date <= until. */
 export function forecast(data: StoreData, today: string, until: string): { date: string; domain: string; count: number }[] {
   const map = new Map<string, number>();

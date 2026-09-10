@@ -40,6 +40,10 @@ function fmtMins(mins: number): string {
 function cardTag(a: TodayAttempt) {
   return a.metadata;
 }
+/** "45s" for sub-minute durations, "1.5 min" above a minute. */
+function fmtGap(seconds: number): string {
+  return seconds < 60 ? `${Math.round(seconds)}s` : `${(seconds / 60).toFixed(1)} min`;
+}
 /** "45s/q" for sub-minute velocities, "1.5m/q" above a minute. */
 function fmtVelocity(seconds: number): string {
   return seconds < 60 ? `${Math.round(seconds)}s/q` : `${(seconds / 60).toFixed(1)}m/q`;
@@ -128,6 +132,8 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
     : null;
   const loggedMins = dsaSession?.loggedMins ?? 0;
   const betweenMins = dsaSession?.betweenMins ?? 0;
+  const avgBetweenSeconds = dsaSession?.avgBetweenSeconds ?? 0;
+  const gapSampleSize = dsaSession?.gapSampleSize ?? 0;
   const sessionMins = dsaSession?.sessionMins ?? 0;
   const timedCount = isTimed
     ? attempts.filter(a => a.time_taken_mins > 0).length
@@ -168,9 +174,9 @@ function DomainGroup({ domain, attempts, open, onToggle }: { domain: Domain; att
                   </p>
                   {showBetweenRange ? (
                     <p className="text-[11px] text-muted leading-relaxed">
-                      <span className="text-fg font-medium tabular">+{fmtMins(betweenMins)}</span> between questions —
-                      wall-clock gaps beyond each next solve (long breaks excluded). Session total{' '}
-                      <span className="text-fg font-medium tabular">~{fmtMins(sessionMins)}</span>.
+                      <span className="text-fg font-medium tabular">{fmtGap(avgBetweenSeconds)}</span> between questions on average —
+                      the wall-clock gap beyond each next solve, across {gapSampleSize} gaps (long breaks
+                      excluded). Session total <span className="text-fg font-medium tabular">~{fmtMins(sessionMins)}</span>.
                     </p>
                   ) : (
                     <p className="text-[11px] text-muted leading-relaxed">
@@ -245,6 +251,8 @@ function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: Toda
     : null;
   const loggedMins = dsaSession?.loggedMins ?? 0;
   const betweenMins = dsaSession?.betweenMins ?? 0;
+  const avgBetweenSeconds = dsaSession?.avgBetweenSeconds ?? 0;
+  const gapSampleSize = dsaSession?.gapSampleSize ?? 0;
   const sessionMins = dsaSession?.sessionMins ?? 0;
   const timedCount = isTimed ? attempts.filter(a => a.time_taken_mins > 0).length : 0;
   const avgLoggedSeconds = timedCount > 0 ? (loggedMins / timedCount) * 60 : 0;
@@ -283,9 +291,9 @@ function AddedDomainGroup({ domain, attempts }: { domain: Domain; attempts: Toda
                     </p>
                     {showBetweenRange ? (
                       <p className="text-[11px] text-muted leading-relaxed">
-                        <span className="text-fg font-medium tabular">+{fmtMins(betweenMins)}</span> between questions —
-                        wall-clock gaps beyond each next solve (long breaks excluded). Session total{' '}
-                        <span className="text-fg font-medium tabular">~{fmtMins(sessionMins)}</span>.
+                        <span className="text-fg font-medium tabular">{fmtGap(avgBetweenSeconds)}</span> between questions on average —
+                        the wall-clock gap beyond each next solve, across {gapSampleSize} gaps (long breaks
+                        excluded). Session total <span className="text-fg font-medium tabular">~{fmtMins(sessionMins)}</span>.
                       </p>
                     ) : (
                       <p className="text-[11px] text-muted leading-relaxed">
@@ -394,9 +402,11 @@ function CollapsibleSection({
 interface Props {
   reviewed: TodayAttempt[];
   added: TodayAttempt[];
+  /** Heading for the "added" section — "Added today" only reads right on today. */
+  addedTitle?: string;
 }
 
-export default function HistoryList({ reviewed, added }: Props) {
+export default function HistoryList({ reviewed, added, addedTitle = 'Added today' }: Props) {
   const { data } = useStore();
   // "Added today" renders a row per domain in this order, including the empty
   // ones, so an archived domain would sit here as a greyed-out "0 added" — the
@@ -457,10 +467,10 @@ export default function HistoryList({ reviewed, added }: Props) {
         </CollapsibleSection>
       )}
 
-      {/* Added today — every active domain, empty ones greyed out */}
+      {/* Added on the viewed day — every active domain, empty ones greyed out */}
       {added.length > 0 && (
         <CollapsibleSection
-          title="Added today"
+          title={addedTitle}
           count={added.length}
           icon={<Plus size={12} className="text-muted" />}
         >

@@ -126,7 +126,18 @@ function StatsInner() {
     );
   }
 
-  const m = computeMetrics(data, clientToday(), filterDomain || undefined);
+  const today = clientToday();
+  const m = computeMetrics(data, today, filterDomain || undefined);
+
+  /** Heatmap cell -> that day's History, keeping the domain filter. */
+  const historyHref = (date: string) => {
+    const params = new URLSearchParams();
+    if (filterDomain) params.set('domain', filterDomain);
+    if (date !== today) params.set('date', date);
+    const qs = params.toString();
+    return qs ? `/review/history?${qs}` : '/review/history';
+  };
+
   const proficiencyOrder: Array<keyof typeof m.proficiencyCounts> = [...PROFICIENCY_LABELS];
   const proficiencyTotal = Object.values(m.proficiencyCounts).reduce((a, b) => a + b, 0) || 1;
   const showRecallTrend = m.recallRateRecent !== null && m.recallRatePrior !== null;
@@ -207,7 +218,8 @@ function StatsInner() {
       <section>
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Activity</h2>
         <div className="bg-surface border border-border rounded-xl px-4 sm:px-5 py-4">
-          <ActivityHeatmap days={m.activityByDay} />
+          {/* Each active cell opens that day's History, carrying the domain filter. */}
+          <ActivityHeatmap days={m.activityByDay} dayHref={historyHref} />
         </div>
       </section>
 

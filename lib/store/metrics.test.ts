@@ -321,6 +321,16 @@ describe('computeMetrics — archived domains', () => {
 });
 
 describe('dailyActivity', () => {
+  /** Replay each problem's attempts, the way computeMetrics does. */
+  function replays(atts: Attempt[]) {
+    const byProblem = new Map<number, Attempt[]>();
+    for (const a of atts) {
+      const arr = byProblem.get(a.problem_id);
+      if (arr) arr.push(a); else byProblem.set(a.problem_id, [a]);
+    }
+    return [...byProblem.values()].flatMap(replayAttempts);
+  }
+
   it('builds a rectangular weeks*7 grid ending in the week containing today, with future days flagged', () => {
     const days = dailyActivity([], TODAY, 3); // 3 weeks = 21 cells
     expect(days).toHaveLength(21);
@@ -336,7 +346,7 @@ describe('dailyActivity', () => {
       attempt({ id: 2, problem_id: 2, attempted_at: `${TODAY} 10:00:00` }),
       attempt({ id: 3, problem_id: 1, attempted_at: '2026-07-25 09:00:00' }),
     ];
-    const days = dailyActivity(atts, TODAY, 2);
+    const days = dailyActivity(replays(atts), TODAY, 2);
     expect(days.find(d => d.date === TODAY)?.count).toBe(2);
     expect(days.find(d => d.date === '2026-07-25')?.count).toBe(1);
   });
@@ -345,5 +355,28 @@ describe('dailyActivity', () => {
     const days = dailyActivity([], TODAY, 4);
     expect(new Date(`${days[0].date}T00:00:00Z`).getUTCDay()).toBe(0);
     expect(new Date(`${days[days.length - 1].date}T00:00:00Z`).getUTCDay()).toBe(6);
+  });
+
+  it('splits a day into new cards and reviews, and counts recall on the reviews only', () => {
+    const atts = [
+      // Problem 1: first attempt yesterday, reviewed today and struggled.
+      attempt({ id: 1, problem_id: 1, attempted_at: '2026-07-25 09:00:00' }),
+      attempt({ id: 2, problem_id: 1, attempted_at: `${TODAY} 09:00:00`, struggled: 1 }),
+      // Problem 2: first attempt yesterday, reviewed today and recalled it.
+      attempt({ id: 3, problem_id: 2, attempted_at: '2026-07-25 09:30:00' }),
+      attempt({ id: 4, problem_id: 2, attempted_at: `${TODAY} 09:30:00` }),
+      // Problem 3: brand new today — a first attempt is not a review, even a bad one.
+      attempt({ id: 5, problem_id: 3, attempted_at: `${TODAY} 10:00:00`, struggled: 1 }),
+    ];
+    const day = dailyActivity(replays(atts), TODAY, 2).find(d => d.date === TODAY)!;
+    expect(day.count).toBe(3);
+    expect(day.reviews).toBe(2);
+    expect(day.recalled).toBe(1);
+    expect(day.newCards).toBe(1);
+  });
+
+  it('leaves an empty day with zeroed facts rather than absent ones', () => {
+    const day = dailyActivity([], TODAY, 2).find(d => d.date === TODAY)!;
+    expect(day).toMatchObject({ count: 0, reviews: 0, recalled: 0, newCards: 0 });
   });
 });

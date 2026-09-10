@@ -6,10 +6,12 @@ import { fmtDate } from '@/lib/fmt';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import HistoryFilters from '@/components/HistoryFilters';
+import HistoryDayNav from '@/components/HistoryDayNav';
 import HistoryList, { type TodayAttempt } from '@/components/HistoryList';
 import { Domain, StudyDomain } from '@/lib/types';
 import { useStore } from '@/lib/store/store';
-import { historyBuckets, clientToday } from '@/lib/store/queries';
+import { activityDays, historyBuckets, clientToday } from '@/lib/store/queries';
+import { adjacentActivityDay, dayLabel, resolveHistoryDate } from '@/lib/historyDay';
 import { computeLoggedSessionTime, computeStudyVelocity } from '@/lib/studyVelocity';
 import { activeDomains, isTimedMode, resolveDomain } from '@/lib/domains';
 
@@ -20,7 +22,7 @@ function fmtMins(mins: number): string {
   return m > 0 ? `${h} hr ${m} min` : `${h} hr`;
 }
 
-/** Total active minutes for today's reviewed attempts — same per-domain rules as HistoryList. */
+/** Total active minutes for the day's reviewed attempts — same per-domain rules as HistoryList. */
 function totalTimeSpentMins(reviewed: TodayAttempt[], domains: StudyDomain[]): number {
   const byDomain: Partial<Record<Domain, TodayAttempt[]>> = {};
   for (const a of reviewed) {
@@ -54,8 +56,24 @@ function HistoryInner() {
   const { data, ready } = useStore();
   const filterDomain = sp.get('domain') ?? '';
   const today = clientToday();
+  // `?date=` is the whole of the page's state: every attempt ever logged is in
+  // the store (nothing prunes them), so any past day is one URL away. Absent or
+  // unusable, it means today — the behaviour this page has always had.
+  const date = resolveHistoryDate(sp.get('date'), today);
+  const isToday = date === today;
 
-  const { reviewed, added } = historyBuckets(data, today, filterDomain || undefined);
+  const { reviewed, added } = historyBuckets(data, date, filterDomain || undefined);
+  const days = activityDays(data, filterDomain || undefined);
+  const prevWithActivity = adjacentActivityDay(days, date, -1);
+
+  /** Link to another day, keeping the domain filter and dropping `date` on today. */
+  const dayHref = (target: string) => {
+    const params = new URLSearchParams();
+    if (filterDomain) params.set('domain', filterDomain);
+    if (target !== today) params.set('date', target);
+    const qs = params.toString();
+    return qs ? `/review/history?${qs}` : '/review/history';
+  };
 
   const totalReviewed = reviewed.length;
   const struggled     = reviewed.filter(a => a.struggled).length;
@@ -78,11 +96,18 @@ function HistoryInner() {
           <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors mb-2">
             <ArrowLeft size={13} /> Review Queue <span className="hidden md:inline opacity-40 ml-0.5">Esc</span>
           </Link>
-          <h1 className="text-2xl font-semibold text-fg tracking-tight">Today&apos;s History</h1>
-          <p className="text-sm text-muted mt-0.5">{fmtDate(today)}</p>
+          <h1 className="text-2xl font-semibold text-fg tracking-tight">
+            {isToday ? "Today's History" : 'History'}
+          </h1>
+          <p className="text-sm text-muted mt-0.5">
+            <span className="text-fg font-medium">{dayLabel(date, today)}</span>
+            <span className="opacity-40 mx-1.5">·</span>
+            <span className="tabular">{fmtDate(date)}</span>
+          </p>
         </div>
       </div>
 
+      <HistoryDayNav date={date} today={today} days={days} />
       <HistoryFilters currentDomain={filterDomain} />
 
       {!ready ? (
@@ -93,11 +118,32 @@ function HistoryInner() {
         </div>
       ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-fg font-medium">No activity yet today.</p>
-          <p className="text-sm text-muted mt-1 mb-5">Start a session or log a question to see it here.</p>
-          <Link href="/review/session" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors">
-            Start Session
-          </Link>
+          {isToday ? (
+            <>
+              <p className="text-fg font-medium">No activity yet today.</p>
+              <p className="text-sm text-muted mt-1 mb-5">Start a session or log a question to see it here.</p>
+              <Link href="/review/session" className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors">
+                Start Session
+              </Link>
+            </>
+          ) : (
+            <>
+              {/* A past day the picker landed on. "Start a session" makes no
+                  sense here — point at the nearest day that does have work. */}
+              <p className="text-fg font-medium">Nothing logged on this day.</p>
+              <p className="text-sm text-muted mt-1 mb-5">
+                {prevWithActivity
+                  ? 'Your last session before this was on ' + fmtDate(prevWithActivity) + '.'
+                  : 'This is before your first logged session.'}
+              </p>
+              <Link
+                href={prevWithActivity ? dayHref(prevWithActivity) : dayHref(today)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-accent-fg text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors"
+              >
+                {prevWithActivity ? `Jump to ${fmtDate(prevWithActivity)}` : 'Back to today'}
+              </Link>
+            </>
+          )}
         </div>
       ) : (
         <>
@@ -141,7 +187,7 @@ function HistoryInner() {
             </div>
           )}
 
-          <HistoryList reviewed={reviewed} added={added} />
+          <HistoryList reviewed={reviewed} added={added} addedTitle={isToday ? 'Added today' : 'Added this day'} />
         </>
       )}
     </div>
