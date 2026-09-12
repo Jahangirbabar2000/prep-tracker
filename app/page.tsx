@@ -149,7 +149,9 @@ function ReviewQueueInner() {
   if (!ready) return <ReviewQueueSkeleton order={filterOrder} />;
 
   return (
-    <div>
+    // 2xl+: rows and the forecast grid stop stretching edge-to-edge on wide
+    // monitors — everything below stays full-bleed, unchanged.
+    <div className="2xl:max-w-6xl 2xl:mx-auto">
       <div className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
@@ -312,7 +314,7 @@ function ReviewQueueInner() {
 // order is optional there and falls back to the default caption.
 function ReviewQueueSkeleton({ order = DEFAULT_QUEUE_ORDER }: { order?: QueueOrder }) {
   return (
-    <div>
+    <div className="2xl:max-w-6xl 2xl:mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-fg tracking-tight">Review Queue</h1>
         <p className="text-sm text-muted mt-1">{queueSubtitle(order)}</p>
