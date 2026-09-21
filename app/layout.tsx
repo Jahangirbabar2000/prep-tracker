@@ -5,6 +5,7 @@ import ScrollToTop from '@/components/ScrollToTop';
 import GlobalShortcuts from '@/components/GlobalShortcuts';
 import StoreProvider from '@/components/StoreProvider';
 import RegisterSW from '@/components/RegisterSW';
+import { THEME_COLORS, THEME_STORAGE_KEY, DARK_QUERY } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: 'Prep Tracker',
@@ -22,14 +23,22 @@ export const viewport: Viewport = {
 
 // Runs before paint to apply the saved theme and avoid a flash of the wrong
 // mode. Also syncs the theme-color meta so the mobile status bar / safe-area
-// matches the selected theme (must stay in sync with --bg in globals.css).
+// matches the selected theme.
+//
+// This duplicates readThemePref/resolveTheme from lib/theme.ts in plain ES5:
+// it has to be a self-contained string that runs before any bundle loads, so
+// it cannot import them. The colors and the storage key *are* interpolated
+// from that module, so the values can't drift even though the logic is
+// restated. Keep the two branches in step if the resolution rule changes.
 const themeScript = `
 (function() {
   try {
-    var t = localStorage.getItem('theme');
-    var dark = t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    if (dark) document.documentElement.classList.add('dark');
-    var color = dark ? '#141009' : '#f4efe2';
+    var raw = localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
+    var pref = (raw === 'light' || raw === 'dark' || raw === 'system') ? raw : 'system';
+    var dark = pref === 'dark' ||
+      (pref === 'system' && window.matchMedia(${JSON.stringify(DARK_QUERY)}).matches);
+    document.documentElement.classList.toggle('dark', dark);
+    var color = dark ? ${JSON.stringify(THEME_COLORS.dark)} : ${JSON.stringify(THEME_COLORS.light)};
     var m = document.querySelector('meta[name="theme-color"]');
     if (!m) { m = document.createElement('meta'); m.setAttribute('name', 'theme-color'); document.head.appendChild(m); }
     m.setAttribute('content', color);

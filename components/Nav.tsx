@@ -210,7 +210,7 @@ export default function Nav() {
             <ThemeToggle collapsed={true} />
             <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50 pointer-events-none hidden group-hover:block">
               <div className="bg-surface border border-border-strong rounded-lg px-2.5 py-1.5 shadow-lg whitespace-nowrap">
-                <span className="text-xs font-medium text-fg">Toggle theme</span>
+                <span className="text-xs font-medium text-fg">Light / Dark / Auto</span>
               </div>
             </div>
           </div>
