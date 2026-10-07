@@ -14,7 +14,14 @@ function open(): Promise<IDBDatabase> {
   });
 }
 
+// Set by idbDestroy() for the rest of this page's life. Without it, any write
+// still in flight when the account signs out — a sync finishing, an optimistic
+// mutation persisting — would reopen the database and recreate it with the
+// data that was just wiped. A fresh page load (signing in again) starts clear.
+let destroyed = false;
+
 export async function idbGet<T>(key: string): Promise<T | undefined> {
+  if (destroyed) return undefined;
   const db = await open();
   try {
     return await new Promise<T | undefined>((resolve, reject) => {
@@ -29,6 +36,7 @@ export async function idbGet<T>(key: string): Promise<T | undefined> {
 }
 
 export async function idbSet(key: string, value: unknown): Promise<void> {
+  if (destroyed) return;
   const db = await open();
   try {
     await new Promise<void>((resolve, reject) => {
@@ -40,4 +48,17 @@ export async function idbSet(key: string, value: unknown): Promise<void> {
   } finally {
     db.close();
   }
+}
+
+/** Delete the whole database (store, offline queue, set-aside reviews, cached
+ *  AI answers) and refuse every later read and write from this page. Each
+ *  operation above closes its connection when done, so a deletion blocked by
+ *  another tab mid-operation completes as soon as that operation does. */
+export function idbDestroy(): Promise<void> {
+  destroyed = true;
+  return new Promise<void>((resolve, reject) => {
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
 }

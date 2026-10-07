@@ -52,7 +52,9 @@ export default function RegisterSW() {
           await Promise.all([...STATIC_CORE_ROUTES, ...domainRoutes].map(async route => {
             try {
               const res = await fetch(route, { cache: 'no-store' });
-              if (res.ok) await cache.put(route, res.clone());
+              // Signed out, every route redirects to /login; caching that under
+              // the route would make it open the login page offline.
+              if (res.ok && !res.redirected) await cache.put(route, res.clone());
             } catch { /* ignore — best effort */ }
           }));
         }

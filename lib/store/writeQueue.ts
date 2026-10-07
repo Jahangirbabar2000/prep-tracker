@@ -176,8 +176,9 @@ async function drainQueue(): Promise<void> {
   }
 }
 
-export async function hasQueued(): Promise<boolean> {
-  return (await readQueue()).length > 0;
+/** How many logged reviews haven't reached the server yet. */
+export async function queuedCount(): Promise<number> {
+  return (await readQueue()).length;
 }
 
 /** Recompute a problem's SR state by replaying its full remaining history —

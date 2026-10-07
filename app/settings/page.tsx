@@ -22,6 +22,7 @@ import {
   optionsForField,
 } from '@/lib/domains';
 import { mutate, useStore } from '@/lib/store/store';
+import { signOut } from '@/lib/store/signOut';
 import { domainIcon, domainPalette } from '@/components/domainVisuals';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-base sm:text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
@@ -452,6 +453,36 @@ function DomainEditor({ domain, onMove }: { domain: StudyDomain; onMove: (direct
   );
 }
 
+function SignOutButton() {
+  const [busy, setBusy] = useState(false);
+
+  async function handleClick() {
+    setBusy(true);
+    let result = await signOut();
+    if (!result.ok && result.reason === 'unsynced') {
+      const n = result.pending;
+      const discard = window.confirm(
+        `${n} review${n === 1 ? '' : 's'} couldn't be uploaded yet. Sign out anyway and discard ${n === 1 ? 'it' : 'them'}?`,
+      );
+      if (discard) result = await signOut({ discardUnsynced: true });
+    }
+    if (result.ok) { window.location.assign('/login'); return; }
+    if (result.reason === 'offline') window.alert("You're offline. Connect to sign out, so your reviews can upload first.");
+    if (result.reason === 'failed') window.alert("Couldn't sign out. Check your connection and try again.");
+    setBusy(false);
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={busy}
+      className="self-start shrink-0 inline-flex items-center gap-1.5 text-sm text-muted hover:text-danger border border-border rounded-lg px-3 py-1.5 transition-colors disabled:opacity-60"
+    >
+      <LogOut size={15} /> {busy ? 'Signing out…' : 'Log out'}
+    </button>
+  );
+}
+
 export default function SettingsPage() {
   const { data, ready } = useStore();
   const [creating, setCreating] = useState(false);
@@ -481,12 +512,7 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-semibold text-fg tracking-tight">Settings</h1>
           <p className="text-sm text-muted mt-1">Create domains, choose their study workflow, and configure their fields.</p>
         </div>
-        <button
-          onClick={async () => { await fetch('/api/auth', { method: 'DELETE' }); window.location.assign('/login'); }}
-          className="self-start shrink-0 inline-flex items-center gap-1.5 text-sm text-muted hover:text-danger border border-border rounded-lg px-3 py-1.5 transition-colors"
-        >
-          <LogOut size={15} /> Log out
-        </button>
+        <SignOutButton />
       </div>
 
       <div className="flex items-center justify-between mb-4">
