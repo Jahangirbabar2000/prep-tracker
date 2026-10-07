@@ -201,5 +201,25 @@ await client.execute({
   args: ['2026-07-29-runtime-domains-v1'],
 });
 
+// The offline write queue's idempotency key: a retried attempt POST carries the
+// same client_id, and the unique index is what lets the server recognise it.
+// NULLs never collide in a SQLite UNIQUE index, so attempts logged without a
+// key (every existing row, and the online log forms) are unaffected. Skipped on
+// a database without the core tables, which this script doesn't create.
+const hasAttempts = (await client.execute(
+  `SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'attempts'`,
+)).rows.length > 0;
+if (hasAttempts) {
+  const attemptColumns = await client.execute('PRAGMA table_info(attempts)');
+  if (!attemptColumns.rows.some(row => String(row.name) === 'client_id')) {
+    await client.execute('ALTER TABLE attempts ADD COLUMN client_id TEXT');
+  }
+  await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_client_id ON attempts(client_id)');
+  await client.execute({
+    sql: `INSERT OR IGNORE INTO schema_migrations (id) VALUES (?)`,
+    args: ['2026-10-07-attempt-client-id'],
+  });
+}
+
 console.log(`Runtime-domain migration complete for ${url}`);
 client.close();

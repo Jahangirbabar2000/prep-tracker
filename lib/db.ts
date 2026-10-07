@@ -1,4 +1,4 @@
-import { createClient, Client } from '@libsql/client';
+import { createClient, Client, Transaction } from '@libsql/client';
 
 function makeClient(): Client {
   const url = process.env.TURSO_DATABASE_URL;
@@ -20,23 +20,61 @@ function toPlain(columns: string[], rows: ArrayLike<unknown>[]): Record<string, 
   );
 }
 
-export async function queryOne<T>(sql: string, args: unknown[] = []): Promise<T | null> {
-  const result = await getClient().execute({ sql, args: args as never[] });
-  if (result.rows.length === 0) return null;
-  return toPlain(result.columns, result.rows)[0] as unknown as T;
+/** The query helpers, bound to either the shared client or one transaction. */
+function queriesOn(target: Client | Transaction) {
+  return {
+    async queryOne<T>(sql: string, args: unknown[] = []): Promise<T | null> {
+      const result = await target.execute({ sql, args: args as never[] });
+      if (result.rows.length === 0) return null;
+      return toPlain(result.columns, result.rows)[0] as unknown as T;
+    },
+    async queryAll<T>(sql: string, args: unknown[] = []): Promise<T[]> {
+      const result = await target.execute({ sql, args: args as never[] });
+      return toPlain(result.columns, result.rows) as unknown as T[];
+    },
+    async execute(sql: string, args: unknown[] = []): Promise<{ lastInsertRowid: bigint; changes: number }> {
+      const result = await target.execute({ sql, args: args as never[] });
+      return { lastInsertRowid: result.lastInsertRowid ?? BigInt(0), changes: result.rowsAffected };
+    },
+  };
 }
 
-export async function queryAll<T>(sql: string, args: unknown[] = []): Promise<T[]> {
-  const result = await getClient().execute({ sql, args: args as never[] });
-  return toPlain(result.columns, result.rows) as unknown as T[];
+export type Queries = ReturnType<typeof queriesOn>;
+
+export function queryOne<T>(sql: string, args: unknown[] = []): Promise<T | null> {
+  return queriesOn(getClient()).queryOne<T>(sql, args);
 }
 
-export async function execute(
+export function queryAll<T>(sql: string, args: unknown[] = []): Promise<T[]> {
+  return queriesOn(getClient()).queryAll<T>(sql, args);
+}
+
+export function execute(
   sql: string,
   args: unknown[] = [],
 ): Promise<{ lastInsertRowid: bigint; changes: number }> {
-  const result = await getClient().execute({ sql, args: args as never[] });
-  return { lastInsertRowid: result.lastInsertRowid ?? BigInt(0), changes: result.rowsAffected };
+  return queriesOn(getClient()).execute(sql, args);
+}
+
+/**
+ * Run `fn` as one write transaction: every statement commits together or none
+ * do. A 'write' transaction takes SQLite's write lock up front, so two of them
+ * touching the same rows run one after the other instead of interleaving —
+ * which is what keeps a read-then-write (read the history, write the level
+ * derived from it) from acting on a value another request is about to change.
+ */
+export async function writeTransaction<T>(fn: (tx: Queries) => Promise<T>): Promise<T> {
+  const tx = await getClient().transaction('write');
+  try {
+    const result = await fn(queriesOn(tx));
+    await tx.commit();
+    return result;
+  } catch (e) {
+    await tx.rollback().catch(() => {});
+    throw e;
+  } finally {
+    tx.close();
+  }
 }
 
 const TZ = 'America/New_York';

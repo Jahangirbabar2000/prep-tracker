@@ -94,6 +94,7 @@ export interface Attempt {
   time_taken_mins: number;
   struggled: number; // 0 | 1
   practice_type?: string | null; // 'solo' | 'mock'
+  client_id?: string | null; // idempotency key from the offline write queue; null for online log forms
 }
 
 export interface Note {

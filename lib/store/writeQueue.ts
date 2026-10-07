@@ -3,21 +3,75 @@
 import { replaySchedule } from '@/lib/sr';
 import { Attempt, Problem } from '@/lib/types';
 import { idbGet, idbSet } from './idb';
-import { mutate, getData, replaceAll } from './store';
+import { mutate, getData, replaceAll, type StoreData } from './store';
 import { clientNow } from './queries';
 
 interface QueuedAttempt {
+  /** Idempotency key, minted once when the attempt is logged and sent on every
+   *  retry, so the server can tell a resend from a second attempt. Entries
+   *  queued before keys existed have none until flushQueue assigns one. */
+  client_id?: string;
   problemId: number;
   struggled: boolean;
   time_taken_mins: number;
   attempted_at: string; // "YYYY-MM-DD HH:MM:SS" — the real moment the attempt was logged
 }
 
+interface RejectedAttempt extends QueuedAttempt {
+  status: number;
+  rejected_at: string;
+}
+
 const QUEUE_KEY = 'writeQueue';
+const REJECTED_KEY = 'writeQueueRejected';
 let tempId = -1;
+
+function newClientId(): string {
+  // getRandomValues rather than randomUUID: randomUUID needs a secure context,
+  // and the dev server opened from a phone over LAN HTTP isn't one.
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+}
 
 async function readQueue(): Promise<QueuedAttempt[]> {
   return (await idbGet<QueuedAttempt[]>(QUEUE_KEY)) ?? [];
+}
+
+let queueChain: Promise<unknown> = Promise.resolve();
+
+/**
+ * Read-modify-write the queue with no other change landing in between. The
+ * queue is one array under one IndexedDB key, so two unserialised writers — a
+ * log appending and a flush removing — each write back the copy they read, and
+ * one of the two changes is silently lost. Web Locks serialise across every
+ * open tab; the promise chain covers environments without them (jsdom).
+ */
+async function updateQueue(fn: (queue: QueuedAttempt[]) => QueuedAttempt[]): Promise<void> {
+  const run = async () => { await idbSet(QUEUE_KEY, fn(await readQueue())); };
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    await navigator.locks.request(QUEUE_KEY, run);
+    return;
+  }
+  const next = queueChain.then(run, run);
+  queueChain = next.catch(() => {});
+  await next;
+}
+
+/** The store with one not-yet-synced attempt applied: the attempt row plus the
+ *  problem's SR state replayed over its full history, as the server will compute it. */
+function withAttempt(d: StoreData, item: QueuedAttempt): StoreData {
+  const attempts: Attempt[] = [
+    ...d.attempts,
+    {
+      id: tempId--,
+      problem_id: item.problemId,
+      attempted_at: item.attempted_at,
+      time_taken_mins: item.time_taken_mins,
+      struggled: item.struggled ? 1 : 0,
+      practice_type: null,
+      client_id: item.client_id ?? null,
+    },
+  ];
+  return { ...d, attempts, problems: recomputeProblemSR(item.problemId, attempts, d.problems) };
 }
 
 /**
@@ -34,56 +88,91 @@ export async function logAttempt(input: {
   struggled: boolean;
   time_taken_mins: number;
 }): Promise<void> {
-  const { problemId, struggled, time_taken_mins } = input;
-  const attemptedAt = clientNow();
-
-  mutate(d => {
-    const problem = d.problems.find(p => p.id === problemId);
-    const attempts = [
-      ...d.attempts,
-      {
-        id: tempId--,
-        problem_id: problemId,
-        attempted_at: attemptedAt,
-        time_taken_mins,
-        struggled: struggled ? 1 : 0,
-        practice_type: null,
-      },
-    ];
-    if (!problem) return { ...d, attempts };
-    const { level, nextDueDate } = replaySchedule(attempts.filter(a => a.problem_id === problemId));
-    const problems = d.problems.map(p =>
-      p.id === problemId ? { ...p, interval_level: level, next_due_date: nextDueDate } : p,
-    );
-    return { ...d, attempts, problems };
-  });
-
-  const queue = await readQueue();
-  queue.push({ problemId, struggled, time_taken_mins, attempted_at: attemptedAt });
-  await idbSet(QUEUE_KEY, queue);
+  const item: QueuedAttempt = {
+    client_id: newClientId(),
+    problemId: input.problemId,
+    struggled: input.struggled,
+    time_taken_mins: input.time_taken_mins,
+    attempted_at: clientNow(),
+  };
+  mutate(d => withAttempt(d, item));
+  await updateQueue(queue => [...queue, item]);
 }
 
-/** Replay queued attempts to the server, in order. Stops on first failure (e.g. offline). */
-export async function flushQueue(): Promise<void> {
-  let queue = await readQueue();
-  while (queue.length) {
-    const item = queue[0];
+/**
+ * Lay attempts still in the queue over a fresh server snapshot. syncNow
+ * replaces the whole store with the server's copy, so anything the server
+ * hasn't accepted yet (it errored, or the session expired) would otherwise
+ * vanish from the UI until it lands. An entry the snapshot already holds —
+ * stored, but its response lost — is recognised by its key and not doubled.
+ */
+export async function withQueuedAttempts(data: StoreData): Promise<StoreData> {
+  const stored = new Set(data.attempts.map(a => a.client_id).filter(Boolean));
+  const pending = (await readQueue()).filter(item => !item.client_id || !stored.has(item.client_id));
+  return pending.reduce(withAttempt, data);
+}
+
+/**
+ * Statuses worth resending unchanged later: the server failed (5xx), the
+ * session needs a sign-in (401/403), or a limit will reset (408/429). Any other
+ * 4xx rejects this exact payload — e.g. 404 for a card deleted since it was
+ * reviewed — so resending can never succeed, and waiting on it would hold up
+ * every entry queued behind it.
+ */
+export function isRetryableStatus(status: number): boolean {
+  return status >= 500 || status === 401 || status === 403 || status === 408 || status === 429;
+}
+
+async function setAside(item: QueuedAttempt, status: number): Promise<void> {
+  const rejected = (await idbGet<RejectedAttempt[]>(REJECTED_KEY)) ?? [];
+  await idbSet(REJECTED_KEY, [...rejected, { ...item, status, rejected_at: clientNow() }]);
+  console.warn(`Queued attempt for problem ${item.problemId} was rejected (${status}); kept under "${REJECTED_KEY}".`);
+}
+
+let flushing: Promise<void> | null = null;
+
+/**
+ * Replay queued attempts to the server, in order. Stops at a network error or
+ * a retryable status and leaves the rest queued; an entry the server rejects
+ * outright is set aside so it can't block the ones behind it. Concurrent calls
+ * share one run — two loops would both send the head entry.
+ */
+export function flushQueue(): Promise<void> {
+  if (!flushing) flushing = drainQueue().finally(() => { flushing = null; });
+  return flushing;
+}
+
+async function drainQueue(): Promise<void> {
+  // Key any entry queued before keys existed, persisted before it's sent, so
+  // every retry of it reuses the same key.
+  if ((await readQueue()).some(item => !item.client_id)) {
+    await updateQueue(queue => queue.map(item => item.client_id ? item : { ...item, client_id: newClientId() }));
+  }
+  for (;;) {
+    const item = (await readQueue())[0];
+    if (!item) return;
+    let res: Response;
     try {
-      const res = await fetch(`/api/problems/${item.problemId}/attempts`, {
+      res = await fetch(`/api/problems/${item.problemId}/attempts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          client_id: item.client_id,
           time_taken_mins: item.time_taken_mins,
           struggled: item.struggled,
           attempted_at: item.attempted_at,
         }),
       });
-      if (!res.ok) break;
     } catch {
-      break; // offline — leave the rest queued
+      return; // offline — leave the rest queued
     }
-    queue = queue.slice(1);
-    await idbSet(QUEUE_KEY, queue);
+    if (!res.ok) {
+      if (isRetryableStatus(res.status)) return;
+      await setAside(item, res.status);
+    }
+    // Remove by key, not position: another tab's flush may already have
+    // removed this entry, and dropping the head would then lose a different one.
+    await updateQueue(queue => queue.filter(q => q.client_id !== item.client_id));
   }
 }
 

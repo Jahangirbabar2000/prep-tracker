@@ -84,4 +84,43 @@ describe('runtime-domain migration', () => {
     expect(JSON.parse(row.metadata_json)).toEqual({ lld_category: 'OO Design', lld_topic: 'Parking Lot' });
     migrated.close();
   });
+
+  it('adds the attempt idempotency key without touching existing attempts', () => {
+    const path = fixture();
+    const db = new Database(path);
+    db.exec(`
+      CREATE TABLE attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        problem_id INTEGER NOT NULL,
+        attempted_at TEXT NOT NULL,
+        time_taken_mins INTEGER NOT NULL,
+        struggled INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO attempts (problem_id, attempted_at, time_taken_mins) VALUES (1, '2026-07-29 09:00:00', 5);
+      INSERT INTO attempts (problem_id, attempted_at, time_taken_mins) VALUES (1, '2026-07-30 09:00:00', 4);
+    `);
+    db.close();
+    migrate(path);
+    migrate(path);
+
+    const migrated = new Database(path);
+    // Both pre-existing rows survive with a NULL key — NULLs don't collide.
+    expect(migrated.prepare('SELECT COUNT(*) AS n FROM attempts WHERE client_id IS NULL').get()).toEqual({ n: 2 });
+    const insert = migrated.prepare(
+      `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, client_id) VALUES (1, '2026-07-31 09:00:00', 3, 'k1')`,
+    );
+    insert.run();
+    expect(() => insert.run()).toThrow(/UNIQUE/);
+    expect(migrated.prepare(`SELECT COUNT(*) AS n FROM schema_migrations WHERE id = '2026-10-07-attempt-client-id'`).get()).toEqual({ n: 1 });
+    migrated.close();
+  });
+
+  it('skips the attempt key on a database without the core tables', () => {
+    const path = fixture();
+    migrate(path);
+    const db = new Database(path, { readonly: true });
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'attempts'`).get()).toEqual({ n: 0 });
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM schema_migrations WHERE id = '2026-10-07-attempt-client-id'`).get()).toEqual({ n: 0 });
+    db.close();
+  });
 });
