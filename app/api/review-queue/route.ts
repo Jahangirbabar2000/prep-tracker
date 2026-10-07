@@ -25,7 +25,8 @@ export async function GET() {
     ORDER BY p.next_due_date ASC
   `, [today, today]);
 
+  // Per-user data behind a session cookie — never in a shared cache (see /api/sync).
   return NextResponse.json(items, {
-    headers: { 'Cache-Control': 's-maxage=30, stale-while-revalidate=60' },
+    headers: { 'Cache-Control': 'private, no-store' },
   });
 }

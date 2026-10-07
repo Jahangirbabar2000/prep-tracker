@@ -22,8 +22,12 @@ export async function GET() {
     getDomainFieldOptions(),
   ]);
 
+  // This is one person's whole dataset behind a session cookie, so no shared
+  // cache may hold it: s-maxage would let the CDN hand it to whoever asks next,
+  // and the CDN doesn't key on the cookie. Offline mode doesn't need HTTP
+  // caching — the service worker keeps its own copy in Cache Storage.
   return NextResponse.json(
     { problems, attempts, notes, links, config_options, domains, domain_fields, domain_field_options },
-    { headers: { 'Cache-Control': 's-maxage=30, stale-while-revalidate=60' } },
+    { headers: { 'Cache-Control': 'private, no-store' } },
   );
 }
