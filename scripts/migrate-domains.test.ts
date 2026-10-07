@@ -85,6 +85,26 @@ describe('runtime-domain migration', () => {
     migrated.close();
   });
 
+  it('does not re-run an applied migration over edits made since', () => {
+    const path = fixture();
+    const seeded = new Database(path);
+    seeded.prepare(`INSERT INTO config_options (domain, field, value) VALUES ('dsa', 'default_link', 'https://old.example')`).run();
+    seeded.close();
+    migrate(path);
+
+    // What Settings does after the migration: change the default link, rename an option.
+    const edited = new Database(path);
+    edited.prepare(`UPDATE study_domains SET default_link = 'https://new.example' WHERE id = 'dsa'`).run();
+    edited.prepare(`UPDATE domain_field_options SET value = 'Blind 75 (2026)' WHERE value = 'Blind 75'`).run();
+    edited.close();
+    migrate(path);
+
+    const db = new Database(path, { readonly: true });
+    expect(db.prepare(`SELECT default_link FROM study_domains WHERE id = 'dsa'`).get()).toEqual({ default_link: 'https://new.example' });
+    expect(db.prepare(`SELECT COUNT(*) AS n FROM domain_field_options WHERE value = 'Blind 75'`).get()).toEqual({ n: 0 });
+    db.close();
+  });
+
   it('adds the attempt idempotency key without touching existing attempts', () => {
     const path = fixture();
     const db = new Database(path);

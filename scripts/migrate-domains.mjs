@@ -102,124 +102,140 @@ await client.executeMultiple(`
   CREATE INDEX IF NOT EXISTS idx_domain_field_options_field ON domain_field_options(field_id, sort_order);
 `);
 
-const problemColumns = await client.execute('PRAGMA table_info(problems)');
-const columnNames = new Set(problemColumns.rows.map(row => String(row.name)));
-if (!columnNames.has('metadata_json')) {
-  await client.execute(`ALTER TABLE problems ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'`);
-  columnNames.add('metadata_json');
-}
-// Keep the rollback dual-write path valid even when an older local database
-// never received one of the historical per-domain ALTER TABLE statements.
-for (const column of new Set(fields.map(field => field[8]))) {
-  if (columnNames.has(column)) continue;
-  await client.execute(`ALTER TABLE problems ADD COLUMN ${column} TEXT`);
-  columnNames.add(column);
-}
-
-for (const domain of domains) {
-  await client.execute({
-    sql: `INSERT OR IGNORE INTO study_domains
-      (id, slug, name, short_name, study_mode, icon, color, sort_order, item_label, log_label, log_title, empty_message, answer_placeholder)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: domain,
-  });
-}
-
-for (const field of fields) {
-  await client.execute({
-    sql: `INSERT OR IGNORE INTO domain_fields
-      (domain_id, key, label, kind, placeholder, filterable, tag_role, sort_order, legacy_column)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: field,
-  });
-}
-
-// Move existing Settings options to their new field IDs. `default_link` becomes
-// a domain property; the old table remains untouched for rollback compatibility.
-const hasConfigOptions = (await client.execute(
-  `SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'config_options'`,
-)).rows.length > 0;
-if (hasConfigOptions) {
-  await client.execute(`
-    UPDATE study_domains
-    SET default_link = COALESCE((
-      SELECT value FROM config_options
-      WHERE domain = study_domains.id AND field = 'default_link'
-      ORDER BY sort_order, id LIMIT 1
-    ), default_link)
-  `);
-  const oldOptions = await client.execute(
-    `SELECT domain, field, value, sort_order FROM config_options WHERE field <> 'default_link' ORDER BY sort_order, id`,
-  );
-  for (const option of oldOptions.rows) {
-    const fieldRow = await client.execute({
-      sql: 'SELECT id FROM domain_fields WHERE domain_id = ? AND key = ?',
-      args: [option.domain, option.field],
-    });
-    if (!fieldRow.rows[0]) continue;
-    await client.execute({
-      sql: `INSERT OR IGNORE INTO domain_field_options (field_id, value, sort_order) VALUES (?, ?, ?)`,
-      args: [fieldRow.rows[0].id, option.value, option.sort_order],
-    });
-  }
-}
-
-// Difficulty used to be hard-coded rather than stored in config_options.
-const difficultyField = await client.execute(
-  `SELECT id FROM domain_fields WHERE domain_id = 'dsa' AND key = 'difficulty'`,
+// Each migration runs once: schema_migrations records it, and a recorded one is
+// skipped. Re-running a data migration is not harmless — the runtime-domain
+// backfill copies the legacy config_options rows over the registry again,
+// which would revert a default link edited since, or bring back an option
+// that was renamed.
+const applied = new Set(
+  (await client.execute('SELECT id FROM schema_migrations')).rows.map(row => String(row.id)),
 );
-if (difficultyField.rows[0]) {
-  for (const [sortOrder, value] of ['Easy', 'Medium', 'Hard'].entries()) {
+
+async function runtimeDomainsV1() {
+  const problemColumns = await client.execute('PRAGMA table_info(problems)');
+  const columnNames = new Set(problemColumns.rows.map(row => String(row.name)));
+  if (!columnNames.has('metadata_json')) {
+    await client.execute(`ALTER TABLE problems ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'`);
+    columnNames.add('metadata_json');
+  }
+  // Keep the rollback dual-write path valid even when an older local database
+  // never received one of the historical per-domain ALTER TABLE statements.
+  for (const column of new Set(fields.map(field => field[8]))) {
+    if (columnNames.has(column)) continue;
+    await client.execute(`ALTER TABLE problems ADD COLUMN ${column} TEXT`);
+    columnNames.add(column);
+  }
+
+  for (const domain of domains) {
     await client.execute({
-      sql: `INSERT OR IGNORE INTO domain_field_options (field_id, value, sort_order) VALUES (?, ?, ?)`,
-      args: [difficultyField.rows[0].id, value, sortOrder],
+      sql: `INSERT OR IGNORE INTO study_domains
+        (id, slug, name, short_name, study_mode, icon, color, sort_order, item_label, log_label, log_title, empty_message, answer_placeholder)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: domain,
+    });
+  }
+
+  for (const field of fields) {
+    await client.execute({
+      sql: `INSERT OR IGNORE INTO domain_fields
+        (domain_id, key, label, kind, placeholder, filterable, tag_role, sort_order, legacy_column)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: field,
+    });
+  }
+
+  // Move existing Settings options to their new field IDs. `default_link` becomes
+  // a domain property; the old table remains untouched for rollback compatibility.
+  const hasConfigOptions = (await client.execute(
+    `SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'config_options'`,
+  )).rows.length > 0;
+  if (hasConfigOptions) {
+    await client.execute(`
+      UPDATE study_domains
+      SET default_link = COALESCE((
+        SELECT value FROM config_options
+        WHERE domain = study_domains.id AND field = 'default_link'
+        ORDER BY sort_order, id LIMIT 1
+      ), default_link)
+    `);
+    const oldOptions = await client.execute(
+      `SELECT domain, field, value, sort_order FROM config_options WHERE field <> 'default_link' ORDER BY sort_order, id`,
+    );
+    for (const option of oldOptions.rows) {
+      const fieldRow = await client.execute({
+        sql: 'SELECT id FROM domain_fields WHERE domain_id = ? AND key = ?',
+        args: [option.domain, option.field],
+      });
+      if (!fieldRow.rows[0]) continue;
+      await client.execute({
+        sql: `INSERT OR IGNORE INTO domain_field_options (field_id, value, sort_order) VALUES (?, ?, ?)`,
+        args: [fieldRow.rows[0].id, option.value, option.sort_order],
+      });
+    }
+  }
+
+  // Difficulty used to be hard-coded rather than stored in config_options.
+  const difficultyField = await client.execute(
+    `SELECT id FROM domain_fields WHERE domain_id = 'dsa' AND key = 'difficulty'`,
+  );
+  if (difficultyField.rows[0]) {
+    for (const [sortOrder, value] of ['Easy', 'Medium', 'Hard'].entries()) {
+      await client.execute({
+        sql: `INSERT OR IGNORE INTO domain_field_options (field_id, value, sort_order) VALUES (?, ?, ?)`,
+        args: [difficultyField.rows[0].id, value, sortOrder],
+      });
+    }
+  }
+
+  // Backfill one row at a time so this works with older databases that do not
+  // contain every legacy column. Existing JSON values always win.
+  const availableLegacyFields = fields.filter(field => columnNames.has(field[8]));
+  const rows = await client.execute('SELECT * FROM problems');
+  for (const row of rows.rows) {
+    let metadata = {};
+    try { metadata = JSON.parse(String(row.metadata_json || '{}')); } catch { metadata = {}; }
+    for (const field of availableLegacyFields) {
+      const key = field[1];
+      const column = field[8];
+      const value = row[column];
+      if (value != null && value !== '' && metadata[key] == null) metadata[key] = String(value);
+    }
+    await client.execute({
+      sql: 'UPDATE problems SET metadata_json = ? WHERE id = ?',
+      args: [JSON.stringify(metadata), row.id],
     });
   }
 }
-
-// Backfill one row at a time so this works with older databases that do not
-// contain every legacy column. Existing JSON values always win.
-const availableLegacyFields = fields.filter(field => columnNames.has(field[8]));
-const rows = await client.execute('SELECT * FROM problems');
-for (const row of rows.rows) {
-  let metadata = {};
-  try { metadata = JSON.parse(String(row.metadata_json || '{}')); } catch { metadata = {}; }
-  for (const field of availableLegacyFields) {
-    const key = field[1];
-    const column = field[8];
-    const value = row[column];
-    if (value != null && value !== '' && metadata[key] == null) metadata[key] = String(value);
-  }
-  await client.execute({
-    sql: 'UPDATE problems SET metadata_json = ? WHERE id = ?',
-    args: [JSON.stringify(metadata), row.id],
-  });
-}
-
-await client.execute({
-  sql: `INSERT OR IGNORE INTO schema_migrations (id) VALUES (?)`,
-  args: ['2026-07-29-runtime-domains-v1'],
-});
 
 // The offline write queue's idempotency key: a retried attempt POST carries the
 // same client_id, and the unique index is what lets the server recognise it.
 // NULLs never collide in a SQLite UNIQUE index, so attempts logged without a
-// key (every existing row, and the online log forms) are unaffected. Skipped on
-// a database without the core tables, which this script doesn't create.
-const hasAttempts = (await client.execute(
-  `SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'attempts'`,
-)).rows.length > 0;
-if (hasAttempts) {
+// key (every existing row, and the online log forms) are unaffected. Returns
+// false on a database without the core tables, which this script doesn't
+// create, so it stays unrecorded until they exist.
+async function attemptClientId() {
+  const hasAttempts = (await client.execute(
+    `SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'attempts'`,
+  )).rows.length > 0;
+  if (!hasAttempts) return false;
   const attemptColumns = await client.execute('PRAGMA table_info(attempts)');
   if (!attemptColumns.rows.some(row => String(row.name) === 'client_id')) {
     await client.execute('ALTER TABLE attempts ADD COLUMN client_id TEXT');
   }
   await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_client_id ON attempts(client_id)');
-  await client.execute({
-    sql: `INSERT OR IGNORE INTO schema_migrations (id) VALUES (?)`,
-    args: ['2026-10-07-attempt-client-id'],
-  });
 }
 
-console.log(`Runtime-domain migration complete for ${url}`);
+const migrations = [
+  ['2026-07-29-runtime-domains-v1', runtimeDomainsV1],
+  ['2026-10-07-attempt-client-id', attemptClientId],
+];
+const ran = [];
+for (const [id, run] of migrations) {
+  if (applied.has(id)) continue;
+  if ((await run()) === false) continue; // prerequisite missing; a later run applies it
+  await client.execute({ sql: `INSERT OR IGNORE INTO schema_migrations (id) VALUES (?)`, args: [id] });
+  ran.push(id);
+}
+
+console.log(`Migrations complete for ${url}: ${ran.length ? ran.join(', ') : 'nothing to apply'}`);
 client.close();
