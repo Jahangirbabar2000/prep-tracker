@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { parseSSE } from '@/lib/openaiStream';
 import { createRateLimiter } from '@/lib/rateLimit';
+import { ASK_AI_ENABLED } from '@/lib/features';
 
 export const runtime = 'nodejs';
 
@@ -32,6 +33,8 @@ function json(body: unknown, status: number) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!ASK_AI_ENABLED) return json({ error: 'Ask AI is turned off.' }, 404);
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return json({ error: 'AI isn’t configured. Add OPENAI_API_KEY to .env.local and restart.' }, 503);

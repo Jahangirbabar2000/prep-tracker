@@ -17,6 +17,7 @@ import SwipeableReviewCard from './SwipeableReviewCard';
 import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday, attemptCountFor } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
+import { ASK_AI_ENABLED } from '@/lib/features';
 import { cardTagsFromFields, domainById, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from './domainVisuals';
 
@@ -487,7 +488,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
       {/* Ask AI — its own standalone card, same as the review queue's
           ai-elaboration-card, not nested inside the main card. AskAI renders
           its own bg-surface/border/rounded-2xl chrome, so no wrapper here. */}
-      {!isTimed && revealed && (
+      {ASK_AI_ENABLED && !isTimed && revealed && (
         <AskAI problemId={data.id} question={data.name} answer={data.notes_text} domain={domainDefinition.name} tags={tags} />
       )}
 

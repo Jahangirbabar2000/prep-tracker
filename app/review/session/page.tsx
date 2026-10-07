@@ -17,6 +17,7 @@ import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 import { cardTagsFromFields, domainPath, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from '@/components/domainVisuals';
 import SwipeableReviewCard from '@/components/SwipeableReviewCard';
+import { ASK_AI_ENABLED } from '@/lib/features';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
@@ -323,8 +324,9 @@ function SessionPageInner() {
       const tag = (e.target as HTMLElement)?.tagName;
       const inField = tag === 'INPUT' || tag === 'TEXTAREA';
 
-      // AI card shortcuts (outside text fields)
-      if (!inField && (e.key === 'c' || e.key === 'C')) {
+      // AI card shortcuts (outside text fields). Off with the feature, so ⌘C
+      // stays plain copy rather than being swallowed for a card that isn't there.
+      if (ASK_AI_ENABLED && !inField && (e.key === 'c' || e.key === 'C')) {
         if (e.metaKey || e.ctrlKey) {
           // ⌘C / Ctrl+C triggers "elaborate" — but only when nothing is
           // selected, so normal copy still works.
@@ -805,7 +807,7 @@ function SessionPageInner() {
           Same fixed→static desktop fix as the nav dock above: cancel the
           `mx-auto max-w-xl` centering at `md:` so the button stretches full
           width instead of shrinking to its own content. */}
-      {card && (
+      {ASK_AI_ENABLED && card && (
         <div
           ref={aiCardRef}
           data-testid="ai-elaboration-card"

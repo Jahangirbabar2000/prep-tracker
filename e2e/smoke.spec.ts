@@ -164,6 +164,7 @@ test('review card does not drag outside phone viewports', async ({ page }, testI
 
 test('Ask AI leaves the mobile dock and scrolls into normal page flow', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'mobile layout contract');
+  test.skip(process.env.NEXT_PUBLIC_ASK_AI !== 'on', 'Ask AI is switched off (NEXT_PUBLIC_ASK_AI)');
 
   await page.route('**/api/sync', route => route.fulfill({
     contentType: 'application/json',

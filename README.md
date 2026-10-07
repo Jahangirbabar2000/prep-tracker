@@ -33,7 +33,7 @@ Three study-mode templates are built in:
 - **7-day forecast** — a mini bar chart of upcoming review load per day, with per-domain totals.
 - **Fast logging** — sub-15-second attempt logging with optional backdating, notes, classification, and links.
 - **Review sessions** — reveal-then-grade flow with keyboard shortcuts (desktop) and swipe navigation (mobile). Horizontally-scrollable answer code blocks keep priority over swipe-to-navigate.
-- **Ask AI to elaborate** — on a revealed answer, get a concise, example-led elaboration grounded in the question, your saved answer, and its domain/topic. Streamed, cached per device (works offline once fetched), and rate-limited.
+- **Ask AI to elaborate** — on a revealed answer, get a concise, example-led elaboration grounded in the question, your saved answer, and its domain/topic. Streamed, cached per device (works offline once fetched), and rate-limited. **Switched off by default** — set `NEXT_PUBLIC_ASK_AI=on` to enable it.
 - **Editable attempt history** — edit/delete attempts with optimistic UI (instant update, background sync).
 - **Stats** and multiple links per problem.
 - **Light / dark mode** with a persisted toggle ("Momentum" theme: deep indigo + electric green).
@@ -74,7 +74,8 @@ Create `.env.local` with at least a database URL:
 TURSO_DATABASE_URL=libsql://...        # or a file: URL for a local libSQL db
 TURSO_AUTH_TOKEN=...                    # for a remote Turso db
 
-# Ask AI (optional) — enables the "Ask AI to elaborate" button
+# Ask AI (optional, off by default) — the "Ask AI to elaborate" button
+NEXT_PUBLIC_ASK_AI=on                   # without this the button is hidden and /api/ask returns 404
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5-nano                 # optional, defaults to gpt-5-nano
 
