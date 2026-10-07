@@ -30,11 +30,11 @@ Prep Tracker — a local-first, spaced-repetition interview-prep tracker. See `R
 Deliberately small — it is not an archive. Everything in it is either live or
 wired to an npm script.
 
-**The seeds are local-only.** `scripts/seed-*.mjs` and `scripts/*-cards.md` are
-gitignored and not published — they exist on the authoring machine, not on
-GitHub. They are still the workflow described below; they just aren't in the
-repo, so treat the DB as the only shared copy of the card text and don't expect
-a clone to have them.
+**The seeds are local-only.** `scripts/seed-*.mjs`, `scripts/*-cards.md` and
+one-off card repairs (`scripts/fix-*.mjs`) are gitignored and not published —
+they exist on the authoring machine, not on GitHub. They are still the workflow
+described below; they just aren't in the repo, so treat the DB as the only
+shared copy of the card text and don't expect a clone to have them.
 
 - **`seed-aws.mjs` + `aws-cards.md`** — the live card-authoring workflow. `aws-cards.md` is the source of truth for the AWS deck's questions and answers: edit there, not in the app, or the next run overwrites the edit. The script is incremental and idempotent (domain/fields/options reused, cards matched on exact question text). Its header also codifies the **house card style** — one card one fact, 250–450 character answers, answer first — which applies to every deck, not just AWS.
 - **`seed-behavioral.mjs` + `behavioral-cards.md`** — the same live workflow for the **Behavioral** deck, one section per Hello Interview course article. Differences from the AWS pair: it never creates the domain or its fields (`behavioral` already has them, so a missing one is an error), each `## Category` section declares its source article with a `Link:` line that becomes a per-card `links` row labelled with the card's own question, and `--dry` parses and prints without writing — use it to review a batch before it lands. `behavioral-cards.md` currently covers only the `Practice` section; the older 74 cards predate the file and live only in the DB, so the orphan check is scoped to the categories the file actually covers.
@@ -43,7 +43,7 @@ a clone to have them.
 
 Conventions for anything you add here:
 
-- **A one-off seed or repair script is deleted once it has been applied.** These write straight to Turso, so a spent script does nothing useful on a re-run and a stale one is a hazard. The card text lives in the DB, and a deleted script stays recoverable from git history — so run it, then delete it. Don't grow a graveyard of past seeds.
+- **A one-off seed or repair script is deleted once it has been applied.** These write straight to Turso, so a spent script does nothing useful on a re-run and a stale one is a hazard. The card text lives in the DB, so run it, then delete it. A gitignored script (any `seed-*` or `fix-*`) never reaches git, so once deleted it is gone — the DB is the record. Don't grow a graveyard of past seeds.
 - **Seed a new card due tomorrow, with zero attempts — never fake a first attempt.** Insert with `interval_level 0` and `next_due_date` = the day after it was added (level 0's interval, `dueDateFor(0)` in `lib/sr.ts`) and stop there. That is what makes a card you add today appear in the Review Queue tomorrow: `reviewQueue()` in `lib/store/queries.ts` admits on the due date alone — a prior attempt is *not* required — and `matchesScope`'s `'due'` branch in `lib/practice.ts` restates the same rule. Writing a synthetic "got it" attempt to force a card into the queue backfires twice: `computeStreak` counts the seed run as a study day, and the **Resume** preset (`scope: 'unattempted'`, `order: 'oldest'`, see `app/[domainSlug]/review/page.tsx`) means *strictly* zero attempts, so it then skips the exact cards it exists to surface. A card left with `next_due_date NULL` is never scheduled and reachable only through Resume — that is the right state for a bulk import you don't want dropped into the queue at once.
 - Scripts read Turso credentials from `.env.local`; they are plain `node` (no build step).
 

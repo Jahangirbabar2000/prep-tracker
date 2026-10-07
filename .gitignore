@@ -53,6 +53,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# card-authoring seeds (kept local, not published)
+# card-authoring seeds and one-off card repairs (kept local, not published)
 scripts/seed-*.mjs
 scripts/*-cards.md
+scripts/fix-*.mjs
