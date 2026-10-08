@@ -14,6 +14,7 @@ import { todayStats, clientToday } from '@/lib/store/queries';
 import SyncStatus from './SyncStatus';
 import { activeDomains } from '@/lib/domains';
 import { domainIcon } from './domainVisuals';
+import { APP_NAME } from '@/lib/appName';
 
 export default function Nav() {
   const pathname = usePathname();
@@ -243,7 +244,7 @@ export default function Nav() {
           <Link href="/" className="flex items-center flex-1 min-w-0 rounded-md hover:opacity-80 transition-opacity">
             <Logo className="w-7 h-7" />
             {!collapsed && (
-              <span className="font-semibold text-fg text-sm whitespace-nowrap truncate ml-2.5">Jahangir&apos;s Prep</span>
+              <span className="font-semibold text-fg text-sm whitespace-nowrap truncate ml-2.5">{APP_NAME}</span>
             )}
           </Link>
           <button
@@ -285,7 +286,7 @@ export default function Nav() {
           </button>
           <Link href="/" className="flex items-center gap-2 font-semibold text-fg truncate hover:opacity-80 transition-opacity">
             <Logo className="w-7 h-7" />
-            <span className="truncate">Jahangir&apos;s Prep</span>
+            <span className="truncate">{APP_NAME}</span>
           </Link>
         </div>
         <div className="flex items-center shrink-0">
@@ -329,7 +330,7 @@ export default function Nav() {
               className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
             >
               <Logo className="w-7 h-7" />
-              <span className="font-semibold text-fg text-sm truncate">Jahangir&apos;s Prep</span>
+              <span className="font-semibold text-fg text-sm truncate">{APP_NAME}</span>
             </Link>
             <button
               type="button"

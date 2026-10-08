@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import Logo from '@/components/Logo';
+import { APP_NAME } from '@/lib/appName';
 
 function LoginForm() {
   const params = useSearchParams();
@@ -41,7 +42,7 @@ function LoginForm() {
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2.5 mb-6">
           <Logo className="w-9 h-9" />
-          <span className="font-semibold text-fg">Jahangir&apos;s Prep</span>
+          <span className="font-semibold text-fg">{APP_NAME}</span>
         </div>
 
         <div className="bg-surface border border-border rounded-2xl p-6">

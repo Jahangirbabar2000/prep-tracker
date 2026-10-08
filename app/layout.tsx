@@ -6,9 +6,10 @@ import GlobalShortcuts from '@/components/GlobalShortcuts';
 import StoreProvider from '@/components/StoreProvider';
 import RegisterSW from '@/components/RegisterSW';
 import { THEME_COLORS, THEME_STORAGE_KEY, DARK_QUERY } from '@/lib/theme';
+import { APP_NAME } from '@/lib/appName';
 
 export const metadata: Metadata = {
-  title: 'Prep Tracker',
+  title: APP_NAME,
 };
 
 // viewport-fit=cover lets the app draw into the iOS safe areas (notch / home

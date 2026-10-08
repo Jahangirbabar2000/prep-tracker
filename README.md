@@ -79,6 +79,9 @@ NEXT_PUBLIC_ASK_AI=on                   # without this the button is hidden and 
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5-nano                 # optional, defaults to gpt-5-nano
 
+# Name (optional) — shown in the sidebar, on the login screen and in the tab
+NEXT_PUBLIC_APP_NAME="Jahangir's Prep"  # defaults to "Prep Tracker"
+
 # Passcode auth (optional) — set BOTH to turn the gate on
 AUTH_SECRET=...                        # long random string, e.g. `openssl rand -hex 32`
 APP_PASSWORD=your-passcode
