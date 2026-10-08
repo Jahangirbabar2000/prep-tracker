@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { POST as logAttempt } from './problems/[id]/attempts/route';
-import { DELETE as deleteAttempt } from './attempts/[id]/route';
+import { DELETE as deleteAttempt, PATCH as editAttempt } from './attempts/[id]/route';
 
 const directory = mkdtempSync(join(tmpdir(), 'prep-attempts-'));
 const url = `file:${join(directory, 'test.db')}`;
@@ -115,6 +115,26 @@ describe('POST /api/problems/[id]/attempts', () => {
     // Without the transaction the attempt would be stored while the card's schedule ignored it.
     expect(await scalar(`SELECT COUNT(*) AS n FROM attempts`)).toMatchObject({ n: 1 });
     expect(await scalar(`SELECT interval_level FROM problems WHERE id = 1`)).toMatchObject({ interval_level: 0 });
+  });
+});
+
+describe('PATCH /api/attempts/[id]', () => {
+  it("keeps an edited attempt's time of day, so same-day order and the level survive", async () => {
+    // Two reviews on 10-02: a miss at 09:00, then a "got it" at 18:00 → level 0 → 0 → 1.
+    await post(1, { time_taken_mins: 5, struggled: true, attempted_at: '2026-10-02 09:00:00' });
+    const evening = await (await post(1, { time_taken_mins: 5, struggled: false, attempted_at: '2026-10-02 18:00:00' })).json();
+
+    // What the history editor sends on Save: every field, the date as YYYY-MM-DD.
+    const req = new NextRequest(`http://localhost/api/attempts/${evening.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ time_taken_mins: 6, struggled: false, attempted_at: '2026-10-02' }),
+    });
+    const res = await editAttempt(req, { params: Promise.resolve({ id: String(evening.id) }) });
+
+    expect((await res.json()).attempted_at).toBe('2026-10-02 18:00:00');
+    // Reset to midnight, the "got it" would replay before the miss and leave the card at level 0.
+    expect(await scalar(`SELECT interval_level FROM problems WHERE id = 1`)).toMatchObject({ interval_level: 1 });
   });
 });
 

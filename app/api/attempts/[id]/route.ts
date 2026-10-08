@@ -22,17 +22,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
 
-  const fields: Record<string, string | number> = {};
-  if (body.time_taken_mins !== undefined) fields.time_taken_mins = body.time_taken_mins;
-  if (body.struggled !== undefined) fields.struggled = body.struggled ? 1 : 0;
-  if (body.attempted_at !== undefined) {
-    fields.attempted_at = `${String(body.attempted_at).slice(0, 10)} 00:00:00`;
-  }
-  if (body.practice_type !== undefined) fields.practice_type = body.practice_type;
-
   const updated = await writeTransaction(async tx => {
     const attempt = await tx.queryOne<Attempt>('SELECT * FROM attempts WHERE id = ?', [id]);
     if (!attempt) return null;
+
+    const fields: Record<string, string | number> = {};
+    if (body.time_taken_mins !== undefined) fields.time_taken_mins = body.time_taken_mins;
+    if (body.struggled !== undefined) fields.struggled = body.struggled ? 1 : 0;
+    if (body.attempted_at !== undefined) {
+      // The edit form sends only a date (and sends it on every save), so keep
+      // the attempt's time of day. Resetting it to midnight would reorder it
+      // ahead of earlier attempts that day, and the level replays in that order.
+      const time = String(attempt.attempted_at).slice(11, 19) || '00:00:00';
+      fields.attempted_at = `${String(body.attempted_at).slice(0, 10)} ${time}`;
+    }
+    if (body.practice_type !== undefined) fields.practice_type = body.practice_type;
 
     if (Object.keys(fields).length) {
       const setClause = Object.keys(fields).map(f => `${f} = ?`).join(', ');
