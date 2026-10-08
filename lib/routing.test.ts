@@ -20,9 +20,18 @@ describe('decideRoute', () => {
     expect(visit('/api')).toEqual({ kind: 'unauthorized' });
   });
 
-  it('sends a signed-out page visit to sign in, keeping where it was going', () => {
+  it('shows a signed-out visitor the landing page at the root', () => {
+    expect(visit('/')).toEqual({ kind: 'landing' });
+  });
+
+  it('sends any other signed-out page visit to sign in, keeping where it was going', () => {
     expect(visit('/stats', { search: '?domain=dsa' })).toEqual({ kind: 'sign-in', next: '/stats?domain=dsa' });
-    expect(visit('/')).toEqual({ kind: 'sign-in', next: '/' });
+  });
+
+  it('keeps the landing page and its screenshots public', () => {
+    expect(visit('/welcome')).toEqual({ kind: 'allow' });
+    expect(visit('/screenshots/queue-dark.png')).toEqual({ kind: 'allow' });
+    expect(visit('/welcomeX')).toEqual({ kind: 'sign-in', next: '/welcomeX' });
   });
 
   it('opens app pages to a demo visitor, but never the API', () => {

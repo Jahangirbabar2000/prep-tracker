@@ -19,9 +19,18 @@ export async function proxy(req: NextRequest) {
       return NextResponse.next();
     case 'unauthorized':
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    case 'landing': {
+      // Rewrite, not redirect: the shared link stays the bare URL. The marker
+      // header tells the service worker not to cache this response as "/",
+      // which is the signed-in Review Queue for whoever signs in on this device.
+      const res = NextResponse.rewrite(new URL(`/welcome${search}`, req.url));
+      res.headers.set('x-prep-public', '1');
+      return res;
+    }
     case 'sign-in': {
+      // To the landing page, whose Sign in link carries `next` on to /login.
       const url = req.nextUrl.clone();
-      url.pathname = '/login';
+      url.pathname = '/';
       url.search = `?next=${encodeURIComponent(decision.next)}`;
       return NextResponse.redirect(url);
     }

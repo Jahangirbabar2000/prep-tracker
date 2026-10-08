@@ -23,7 +23,7 @@ export default function DemoBar() {
 
   const action = 'inline-flex min-h-11 md:min-h-8 items-center rounded-lg px-3 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60';
   return (
-    <div className="mb-6 flex flex-col gap-2 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div data-demo-bar className="mb-6 flex flex-col gap-2 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="inline-flex items-center gap-2 text-sm text-fg">
         <FlaskConical size={16} className="shrink-0 text-accent" />
         <span><span className="font-semibold">Demo</span> · sample cards; your changes stay in this browser.</span>

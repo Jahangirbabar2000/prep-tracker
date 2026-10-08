@@ -50,7 +50,9 @@ async function navHandler(request) {
   const cache = await caches.open(CACHES.pages);
   try {
     const res = await withTimeout(fetch(request));
-    if (res.ok) cache.put(request, res.clone());
+    // x-prep-public marks the landing page served at "/" to a signed-out
+    // visitor; cached, it would later stand in for the signed-in queue.
+    if (res.ok && !res.headers.get('x-prep-public')) cache.put(request, res.clone());
     return res;
   } catch {
     return (await cache.match(request))

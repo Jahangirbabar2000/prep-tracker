@@ -2,9 +2,12 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { THEME_COLORS, THEME_STORAGE_KEY, DARK_QUERY } from '@/lib/theme';
 import { APP_NAME } from '@/lib/appName';
+import { SITE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: APP_NAME,
+  // Link previews need absolute image URLs (lib/site.ts).
+  metadataBase: new URL(SITE_URL),
 };
 
 // viewport-fit=cover lets the app draw into the iOS safe areas (notch / home

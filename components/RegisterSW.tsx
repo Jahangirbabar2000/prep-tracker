@@ -52,9 +52,10 @@ export default function RegisterSW() {
           await Promise.all([...STATIC_CORE_ROUTES, ...domainRoutes].map(async route => {
             try {
               const res = await fetch(route, { cache: 'no-store' });
-              // Signed out, every route redirects to /login; caching that under
-              // the route would make it open the login page offline.
-              if (res.ok && !res.redirected) await cache.put(route, res.clone());
+              // Signed out, every other route redirects to the landing page, and
+              // "/" is the landing page in place (x-prep-public); caching either
+              // under the route would open it, offline, instead of the app.
+              if (res.ok && !res.redirected && !res.headers.get('x-prep-public')) await cache.put(route, res.clone());
             } catch { /* ignore — best effort */ }
           }));
         }

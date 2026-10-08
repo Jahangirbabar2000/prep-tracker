@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Check, Dumbbell, Sparkles } from 'lucide-react';
 import type { StudyDomain } from '@/lib/types';
 import { domainIcon, domainPalette } from './domainVisuals';
+import { LOOP_STEPS } from '@/lib/loopSteps';
 
 // The Review Queue with nothing to show. Two different situations:
 //
@@ -29,11 +30,6 @@ function DomainLinks({ domains, href }: { domains: StudyDomain[]; href: (domain:
   );
 }
 
-const STEPS = [
-  ['Add a card', 'A problem you solved, or a question you want to remember with its answer.'],
-  ['Review it tomorrow', 'Reveal the answer, then grade yourself honestly: Got it, or Struggled.'],
-  ['Watch the gaps grow', 'Each “Got it” pushes the next review further out (1, 3, 7, 14, 30, then 60 days); a struggle brings it back sooner.'],
-] as const;
 
 export default function QueueEmptyState({ domains, domainsWithCards }: {
   /** Active domains, in sidebar order. */
@@ -53,7 +49,7 @@ export default function QueueEmptyState({ domains, domainsWithCards }: {
         </p>
 
         <ol className="mt-6 space-y-3 rounded-2xl border border-border bg-surface p-5 text-left">
-          {STEPS.map(([title, detail], i) => (
+          {LOOP_STEPS.map(([title, detail], i) => (
             <li key={title} className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-xs font-semibold text-accent">
                 {i + 1}

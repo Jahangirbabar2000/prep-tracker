@@ -6,8 +6,15 @@ export type RouteDecision =
   | { kind: 'allow' }
   /** An /api request without a session: answered with a 401, never redirected. */
   | { kind: 'unauthorized' }
-  /** A page without a session: sent to sign in, then back to `next`. */
+  /** The signed-out home page: shown the landing page in place, URL unchanged. */
+  | { kind: 'landing' }
+  /** Any other page without a session: sent to the landing page, which signs in back to `next`. */
   | { kind: 'sign-in'; next: string };
+
+/** Public files and pages, open to a visitor with no session. */
+const PUBLIC_PREFIXES = ['/welcome', '/demo', '/screenshots/'];
+const isPublic = (pathname: string) =>
+  PUBLIC_PREFIXES.some(prefix => pathname === prefix || pathname.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`));
 
 export function decideRoute({ pathname, search, authEnabled, signedIn, demo = false }: {
   pathname: string;
@@ -24,7 +31,8 @@ export function decideRoute({ pathname, search, authEnabled, signedIn, demo = fa
   // fills them from bundled sample data — but never the API: anyone can set
   // the cookie, so it must not reach a real database.
   if (isApi) return { kind: 'unauthorized' };
-  if (pathname === '/demo' || pathname.startsWith('/demo/') || demo) return { kind: 'allow' };
+  if (isPublic(pathname) || demo) return { kind: 'allow' };
+  if (pathname === '/') return { kind: 'landing' };
   return { kind: 'sign-in', next: pathname + search };
 }
 

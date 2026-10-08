@@ -8,6 +8,18 @@ A personal, local-first interview-prep tracker built around three evidence-based
 
 It is a **tracker**, not a study tool — studying happens externally. The app logs attempts, stores links to source material, schedules reviews, and quizzes you.
 
+## Landing page and demo
+
+A signed-out visitor to `/` sees a landing page (`app/(public)/welcome`): what the app
+does, three screenshots, how it works, an "under the hood" section, and **Try the demo**.
+The demo (`/demo`) runs the real app on 40 generated sample cards, entirely in the
+visitor's browser — nothing it does reaches a server, and it never touches a real
+account's data, even in the owner's own browser. Adding/editing cards and Settings are
+outside the demo.
+
+The screenshots are captured from the demo itself: run a production build, then
+`BASE_URL=http://localhost:3007 npm run screenshots` to refresh `public/screenshots/`.
+
 ## Domains
 
 Domains are runtime-configurable from **Settings → Study domains**. A domain defines
@@ -78,6 +90,12 @@ TURSO_AUTH_TOKEN=...                    # for a remote Turso db
 NEXT_PUBLIC_ASK_AI=on                   # without this the button is hidden and /api/ask returns 404
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5-nano                 # optional, defaults to gpt-5-nano
+
+# Landing page (optional) — the byline and link previews
+NEXT_PUBLIC_AUTHOR_NAME="Your Name"     # "Built by …"; hidden when unset
+NEXT_PUBLIC_AUTHOR_GITHUB=https://github.com/you
+NEXT_PUBLIC_AUTHOR_LINKEDIN=https://www.linkedin.com/in/you
+NEXT_PUBLIC_SITE_URL=https://your.domain # for link-preview images; Vercel's production URL by default
 
 # Name (optional) — shown in the sidebar, on the login screen and in the tab
 NEXT_PUBLIC_APP_NAME="Jahangir's Prep"  # defaults to "Prep Tracker"
