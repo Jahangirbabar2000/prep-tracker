@@ -135,12 +135,31 @@ describe('runtime-domain migration', () => {
     migrated.close();
   });
 
-  it('skips the attempt key on a database without the core tables', () => {
-    const path = fixture();
+  it('builds a working database from nothing', () => {
+    // A fresh deployment's database: no file, no tables. This used to fail on
+    // its first ALTER TABLE ("no such table: problems"), leaving nothing for
+    // /api/sync to read.
+    const directory = mkdtempSync(join(tmpdir(), 'prep-domain-migration-'));
+    tempDirectories.push(directory);
+    const path = join(directory, 'empty.db');
     migrate(path);
-    const db = new Database(path, { readonly: true });
-    expect(db.prepare(`SELECT COUNT(*) AS n FROM sqlite_master WHERE name = 'attempts'`).get()).toEqual({ n: 0 });
-    expect(db.prepare(`SELECT COUNT(*) AS n FROM schema_migrations WHERE id = '2026-10-07-attempt-client-id'`).get()).toEqual({ n: 0 });
+    migrate(path);
+
+    const db = new Database(path);
+    // Every table /api/sync reads.
+    for (const table of ['problems', 'attempts', 'notes', 'links', 'config_options', 'study_domains', 'domain_fields', 'domain_field_options']) {
+      expect(() => db.prepare(`SELECT * FROM ${table}`).all(), table).not.toThrow();
+    }
+    const problemColumns = (db.prepare('PRAGMA table_info(problems)').all() as { name: string }[]).map(column => column.name);
+    expect(problemColumns).toEqual(expect.arrayContaining(['metadata_json', 'beh_category', 'lld_topic', 'next_due_date']));
+    const attemptColumns = (db.prepare('PRAGMA table_info(attempts)').all() as { name: string }[]).map(column => column.name);
+    expect(attemptColumns).toContain('client_id');
+    expect(db.prepare('SELECT id FROM schema_migrations ORDER BY id').all()).toEqual([
+      { id: '2026-06-05-core-schema' }, { id: '2026-07-29-runtime-domains-v1' }, { id: '2026-10-07-attempt-client-id' },
+    ]);
+    // A card can be logged end to end.
+    db.prepare(`INSERT INTO problems (name, domain) VALUES ('Two Sum', 'dsa')`).run();
+    db.prepare(`INSERT INTO attempts (problem_id, time_taken_mins, client_id) VALUES (1, 5, 'k1')`).run();
     db.close();
   });
 });

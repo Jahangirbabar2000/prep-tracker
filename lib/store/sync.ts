@@ -1,6 +1,6 @@
 'use client';
 
-import { replaceAll, normalize, loadFromIDB } from './store';
+import { replaceAll, normalize, loadFromIDB, setSyncError } from './store';
 import { flushQueue, withQueuedAttempts } from './writeQueue';
 
 let syncing = false;
@@ -18,11 +18,18 @@ export async function syncNow(): Promise<void> {
   try {
     await flushQueue();
     const res = await fetch('/api/sync', { cache: 'no-store' });
-    if (!res.ok) return;
+    if (!res.ok) {
+      // Keep whatever we already have, but say why — with nothing cached yet
+      // (a first visit, a fresh deployment) this is the only thing to show.
+      setSyncError(await failureMessage(res));
+      return;
+    }
     const data = await res.json();
     replaceAll(await withQueuedAttempts(normalize(data)));
+    setSyncError(null);
   } catch {
-    // offline or transient — keep whatever we already have
+    // Offline or a dropped connection — keep whatever we already have.
+    if (typeof navigator !== 'undefined' && navigator.onLine) setSyncError('Couldn’t reach the server.');
   } finally {
     syncing = false;
   }
@@ -32,4 +39,14 @@ export async function syncNow(): Promise<void> {
 export async function bootStore(): Promise<void> {
   await loadFromIDB();
   await syncNow();
+}
+
+/** The server's own explanation when it gave one (see /api/sync), else the status. */
+async function failureMessage(res: Response): Promise<string> {
+  if (res.status === 401) return 'Your session has ended. Sign in again.';
+  try {
+    const body = await res.json();
+    if (typeof body?.error === 'string' && body.error) return body.error;
+  } catch { /* not JSON */ }
+  return `The server couldn’t load your data (HTTP ${res.status}).`;
 }

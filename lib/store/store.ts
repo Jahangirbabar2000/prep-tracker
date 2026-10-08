@@ -33,6 +33,8 @@ export interface StoreData {
 export interface StoreState {
   data: StoreData;
   ready: boolean;
+  /** Why the last server sync failed, in words for the person; null once one succeeds. */
+  syncError: string | null;
 }
 
 const EMPTY_DATA: StoreData = {
@@ -45,7 +47,7 @@ const EMPTY_DATA: StoreData = {
   domain_fields: LEGACY_FIELD_FALLBACKS,
   domain_field_options: legacyOptionsFromConfig([]),
 };
-const SERVER_STATE: StoreState = { data: EMPTY_DATA, ready: false };
+const SERVER_STATE: StoreState = { data: EMPTY_DATA, ready: false, syncError: null };
 const IDB_KEY = 'store';
 
 let state: StoreState = SERVER_STATE;
@@ -75,25 +77,32 @@ export function normalize(raw: Partial<StoreData> | null | undefined): StoreData
 
 /** Set in-memory data without persisting (used when hydrating FROM IndexedDB). */
 export function hydrate(data: StoreData) {
-  state = { data, ready: true };
+  state = { ...state, data, ready: true };
   emit();
 }
 
 /** Replace the whole dataset (used after a server sync) and persist to IndexedDB. */
 export function replaceAll(data: StoreData) {
-  state = { data, ready: true };
+  state = { ...state, data, ready: true };
   emit();
   void idbSet(IDB_KEY, data);
 }
 
 /** Apply an in-memory mutation and persist (used by optimistic writes). */
 export function mutate(fn: (d: StoreData) => StoreData) {
-  state = { data: fn(state.data), ready: state.ready };
+  state = { ...state, data: fn(state.data) };
   emit();
   void idbSet(IDB_KEY, state.data);
 }
 
 export function getData(): StoreData { return state.data; }
+
+/** Record (or clear, with null) why syncing with the server failed. */
+export function setSyncError(syncError: string | null) {
+  if (state.syncError === syncError) return;
+  state = { ...state, syncError };
+  emit();
+}
 
 export async function loadFromIDB(): Promise<boolean> {
   const cached = await idbGet<StoreData>(IDB_KEY);

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { bootStore, syncNow } from '@/lib/store/sync';
 import { idbDestroy } from '@/lib/store/idb';
 import { SESSION_CHANNEL } from '@/lib/store/signOut';
+import SyncErrorBanner from './SyncErrorBanner';
 
 export default function StoreProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -31,5 +32,5 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
     };
   }, []);
 
-  return <>{children}</>;
+  return <>{children}<SyncErrorBanner /></>;
 }

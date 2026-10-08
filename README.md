@@ -86,10 +86,13 @@ APP_PASSWORD=your-passcode
 
 `.env.local` and all local `*.db` files are git-ignored.
 
-`npm run db:migrate` is journaled and idempotent. It creates the runtime domain
-registry, seeds the seven existing domains, backfills problem metadata from whatever
-legacy columns are present, and retains those columns for rollback compatibility.
-Run it against each local or Turso database before deploying this version.
+`npm run db:migrate` builds the whole schema, so it is the one setup step for a new
+database: it creates the core tables, the runtime domain registry and the seven
+starter domains, backfills problem metadata from whatever legacy columns are present
+(retaining them for rollback compatibility), and adds the offline queue's
+idempotency key. Each migration runs once and is recorded in `schema_migrations`, so
+re-running it is safe. Run it against each local or Turso database before deploying
+this version.
 
 ## Testing
 
@@ -106,4 +109,21 @@ suite checks the queue, domain navigation, and accessible filters.
 
 ## Deployment
 
-Deployed on Vercel. Set the same environment variables (`TURSO_*`, `OPENAI_API_KEY`, `AUTH_SECRET`, `APP_PASSWORD`) in the project's environment-variable settings, then redeploy — env changes only take effect on a fresh build.
+Deployed on Vercel. For your own deployment:
+
+1. Create a Turso database, then build its schema from your machine — the app does
+   not create tables on its own:
+
+   ```bash
+   TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... npm run db:migrate
+   ```
+
+2. Set the same environment variables (`TURSO_*`, and `AUTH_SECRET` + `APP_PASSWORD`;
+   `NEXT_PUBLIC_ASK_AI` + `OPENAI_API_KEY` only if you want Ask AI) in the project's
+   environment-variable settings, then redeploy — env changes only take effect on a
+   fresh build. Without `AUTH_SECRET` and `APP_PASSWORD` the passcode gate is off and
+   anyone with the URL can read and edit the data.
+
+If the app can't reach or read its database it says why on screen (and in the
+sidebar's sync status) rather than loading forever — a missing `TURSO_DATABASE_URL`
+and an unmigrated database each name their fix.

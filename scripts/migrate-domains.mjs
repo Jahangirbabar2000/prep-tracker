@@ -111,6 +111,71 @@ const applied = new Set(
   (await client.execute('SELECT id FROM schema_migrations')).rows.map(row => String(row.id)),
 );
 
+// The core tables, as they were before any migration here touched them. They
+// used to exist only in the original database, so a fresh one had nothing for
+// runtimeDomainsV1 to alter and /api/sync to read, and a new deployment could
+// never load. IF NOT EXISTS makes this a no-op on any database that has them;
+// the later migrations then add metadata_json, the later per-domain columns,
+// and attempts.client_id exactly as they did on the original.
+async function coreSchema() {
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS problems (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      name              TEXT NOT NULL,
+      domain            TEXT NOT NULL,
+      platform          TEXT,
+      pattern_tag       TEXT,
+      question_list     TEXT,
+      sd_category       TEXT,
+      sd_source         TEXT,
+      fe_bucket         TEXT,
+      fe_question_set   TEXT,
+      py_category       TEXT,
+      resource_url      TEXT,
+      notes_text        TEXT,
+      interval_level    INTEGER NOT NULL DEFAULT 0,
+      next_due_date     TEXT,
+      created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_problems_domain ON problems(domain);
+    CREATE INDEX IF NOT EXISTS idx_problems_next_due ON problems(next_due_date);
+    CREATE TABLE IF NOT EXISTS attempts (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      problem_id       INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+      attempted_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      time_taken_mins  INTEGER NOT NULL,
+      struggled        INTEGER NOT NULL DEFAULT 0,
+      practice_type    TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_attempts_problem_id ON attempts(problem_id);
+    CREATE TABLE IF NOT EXISTS notes (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+      question   TEXT NOT NULL,
+      answer     TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_notes_problem_id ON notes(problem_id);
+    CREATE TABLE IF NOT EXISTS links (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+      url        TEXT NOT NULL,
+      label      TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_links_problem_id ON links(problem_id);
+    CREATE TABLE IF NOT EXISTS config_options (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      domain     TEXT NOT NULL,
+      field      TEXT NOT NULL,
+      value      TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(domain, field, value)
+    );
+    CREATE INDEX IF NOT EXISTS idx_config_options_domain_field ON config_options(domain, field);
+  `);
+}
+
 async function runtimeDomainsV1() {
   const problemColumns = await client.execute('PRAGMA table_info(problems)');
   const columnNames = new Set(problemColumns.rows.map(row => String(row.name)));
@@ -210,14 +275,8 @@ async function runtimeDomainsV1() {
 // The offline write queue's idempotency key: a retried attempt POST carries the
 // same client_id, and the unique index is what lets the server recognise it.
 // NULLs never collide in a SQLite UNIQUE index, so attempts logged without a
-// key (every existing row, and the online log forms) are unaffected. Returns
-// false on a database without the core tables, which this script doesn't
-// create, so it stays unrecorded until they exist.
+// key (every existing row, and the online log forms) are unaffected.
 async function attemptClientId() {
-  const hasAttempts = (await client.execute(
-    `SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'attempts'`,
-  )).rows.length > 0;
-  if (!hasAttempts) return false;
   const attemptColumns = await client.execute('PRAGMA table_info(attempts)');
   if (!attemptColumns.rows.some(row => String(row.name) === 'client_id')) {
     await client.execute('ALTER TABLE attempts ADD COLUMN client_id TEXT');
@@ -225,14 +284,16 @@ async function attemptClientId() {
   await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_client_id ON attempts(client_id)');
 }
 
+// In order: each one may rely on the ones before it.
 const migrations = [
+  ['2026-06-05-core-schema', coreSchema],
   ['2026-07-29-runtime-domains-v1', runtimeDomainsV1],
   ['2026-10-07-attempt-client-id', attemptClientId],
 ];
 const ran = [];
 for (const [id, run] of migrations) {
   if (applied.has(id)) continue;
-  if ((await run()) === false) continue; // prerequisite missing; a later run applies it
+  await run();
   await client.execute({ sql: `INSERT OR IGNORE INTO schema_migrations (id) VALUES (?)`, args: [id] });
   ran.push(id);
 }
