@@ -24,6 +24,7 @@ import {
 import { mutate, useStore } from '@/lib/store/store';
 import { signOut } from '@/lib/store/signOut';
 import { domainIcon, domainPalette } from '@/components/domainVisuals';
+import DemoGate from '@/components/DemoGate';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-base sm:text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 const buttonCls = 'inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-border hover:border-border-strong transition-colors disabled:opacity-40';
@@ -483,7 +484,7 @@ function SignOutButton() {
   );
 }
 
-export default function SettingsPage() {
+function SettingsPage() {
   const { data, ready } = useStore();
   const [creating, setCreating] = useState(false);
   const domains = useMemo(() => allDomains(data.domains), [data.domains]);
@@ -531,4 +532,9 @@ export default function SettingsPage() {
       )}
     </div>
   );
+}
+
+// Content editing writes straight to the server, so the demo shows an explanation instead.
+export default function Page() {
+  return <DemoGate what="Settings"><SettingsPage /></DemoGate>;
 }

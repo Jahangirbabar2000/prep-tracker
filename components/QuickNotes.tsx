@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Note } from '@/lib/types';
 import { Plus, Trash2, StickyNote } from 'lucide-react';
+import { demoNote, isDemo } from '@/lib/demo/mode';
 
 interface Props {
   problemId: number;
@@ -20,12 +21,13 @@ export default function QuickNotes({ problemId, notes, onChange }: Props) {
     const text = input.trim();
     if (!text) return;
     setSaving(true);
-    const res = await fetch(`/api/problems/${problemId}/notes`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: text }),
-    });
-    const note: Note = await res.json();
+    const note: Note = isDemo()
+      ? demoNote(problemId, text) // the demo keeps notes in this browser
+      : await (await fetch(`/api/problems/${problemId}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: text }),
+        })).json();
     onChange([...notes, note]);
     setInput('');
     setSaving(false);
@@ -34,7 +36,7 @@ export default function QuickNotes({ problemId, notes, onChange }: Props) {
 
   async function remove(id: number) {
     setDeletingId(id);
-    await fetch(`/api/problems/${problemId}/notes/${id}`, { method: 'DELETE' });
+    if (!isDemo()) await fetch(`/api/problems/${problemId}/notes/${id}`, { method: 'DELETE' });
     onChange(notes.filter(n => n.id !== id));
     setDeletingId(null);
   }

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store/store';
+import { useIsDemo } from '@/lib/demo/useIsDemo';
 
 export default function SyncStatus({ compact = false }: { compact?: boolean }) {
   const { ready, syncError } = useStore();
+  const demo = useIsDemo();
   const [online, setOnline] = useState(true);
 
   useEffect(() => {
@@ -20,7 +22,8 @@ export default function SyncStatus({ compact = false }: { compact?: boolean }) {
 
   let label: string;
   let dot: string;
-  if (syncError && online) { label = 'Sync failed'; dot = 'bg-danger'; }
+  if (demo)        { label = 'Demo · this browser only'; dot = 'bg-accent'; }
+  else if (syncError && online) { label = 'Sync failed'; dot = 'bg-danger'; }
   else if (!ready) { label = 'Loading…';        dot = 'bg-amber-500'; }
   else if (online) { label = 'Synced';           dot = 'bg-emerald-500'; }
   else             { label = 'Offline · cached'; dot = 'bg-amber-500'; }

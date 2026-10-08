@@ -18,6 +18,7 @@ import { cardTagsFromFields, domainPath, isTimedMode, resolveDomain } from '@/li
 import { domainPalette } from '@/components/domainVisuals';
 import SwipeableReviewCard from '@/components/SwipeableReviewCard';
 import { ASK_AI_ENABLED } from '@/lib/features';
+import { demoNote, isDemo } from '@/lib/demo/mode';
 
 const inputCls = 'bg-background border border-border rounded-lg px-3 py-2 text-sm text-fg placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
@@ -291,6 +292,13 @@ function SessionPageInner() {
   async function saveNote() {
     if (!card || !noteInput.trim()) return;
     setNoteSaving(true);
+    if (isDemo()) {
+      mutate(d => ({ ...d, notes: [...d.notes, demoNote(card.id, noteInput.trim())] }));
+      setNoteOpen(false);
+      setNoteInput('');
+      setNoteSaving(false);
+      return;
+    }
     try {
       const res = await fetch(`/api/problems/${card.id}/notes`, {
         method: 'POST',

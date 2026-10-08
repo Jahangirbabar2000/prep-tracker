@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreData } from './store';
 
 const idb = vi.hoisted(() => {
@@ -12,7 +12,7 @@ const idb = vi.hoisted(() => {
 vi.mock('./idb', () => idb);
 
 import { getData, normalize, replaceAll } from './store';
-import { flushQueue, isRetryableStatus, logAttempt, restoreAttempt, withQueuedAttempts } from './writeQueue';
+import { deleteAttemptRemote, editAttemptRemote, flushQueue, isRetryableStatus, logAttempt, restoreAttempt, withQueuedAttempts } from './writeQueue';
 
 type Queued = { client_id?: string; problemId: number };
 
@@ -172,5 +172,21 @@ describe('withQueuedAttempts', () => {
     expect(merged.attempts.map(a => a.client_id ?? null)).toEqual([null, 'stored', 'pending']);
     // Three "got it"s replayed: level 0 → 1 → 2, due 7 days after the last.
     expect(merged.problems.find(p => p.id === 1)).toMatchObject({ interval_level: 2, next_due_date: '2026-10-12' });
+  });
+});
+
+describe('in demo mode', () => {
+  beforeEach(() => { document.cookie = 'pt_demo=1; path=/'; });
+  afterEach(() => { document.cookie = 'pt_demo=; max-age=0; path=/'; });
+
+  it('keeps logging, editing and deleting attempts in this browser', async () => {
+    await logAttempt({ problemId: 1, struggled: false, time_taken_mins: 5 });
+    await flushQueue();
+    await editAttemptRemote(10, { struggled: 1 });
+    await deleteAttemptRemote(10);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(getData().attempts.some(a => a.id === 10)).toBe(false); // the delete still happened, locally
+    expect(getData().attempts).toHaveLength(1); // the logged attempt
   });
 });

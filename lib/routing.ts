@@ -9,15 +9,22 @@ export type RouteDecision =
   /** A page without a session: sent to sign in, then back to `next`. */
   | { kind: 'sign-in'; next: string };
 
-export function decideRoute({ pathname, search, authEnabled, signedIn }: {
+export function decideRoute({ pathname, search, authEnabled, signedIn, demo = false }: {
   pathname: string;
   search: string;
   /** False when AUTH_SECRET isn't set: the passcode gate is off and everything is open. */
   authEnabled: boolean;
   signedIn: boolean;
+  /** The pt_demo cookie is set (lib/demo/mode.ts). */
+  demo?: boolean;
 }): RouteDecision {
   if (!authEnabled || signedIn) return { kind: 'allow' };
-  if (pathname === '/api' || pathname.startsWith('/api/')) return { kind: 'unauthorized' };
+  const isApi = pathname === '/api' || pathname.startsWith('/api/');
+  // A demo cookie opens the app's pages — shells that hold no data; the demo
+  // fills them from bundled sample data — but never the API: anyone can set
+  // the cookie, so it must not reach a real database.
+  if (isApi) return { kind: 'unauthorized' };
+  if (pathname === '/demo' || pathname.startsWith('/demo/') || demo) return { kind: 'allow' };
   return { kind: 'sign-in', next: pathname + search };
 }
 

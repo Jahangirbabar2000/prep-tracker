@@ -1,11 +1,17 @@
 // Minimal promise-wrapped IndexedDB key/value store (single object store).
 // Proven in the offline-test spike; generalized here for the local-first store.
-const DB_NAME = 'prep-store';
+import { isDemo } from '@/lib/demo/mode';
+
 const STORE = 'kv';
+
+// The demo gets a database of its own. Sharing one would let a demo run in the
+// owner's own browser overwrite the real account's cached data — and leave
+// demo attempts in the queue for the next real sync to upload.
+const dbName = () => (isDemo() ? 'prep-store-demo' : 'prep-store');
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(dbName(), 1);
     req.onupgradeneeded = () => {
       if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);
     };
@@ -57,7 +63,7 @@ export async function idbSet(key: string, value: unknown): Promise<void> {
 export function idbDestroy(): Promise<void> {
   destroyed = true;
   return new Promise<void>((resolve, reject) => {
-    const req = indexedDB.deleteDatabase(DB_NAME);
+    const req = indexedDB.deleteDatabase(dbName());
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });

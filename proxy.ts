@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_COOKIE, verifySession } from '@/lib/auth';
 import { decideRoute } from '@/lib/routing';
+import { DEMO_COOKIE } from '@/lib/demo/mode';
 
 // Next 16 renamed middleware.ts to proxy.ts; it runs on Node. The decision
 // itself is lib/routing.ts — this only reads the request and acts on it.
@@ -11,7 +12,8 @@ export async function proxy(req: NextRequest) {
   const signedIn = !!secret && await verifySession(req.cookies.get(AUTH_COOKIE)?.value, secret);
   const { pathname, search } = req.nextUrl;
 
-  const decision = decideRoute({ pathname, search, authEnabled: !!secret, signedIn });
+  const demo = req.cookies.get(DEMO_COOKIE)?.value === '1';
+  const decision = decideRoute({ pathname, search, authEnabled: !!secret, signedIn, demo });
   switch (decision.kind) {
     case 'allow':
       return NextResponse.next();

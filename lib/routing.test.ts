@@ -25,6 +25,19 @@ describe('decideRoute', () => {
     expect(visit('/')).toEqual({ kind: 'sign-in', next: '/' });
   });
 
+  it('opens app pages to a demo visitor, but never the API', () => {
+    const demo = (pathname: string) => decideRoute({ pathname, search: '', authEnabled: true, signedIn: false, demo: true });
+    expect(demo('/')).toEqual({ kind: 'allow' });
+    expect(demo('/stats')).toEqual({ kind: 'allow' });
+    expect(demo('/api/sync')).toEqual({ kind: 'unauthorized' });
+    expect(demo('/api/problems/1/attempts')).toEqual({ kind: 'unauthorized' });
+  });
+
+  it('lets anyone reach the demo entry and exit', () => {
+    expect(visit('/demo')).toEqual({ kind: 'allow' });
+    expect(visit('/demo/exit')).toEqual({ kind: 'allow' });
+  });
+
   it("doesn't mistake a page that merely starts with 'api' for the API", () => {
     expect(visit('/apiary')).toEqual({ kind: 'sign-in', next: '/apiary' });
   });

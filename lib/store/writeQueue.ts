@@ -5,6 +5,7 @@ import { Attempt, Problem } from '@/lib/types';
 import { idbGet, idbSet } from './idb';
 import { mutate, getData, replaceAll, type StoreData } from './store';
 import { clientNow } from './queries';
+import { isDemo } from '@/lib/demo/mode';
 
 interface QueuedAttempt {
   /** Idempotency key, minted once when the attempt is logged and sent on every
@@ -159,6 +160,7 @@ let flushing: Promise<void> | null = null;
  * share one run — two loops would both send the head entry.
  */
 export function flushQueue(): Promise<void> {
+  if (isDemo()) return Promise.resolve(); // demo attempts stay in this browser
   if (!flushing) flushing = drainQueue().finally(() => { flushing = null; });
   return flushing;
 }
@@ -232,6 +234,8 @@ export async function deleteAttemptRemote(attemptId: number): Promise<void> {
     return { ...d, attempts, problems };
   });
 
+  if (isDemo()) return; // the store change is the whole delete in the demo
+
   // Sync in the background; roll back if the server rejects it.
   try {
     const res = await fetch(`/api/attempts/${attemptId}`, { method: 'DELETE' });
@@ -270,6 +274,8 @@ export async function editAttemptRemote(
     const problems = recomputeProblemSR(existing.problem_id, attempts, d.problems);
     return { ...d, attempts, problems };
   });
+
+  if (isDemo()) return optimistic; // the store change is the whole edit in the demo
 
   // Sync in the background; reconcile with the server's copy, roll back on error.
   try {

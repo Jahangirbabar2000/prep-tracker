@@ -3,6 +3,7 @@ import ScrollToTop from '@/components/ScrollToTop';
 import GlobalShortcuts from '@/components/GlobalShortcuts';
 import StoreProvider from '@/components/StoreProvider';
 import RegisterSW from '@/components/RegisterSW';
+import DemoBar from '@/components/DemoBar';
 
 // The signed-in app: the local-first store (and its sync), the sidebar,
 // keyboard shortcuts and the offline service worker. Pages outside this group
@@ -21,6 +22,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 min-w-0 overflow-x-clip px-4 sm:px-8 py-6 sm:py-8 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))] md:overflow-y-auto">
           <ScrollToTop />
           <GlobalShortcuts />
+          <DemoBar />
           {children}
         </main>
       </div>

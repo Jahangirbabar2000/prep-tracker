@@ -18,6 +18,7 @@ import { useStore, mutate } from '@/lib/store/store';
 import { problemDetail, clientToday, attemptCountFor } from '@/lib/store/queries';
 import { logAttempt as logQueued, flushQueue } from '@/lib/store/writeQueue';
 import { ASK_AI_ENABLED } from '@/lib/features';
+import { isDemo } from '@/lib/demo/mode';
 import { cardTagsFromFields, domainById, isTimedMode, resolveDomain } from '@/lib/domains';
 import { domainPalette } from './domainVisuals';
 
@@ -527,7 +528,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
                 key={n.id}
                 note={n}
                 onDelete={async nid => {
-                  await fetch(`/api/problems/${data.id}/notes/${nid}`, { method: 'DELETE' });
+                  if (!isDemo()) await fetch(`/api/problems/${data.id}/notes/${nid}`, { method: 'DELETE' });
                   mutate(d => ({ ...d, notes: d.notes.filter(x => x.id !== nid) }));
                 }}
               />

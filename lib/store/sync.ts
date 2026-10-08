@@ -1,6 +1,9 @@
 'use client';
 
 import { replaceAll, normalize, loadFromIDB, setSyncError } from './store';
+import { idbGet, idbSet } from './idb';
+import { clientNow, clientToday } from './queries';
+import { isDemo } from '@/lib/demo/mode';
 import { flushQueue, withQueuedAttempts } from './writeQueue';
 
 let syncing = false;
@@ -12,7 +15,7 @@ let syncing = false;
  * server didn't accept yet so those reviews stay visible until they land.
  */
 export async function syncNow(): Promise<void> {
-  if (syncing) return;
+  if (syncing || isDemo()) return; // the demo has no server copy to fetch
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
   syncing = true;
   try {
@@ -37,8 +40,29 @@ export async function syncNow(): Promise<void> {
 
 /** App boot: hydrate instantly from IndexedDB, then refresh from the server. */
 export async function bootStore(): Promise<void> {
+  if (isDemo()) return bootDemo();
   await loadFromIDB();
   await syncNow();
+}
+
+const DEMO_BUILT_KEY = 'demoBuiltOn';
+/** A returning visitor keeps their demo progress for this long, then gets a fresh deck. */
+const DEMO_KEEP_DAYS = 7;
+
+/** Demo boot: the visitor's own demo progress if it's recent, else a fresh build. */
+async function bootDemo(): Promise<void> {
+  const builtOn = await idbGet<string>(DEMO_BUILT_KEY);
+  const ageDays = builtOn ? (Date.parse(clientToday()) - Date.parse(builtOn)) / 86_400_000 : Infinity;
+  if (ageDays < DEMO_KEEP_DAYS && (await loadFromIDB())) return;
+  await resetDemo();
+}
+
+/** Rebuild the demo deck as of now, discarding the visitor's demo changes. */
+export async function resetDemo(): Promise<void> {
+  // Loaded on demand, so the deck stays out of the bundle for real accounts.
+  const { buildDemoDataset } = await import('@/lib/demo/dataset');
+  replaceAll(normalize(buildDemoDataset(clientNow())));
+  await idbSet(DEMO_BUILT_KEY, clientToday());
 }
 
 /** The server's own explanation when it gave one (see /api/sync), else the status. */

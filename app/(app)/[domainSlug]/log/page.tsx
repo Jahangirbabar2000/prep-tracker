@@ -7,8 +7,9 @@ import EscapeBack from '@/components/EscapeBack';
 import SchemaLogForm from '@/components/SchemaLogForm';
 import { useStore } from '@/lib/store/store';
 import { domainBySlug } from '@/lib/domains';
+import DemoGate from '@/components/DemoGate';
 
-export default function RuntimeDomainLogPage() {
+function RuntimeDomainLogPage() {
   const { domainSlug } = useParams<{ domainSlug: string }>();
   const { data, ready } = useStore();
   const domain = domainBySlug(data.domains, domainSlug);
@@ -25,4 +26,9 @@ export default function RuntimeDomainLogPage() {
       <SchemaLogForm domain={domain} />
     </div>
   );
+}
+
+// Content editing writes straight to the server, so the demo shows an explanation instead.
+export default function Page() {
+  return <DemoGate what="Adding a card"><RuntimeDomainLogPage /></DemoGate>;
 }
