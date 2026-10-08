@@ -1,4 +1,4 @@
-import { test as setup } from '@playwright/test';
+import { test as setup, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 const STORAGE_STATE = 'e2e/.auth/state.json';
@@ -14,13 +14,16 @@ function resolvePasscode(): string | undefined {
 }
 
 // Runs once before the test projects; saves a signed-in session for them to reuse.
-// When auth is disabled (no AUTH_SECRET, middleware fail-open) there's simply no
+// When auth is disabled (no AUTH_SECRET, proxy fail-open) there's simply no
 // passcode and we persist an empty state, so the suite still runs.
 setup('authenticate', async ({ page }) => {
   const passcode = resolvePasscode();
   if (passcode) {
     // POST through the page's context so the pt_auth cookie is stored here.
-    await page.request.post('/api/auth', { data: { password: passcode } });
+    const res = await page.request.post('/api/auth', { data: { password: passcode } });
+    // 503 means the gate is off (no AUTH_SECRET), so no session is needed.
+    // Anything else failing would quietly send every spec to the sign-in page.
+    expect(res.ok() || res.status() === 503, `sign-in failed: HTTP ${res.status()}`).toBe(true);
   }
   await page.context().storageState({ path: STORAGE_STATE });
 });

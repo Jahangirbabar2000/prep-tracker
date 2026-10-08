@@ -5,10 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { APP_NAME } from '@/lib/appName';
+import { safeNextPath } from '@/lib/routing';
 
 function LoginForm() {
   const params = useSearchParams();
-  const next = params.get('next') || '/';
+  const next = safeNextPath(params.get('next'));
 
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,8 +30,8 @@ function LoginForm() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || 'Couldn’t sign in.');
       }
-      // Full navigation so middleware sees the fresh cookie.
-      window.location.assign(next.startsWith('/') ? next : '/');
+      // Full navigation so the proxy sees the fresh cookie.
+      window.location.assign(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Couldn’t sign in.');
       setBusy(false);

@@ -1,6 +1,6 @@
 // Practice sets: revising a domain on demand, off-schedule.
 //
-// The review queue answers one question — "what is due?" — and app/page.tsx has
+// The review queue answers one question — "what is due?" — and app/(app)/page.tsx has
 // only ever needed that. A practice set generalises it into three independent
 // axes (scope, order, size) so "weak spots in Two Pointers, oldest first, 20 of
 // them" is a spec rather than a sixth hardcoded mode.
@@ -115,7 +115,7 @@ export function parsePracticeSpec(sp: URLSearchParams): PracticeSpec {
 
 /**
  * The canonical URL for a spec. Every default is omitted, so a plain due-list
- * session still produces exactly the query string app/page.tsx has always
+ * session still produces exactly the query string app/(app)/page.tsx has always
  * generated, and parse → href round-trips to a stable string.
  */
 export function practiceHref(spec: PracticeSpec): string {

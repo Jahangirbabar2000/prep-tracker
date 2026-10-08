@@ -48,7 +48,7 @@ Three study-mode templates are built in:
 - **Local-first client** — all reads come from an in-memory store hydrated from **IndexedDB**, so the UI is instant and offline-capable. Writes are optimistic.
 - **Sync** — the client pulls problems, attempts, and the domain/field/option registry from `GET /api/sync` when online and persists them to IndexedDB; server writes go through validated API routes.
 - **Server** — Next.js route handlers backed by **libSQL / Turso** (`@libsql/client`).
-- **Auth** (optional) — a single shared passcode gates the whole app via middleware: a signed, httpOnly cookie (HMAC over `AUTH_SECRET`), with a `/login` screen. Fail-open when unset, so it's off until you configure it.
+- **Auth** (optional) — a single shared passcode gates the whole app via `proxy.ts`: a signed, httpOnly cookie (HMAC over `AUTH_SECRET`), with a `/login` screen. Fail-open when unset, so it's off until you configure it.
 
 ## Stack
 

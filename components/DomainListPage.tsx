@@ -32,7 +32,7 @@ function DomainListInner({ domain, title, basePath, logLabel, filterConfigs, emp
   const initialParams = Object.fromEntries(sp.entries());
 
   return (
-    // 2xl+: matches the Review Queue's cap (app/page.tsx) — rows stop
+    // 2xl+: matches the Review Queue's cap (app/(app)/page.tsx) — rows stop
     // stretching edge-to-edge on wide monitors; unchanged below that.
     <div className="2xl:max-w-6xl 2xl:mx-auto">
       <div className="flex items-center justify-between mb-5">

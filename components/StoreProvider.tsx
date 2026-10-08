@@ -1,20 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { bootStore, syncNow } from '@/lib/store/sync';
 import { idbDestroy } from '@/lib/store/idb';
 import { SESSION_CHANNEL } from '@/lib/store/signOut';
 import SyncErrorBanner from './SyncErrorBanner';
 
 export default function StoreProvider({ children }: { children: React.ReactNode }) {
-  // The login page has no session, so there's nothing to load: syncing there
-  // only earns a 401, which the banner would show as "Couldn't load your data"
-  // to every signed-out visitor.
-  const signedOutPage = usePathname() === '/login';
-
+  // Mounted only by app/(app)/layout.tsx, never on a public page: there's no
+  // session there, and a sync would only earn a 401 for the banner to show.
   useEffect(() => {
-    if (signedOutPage) return;
     bootStore();
 
     const onOnline = () => syncNow();
@@ -37,7 +32,7 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
       document.removeEventListener('visibilitychange', onVisible);
       session?.close();
     };
-  }, [signedOutPage]);
+  }, []);
 
-  return <>{children}{!signedOutPage && <SyncErrorBanner />}</>;
+  return <>{children}<SyncErrorBanner /></>;
 }

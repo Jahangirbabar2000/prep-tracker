@@ -20,8 +20,10 @@ export const DOMAIN_COLORS = [
   'blue', 'orange', 'amber', 'emerald', 'violet', 'rose', 'teal', 'cyan',
 ] as const;
 
+// Top-level paths the app itself serves; a domain slug can't take one.
+// 'welcome' and 'demo' are the public landing page and demo entry.
 export const RESERVED_DOMAIN_SLUGS = new Set([
-  'api', 'review', 'settings', 'stats', 'login', 'log', '_next',
+  'api', 'review', 'settings', 'stats', 'login', 'log', '_next', 'welcome', 'demo',
 ]);
 
 /** Migration-only fallback for legacy IndexedDB snapshots without domains. */

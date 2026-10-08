@@ -145,7 +145,7 @@ export default function DomainPageClient({
   // Each dropdown's options reflect the OTHER active filters, not the whole
   // domain — so choosing a bucket narrows Topic to that bucket's topics, and no
   // dropdown ever offers a combination that would return nothing. Same rule the
-  // review queue uses (app/page.tsx). A filter never narrows itself, or picking
+  // review queue uses (app/(app)/page.tsx). A filter never narrows itself, or picking
   // a value would leave it as the only option.
   const derivedOptions = useMemo(() => {
     // Does this problem satisfy every active filter except the one we're

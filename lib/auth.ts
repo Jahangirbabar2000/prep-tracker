@@ -1,7 +1,7 @@
 // Lightweight stateless session: an HMAC-signed, expiring cookie. No user
 // table — a single shared passcode (APP_PASSWORD) mints a token signed with
-// AUTH_SECRET. Uses Web Crypto so it runs in both the Edge middleware and the
-// Node route handlers.
+// AUTH_SECRET. Uses Web Crypto, so it runs anywhere: proxy.ts and the route
+// handlers alike.
 
 export const AUTH_COOKIE = 'pt_auth';
 export const AUTH_MAX_AGE_S = 60 * 60 * 24 * 365; // 1 year — "persistent"
