@@ -15,6 +15,7 @@ interface QueuedAttempt {
   struggled: boolean;
   time_taken_mins: number;
   attempted_at: string; // "YYYY-MM-DD HH:MM:SS" — the real moment the attempt was logged
+  practice_type?: string | null; // 'solo' | 'mock' — only set when restoring a deleted attempt
 }
 
 interface RejectedAttempt extends QueuedAttempt {
@@ -67,7 +68,7 @@ function withAttempt(d: StoreData, item: QueuedAttempt): StoreData {
       attempted_at: item.attempted_at,
       time_taken_mins: item.time_taken_mins,
       struggled: item.struggled ? 1 : 0,
-      practice_type: null,
+      practice_type: item.practice_type ?? null,
       client_id: item.client_id ?? null,
     },
   ];
@@ -94,6 +95,26 @@ export async function logAttempt(input: {
     struggled: input.struggled,
     time_taken_mins: input.time_taken_mins,
     attempted_at: clientNow(),
+  };
+  mutate(d => withAttempt(d, item));
+  await updateQueue(queue => [...queue, item]);
+}
+
+/**
+ * Put back an attempt that was just deleted — the Undo on a delete. It goes
+ * through the queue like a freshly logged attempt (its own idempotency key,
+ * works offline) but keeps its original moment, so it replays into the
+ * schedule exactly where it was. Its id is new; the deleted one is gone for
+ * good on the server. The caller flushes, like after logAttempt.
+ */
+export async function restoreAttempt(attempt: Attempt): Promise<void> {
+  const item: QueuedAttempt = {
+    client_id: newClientId(),
+    problemId: attempt.problem_id,
+    struggled: !!attempt.struggled,
+    time_taken_mins: attempt.time_taken_mins,
+    attempted_at: attempt.attempted_at,
+    practice_type: attempt.practice_type ?? null,
   };
   mutate(d => withAttempt(d, item));
   await updateQueue(queue => [...queue, item]);
@@ -161,6 +182,7 @@ async function drainQueue(): Promise<void> {
           time_taken_mins: item.time_taken_mins,
           struggled: item.struggled,
           attempted_at: item.attempted_at,
+          practice_type: item.practice_type ?? null,
         }),
       });
     } catch {

@@ -459,7 +459,7 @@ function SessionPageInner() {
     }`}>
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <Link href={backHref} className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors">
+        <Link href={backHref} className="inline-flex items-center gap-1 py-3.5 -my-3.5 md:py-0 md:my-0 text-xs text-muted hover:text-fg transition-colors">
           <ArrowLeft size={13} /> Exit session <span className="hidden md:inline opacity-40 ml-0.5">Esc</span>
         </Link>
         <span className="text-xs text-muted tabular">{activeCount} remaining</span>

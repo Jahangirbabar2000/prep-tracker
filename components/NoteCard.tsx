@@ -44,6 +44,7 @@ export default function NoteCard({ note, onDelete }: Props) {
           ) : (
             <button
               onClick={() => setConfirming(true)}
+              aria-label="Delete note"
               className="inline-flex items-center gap-1 text-xs text-muted hover:text-danger transition-colors cursor-pointer"
             >
               <Trash2 size={13} />

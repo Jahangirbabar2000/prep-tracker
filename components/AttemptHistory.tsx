@@ -1,23 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Attempt } from '@/lib/types';
 import { fmtDate } from '@/lib/fmt';
 import { Clock, Check, X, Pencil, Trash2 } from 'lucide-react';
-import { deleteAttemptRemote, editAttemptRemote } from '@/lib/store/writeQueue';
+import { deleteAttemptRemote, editAttemptRemote, flushQueue, restoreAttempt } from '@/lib/store/writeQueue';
 
 interface Props {
   attempts: Attempt[];
   showTime?: boolean;
   onUpdated: (attempt: Attempt) => void;
   onDeleted: (id: number) => void;
+  /** After an Undo has sent the attempt back — for a parent holding its own copy rather than reading the store. */
+  onRestored?: () => void;
 }
+
+/** How long a deleted attempt can be put back. */
+const UNDO_MS = 6000;
 
 const cellInput = 'bg-background border border-border rounded-md px-2 py-1 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition';
 
-export default function AttemptHistory({ attempts, showTime = true, onUpdated, onDeleted }: Props) {
+export default function AttemptHistory({ attempts, showTime = true, onUpdated, onDeleted, onRestored }: Props) {
   const [editing, setEditing] = useState<number | null>(null);
   const [fields, setFields] = useState<Partial<Attempt>>({});
+  const [deleted, setDeleted] = useState<Attempt | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
 
   function startEdit(a: Attempt) {
     setEditing(a.id);
@@ -35,13 +43,43 @@ export default function AttemptHistory({ attempts, showTime = true, onUpdated, o
     editAttemptRemote(id, fields).then(onUpdated).catch(() => {});
   }
 
-  function deleteAttempt(id: number) {
-    onDeleted(id);
-    deleteAttemptRemote(id).catch(() => {});
+  // One tap deletes, so one tap must also bring it back: the delete goes
+  // through at once (no lost deletes if the page closes), and Undo re-logs the
+  // same attempt at its original moment.
+  function deleteAttempt(attempt: Attempt) {
+    onDeleted(attempt.id);
+    // A failed delete is rolled back in the store already — nothing to undo.
+    deleteAttemptRemote(attempt.id).catch(() => setDeleted(null));
+    setDeleted(attempt);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setDeleted(null), UNDO_MS);
   }
 
+  async function undoDelete() {
+    if (!deleted) return;
+    const attempt = deleted;
+    setDeleted(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    await restoreAttempt(attempt);
+    if (navigator.onLine) await flushQueue();
+    onRestored?.();
+  }
+
+  const undoToast = deleted && (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] z-50 mx-auto flex max-w-sm items-center justify-between gap-3 rounded-xl border border-border bg-surface py-2 pl-4 pr-2 shadow-lg"
+    >
+      <span className="text-sm text-fg">Attempt from {fmtDate(deleted.attempted_at)} deleted</span>
+      <button onClick={undoDelete} className="min-h-11 shrink-0 rounded-lg px-3 text-sm font-semibold text-accent transition-colors hover:bg-surface-2 cursor-pointer">
+        Undo
+      </button>
+    </div>
+  );
+
   if (!attempts.length) {
-    return <p className="text-sm text-muted">No attempts yet.</p>;
+    return <><p className="text-sm text-muted">No attempts yet.</p>{undoToast}</>;
   }
 
   const avg = Math.round(attempts.reduce((s, a) => s + a.time_taken_mins, 0) / attempts.length);
@@ -116,8 +154,8 @@ export default function AttemptHistory({ attempts, showTime = true, onUpdated, o
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex gap-3 justify-end text-muted">
-                        <button onClick={() => startEdit(a)} className="hover:text-fg cursor-pointer"><Pencil size={14} /></button>
-                        <button onClick={() => deleteAttempt(a.id)} className="hover:text-danger cursor-pointer"><Trash2 size={14} /></button>
+                        <button onClick={() => startEdit(a)} aria-label="Edit attempt" title="Edit attempt" className="hover:text-fg cursor-pointer"><Pencil size={14} /></button>
+                        <button onClick={() => deleteAttempt(a)} aria-label="Delete attempt" title="Delete attempt" className="hover:text-danger cursor-pointer"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </>
@@ -127,6 +165,7 @@ export default function AttemptHistory({ attempts, showTime = true, onUpdated, o
           </tbody>
         </table>
       </div>
+      {undoToast}
     </div>
   );
 }

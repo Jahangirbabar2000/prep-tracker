@@ -235,7 +235,7 @@ export default function ProblemViewPage({ id, domain, basePath, backLabel }: Pro
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push(basePath)}
-            className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 py-3.5 -my-3.5 md:py-0 md:my-0 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
           >
             <ArrowLeft size={13} /> {backLabel}
             <span className="hidden md:inline opacity-40 font-normal text-[10px] ml-0.5">Esc</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Link2, Plus, X } from 'lucide-react';
 import type { Attempt, Link as LinkType, Note, Problem, StudyDomain } from '@/lib/types';
@@ -27,6 +27,10 @@ function today() {
 export default function SchemaLogForm({ domain, inline, problemId, onLogged }: Props) {
   const router = useRouter();
   const store = useStore();
+  // The captions above these two are plain text without an id link, so a
+  // screen reader announced the most important field on the form unnamed.
+  const nameFieldId = useId();
+  const answerFieldId = useId();
   const fields = useMemo(
     () => fieldsForDomain(store.data.domain_fields, domain.id),
     [store.data.domain_fields, domain.id],
@@ -148,8 +152,9 @@ export default function SchemaLogForm({ domain, inline, problemId, onLogged }: P
     <form onSubmit={submit} className="flex flex-col gap-4 bg-surface border border-border rounded-2xl p-5 sm:p-6">
       {!problemId && (
         <div className="flex flex-col gap-1 relative">
-          <label className="text-xs font-medium text-muted uppercase tracking-wide">{domain.item_label}</label>
+          <label htmlFor={nameFieldId} className="text-xs font-medium text-muted uppercase tracking-wide">{domain.item_label}</label>
           <input
+            id={nameFieldId}
             ref={inputRef}
             value={selectedProblem ? selectedProblem.name : query}
             onChange={event => { setQuery(event.target.value); setSelectedProblem(null); }}
@@ -178,8 +183,9 @@ export default function SchemaLogForm({ domain, inline, problemId, onLogged }: P
 
       {!isTimedMode(domain.study_mode) && !problemId && (
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-muted uppercase tracking-wide">Answer</label>
+          <label htmlFor={answerFieldId} className="text-xs font-medium text-muted uppercase tracking-wide">Answer</label>
           <textarea
+            id={answerFieldId}
             value={answer}
             onChange={event => setAnswer(event.target.value)}
             onPaste={event => {
@@ -208,7 +214,9 @@ export default function SchemaLogForm({ domain, inline, problemId, onLogged }: P
           <button
             type="button"
             onClick={() => setStruggled(value => !value)}
-            className={`min-h-[42px] px-4 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${struggled ? 'bg-danger/10 border-danger/40 text-danger' : 'bg-accent/10 border-accent/40 text-accent'}`}
+            aria-label="Struggled"
+            aria-pressed={struggled}
+            className={`min-h-11 md:min-h-[42px] px-4 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${struggled ? 'bg-danger/10 border-danger/40 text-danger' : 'bg-accent/10 border-accent/40 text-accent'}`}
           >
             {struggled ? 'Yes' : 'No'}
           </button>

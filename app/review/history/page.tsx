@@ -93,7 +93,7 @@ function HistoryInner() {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <Link href="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors mb-2">
+          <Link href="/" className="inline-flex items-center gap-1 py-3.5 -my-3.5 md:py-0 md:my-0 text-xs text-muted hover:text-fg transition-colors mb-2">
             <ArrowLeft size={13} /> Review Queue <span className="hidden md:inline opacity-40 ml-0.5">Esc</span>
           </Link>
           <h1 className="text-2xl font-semibold text-fg tracking-tight">

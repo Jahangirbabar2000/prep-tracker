@@ -114,7 +114,7 @@ export default function Nav() {
           onClick={onNavigate}
           className={[
             'flex items-center rounded-lg text-sm font-medium transition-colors cursor-pointer',
-            compact ? 'justify-center py-3 px-3' : 'gap-3 px-3 py-2.5',
+            compact ? 'justify-center py-3 px-3' : 'gap-3 px-3 py-3 md:py-2.5', // 44px tall rows on touch screens
             active
               ? 'bg-surface-2 text-fg'
               : 'text-muted hover:bg-surface-2 hover:text-fg',
@@ -164,7 +164,7 @@ export default function Nav() {
             onClick={onNavigate}
             className={[
               'flex items-center rounded-lg text-sm font-medium transition-colors cursor-pointer',
-              compact ? 'justify-center py-3 px-3' : 'gap-3 px-3 py-2.5',
+              compact ? 'justify-center py-3 px-3' : 'gap-3 px-3 py-3 md:py-2.5', // 44px tall rows on touch screens
               pathname === '/stats'
                 ? 'bg-surface-2 text-fg'
                 : 'text-muted hover:bg-surface-2 hover:text-fg',
@@ -188,7 +188,7 @@ export default function Nav() {
             onClick={onNavigate}
             className={[
               'flex items-center rounded-lg text-sm font-medium transition-colors cursor-pointer',
-              compact ? 'justify-center py-3 px-3' : 'gap-3 px-3 py-2.5',
+              compact ? 'justify-center py-3 px-3' : 'gap-3 px-3 py-3 md:py-2.5', // 44px tall rows on touch screens
               pathname === '/settings'
                 ? 'bg-surface-2 text-fg'
                 : 'text-muted hover:bg-surface-2 hover:text-fg',
@@ -280,11 +280,11 @@ export default function Nav() {
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
             aria-expanded={mobileOpen}
-            className="flex items-center justify-center w-10 h-10 rounded-md text-fg hover:bg-surface-2 transition-colors cursor-pointer shrink-0"
+            className="flex items-center justify-center w-11 h-11 rounded-md text-fg hover:bg-surface-2 transition-colors cursor-pointer shrink-0"
           >
             <Menu size={22} />
           </button>
-          <Link href="/" className="flex items-center gap-2 font-semibold text-fg truncate hover:opacity-80 transition-opacity">
+          <Link href="/" className="flex items-center gap-2 min-h-11 font-semibold text-fg truncate hover:opacity-80 transition-opacity">
             <Logo className="w-7 h-7" />
             <span className="truncate">{APP_NAME}</span>
           </Link>
@@ -327,7 +327,7 @@ export default function Nav() {
             <Link
               href="/"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 flex-1 min-w-0 min-h-11 hover:opacity-80 transition-opacity"
             >
               <Logo className="w-7 h-7" />
               <span className="font-semibold text-fg text-sm truncate">{APP_NAME}</span>
@@ -336,7 +336,7 @@ export default function Nav() {
               type="button"
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
-              className="flex items-center justify-center w-9 h-9 rounded-md text-muted hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer"
+              className="flex items-center justify-center w-11 h-11 rounded-md text-muted hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer"
             >
               <X size={18} />
             </button>

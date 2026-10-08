@@ -134,7 +134,7 @@ export default function ThemeToggle({ collapsed = true }: ThemeToggleProps) {
       onClick={() => choose(nextThemePref(pref))}
       aria-label={mounted ? `Theme: ${current.label}. Switch to ${next.label}.` : 'Toggle theme'}
       title={mounted ? `Theme: ${current.label}` : undefined}
-      className="flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer"
+      className="flex items-center justify-center w-11 h-11 md:w-9 md:h-9 rounded-lg text-muted hover:text-fg hover:bg-surface-2 transition-colors cursor-pointer"
     >
       <Icon size={18} />
     </button>

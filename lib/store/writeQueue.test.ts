@@ -12,7 +12,7 @@ const idb = vi.hoisted(() => {
 vi.mock('./idb', () => idb);
 
 import { getData, normalize, replaceAll } from './store';
-import { flushQueue, isRetryableStatus, logAttempt, withQueuedAttempts } from './writeQueue';
+import { flushQueue, isRetryableStatus, logAttempt, restoreAttempt, withQueuedAttempts } from './writeQueue';
 
 type Queued = { client_id?: string; problemId: number };
 
@@ -130,6 +130,24 @@ describe('flushQueue', () => {
     const [first, second] = sentKeys();
     expect(first).toMatch(/^[0-9a-f]{32}$/);
     expect(second).toBe(first);
+  });
+});
+
+describe('restoreAttempt', () => {
+  it('puts a deleted attempt back at its original moment, under a new key', async () => {
+    const deleted = { id: 10, problem_id: 1, attempted_at: '2026-10-01 09:00:00', time_taken_mins: 10, struggled: 0, practice_type: 'mock', client_id: 'old-key' };
+    replaceAll({ ...seed(), attempts: [] });
+
+    await restoreAttempt(deleted);
+    fetchMock.mockResolvedValueOnce(reply(201));
+    await flushQueue();
+
+    const shown = getData().attempts;
+    expect(shown).toEqual([expect.objectContaining({ problem_id: 1, attempted_at: '2026-10-01 09:00:00', practice_type: 'mock' })]);
+    const sent = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+    expect(sent).toMatchObject({ attempted_at: '2026-10-01 09:00:00', struggled: false, time_taken_mins: 10, practice_type: 'mock' });
+    // A fresh key: reusing the deleted row's would make the server answer with that (gone) row.
+    expect(sent.client_id).not.toBe('old-key');
   });
 });
 

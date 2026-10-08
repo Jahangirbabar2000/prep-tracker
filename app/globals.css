@@ -20,7 +20,7 @@
   --muted:         #756a52;
   --border:        #e7ddc7;
   --border-strong: #d8cbac;
-  --accent:        #9a6f0a;
+  --accent:        #876109; /* lightest of this gold that clears 4.5:1 as text on bg/surface/surface-2 and under white button text (was #9a6f0a: 3.7–3.9:1 as text) */
   --accent-h:      #7f5a06;
   --accent-fg:     #ffffff;
   --accent-2:      #0f766e;
@@ -123,6 +123,19 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .tabular { font-variant-numeric: tabular-nums; }
+
+/* iOS Safari zooms the page into any focused field whose text is under 16px,
+   and doesn't zoom back out. Fields here are text-sm (14px) by design, so at
+   phone widths lift them to 16px, and to the 44px minimum touch height.
+   !important because the size comes from a utility class on each field, which
+   outranks an element selector. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea { font-size: 16px !important; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select { min-height: 44px; }
+}
 
 /* Light mode: lift rounded surface cards off the warm parchment canvas so the
    UI reads layered, not flat. Dark mode keeps depth via borders (no shadow).

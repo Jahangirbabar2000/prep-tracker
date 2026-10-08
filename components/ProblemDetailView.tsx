@@ -100,7 +100,7 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
           <div className="flex items-center gap-3 mb-2">
             <button
               onClick={() => router.push(`${basePath}/${id}`)}
-              className="inline-flex items-center gap-1 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 py-3.5 -my-3.5 md:py-0 md:my-0 text-xs text-muted hover:text-fg transition-colors cursor-pointer"
             >
               <ArrowLeft size={13} /> {backLabel} <span className="opacity-40 font-normal text-[10px] ml-0.5">Esc</span>
             </button>
@@ -203,6 +203,7 @@ export default function ProblemDetailView({ id, domain, basePath, backLabel }: P
           showTime={isTimed}
           onUpdated={a => setData(d => d ? { ...d, attempts: d.attempts.map(x => x.id === a.id ? a : x) } : d)}
           onDeleted={aid => setData(d => d ? { ...d, attempts: d.attempts.filter(x => x.id !== aid) } : d)}
+          onRestored={reload}
         />
       </section>
 
