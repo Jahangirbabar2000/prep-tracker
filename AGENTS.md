@@ -31,6 +31,8 @@ Prep Tracker — a local-first, spaced-repetition interview-prep tracker. See `R
 
   **Signing out assumes a shared device** (`lib/store/signOut.ts`), in a fixed order: upload the offline queue, end the session, *then* wipe what the browser holds for the account — the IndexedDB database (`idbDestroy()`, which also blocks any later write from that page) and every service-worker cache but the hashed `assets-*` bundles. It refuses offline, keeps local data if the server can't end the session, and discards reviews that still won't upload only after asking. Other tabs hear it on a `BroadcastChannel` and follow. Anything new the browser stores per account must live in IndexedDB or a non-`assets-` cache, or be added to `wipeLocalData()` — otherwise it survives sign-out for the next person.
 
+- **The demo dataset is generated, never stored** (`lib/demo/`). `cards.ts` is the deck — 40 cards (DSA, System Design, AWS; no Behavioral), in the house style and in original wording, since it ships to anyone who opens the demo. `buildDemoDataset(now)` replays ~100 days of a simulated learner from a fixed seed, relative to the visitor's own clock, so there is always a queue due today and a live streak; every level and due date comes from `replaySchedule`. It is the **one** place synthetic attempts are allowed — the seeding rule below forbids them for real decks, and this data never reaches a server. `dataset.test.ts` pins its shape (every proficiency level present, a small overdue backlog, ~75% recall) across dates; if a change breaks those, re-pick `DEMO_SEED` rather than loosening the test.
+
 ## Scripts (`scripts/`)
 
 Deliberately small — it is not an archive. Everything in it is either live or
