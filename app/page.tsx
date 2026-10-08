@@ -6,7 +6,8 @@ import ReviewQueueItemCard from '@/components/ReviewQueueItem';
 import UpcomingForecast from '@/components/UpcomingForecast';
 import ReviewQueueFilters from '@/components/ReviewQueueFilters';
 import Link from 'next/link';
-import { Check, History, Play, Flame } from 'lucide-react';
+import { History, Play, Flame } from 'lucide-react';
+import QueueEmptyState from '@/components/QueueEmptyState';
 import { useStore } from '@/lib/store/store';
 import {
   activeCards, reviewQueue, historyBuckets, forecast, matchesProficiency, clientToday, clientDaysFromNow,
@@ -133,7 +134,10 @@ function ReviewQueueInner() {
   const progressPct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
   // Archived domains are out of the streak too, so this and the Stats page's
   // streak read the same number off the same cards.
-  const streak      = computeStreak(activeCards(data).attempts.map(a => a.attempted_at), today);
+  const active      = activeCards(data);
+  const streak      = computeStreak(active.attempts.map(a => a.attempted_at), today);
+  // For the empty state: none at all means a first visit, not "caught up".
+  const domainsWithCards = activeDomains(data.domains).filter(domain => active.problems.some(p => p.domain === domain.id));
 
   const pendingByDomain: Record<string, number> = {};
   for (const item of items) {
@@ -200,7 +204,7 @@ function ReviewQueueInner() {
             </Link>
           ) : (
             <span className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-surface border border-border text-muted text-sm font-medium rounded-xl opacity-50 cursor-default">
-              <Play size={14} /> All caught up
+              <Play size={14} /> {domainsWithCards.length ? 'All caught up' : 'No cards yet'}
             </span>
           )}
         </div>
@@ -276,13 +280,7 @@ function ReviewQueueInner() {
       />
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mb-3">
-            <Check size={22} className="text-accent" />
-          </div>
-          <p className="text-fg font-medium">Nothing due</p>
-          <p className="text-muted text-sm mt-1">You&apos;re all caught up. Come back tomorrow.</p>
-        </div>
+        <QueueEmptyState domains={activeDomains(data.domains)} domainsWithCards={domainsWithCards} />
       ) : (
         <div className="flex flex-col gap-0">
           {dueGroups.map((group, gi) => (
