@@ -25,6 +25,9 @@ local-replica.db-wal
 /playwright-report
 /playwright/.cache
 /e2e/.auth
+# the e2e server's throwaway database and build
+/e2e/.tmp
+/.next-e2e/
 
 # next.js
 /.next/

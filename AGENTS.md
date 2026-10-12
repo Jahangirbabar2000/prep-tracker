@@ -82,4 +82,5 @@ Conventions for anything you add here:
 
 - Dev server runs on **port 3007** (`npm run dev`).
 - Verify changes: `npx tsc --noEmit`, `npm test` (Vitest), `npm run test:e2e` (Playwright). Add unit tests for new pure logic.
+- **The e2e suite runs on its own server and database, never `.env.local`'s** (which is production). `e2e/server.mjs` builds a fresh `e2e/.tmp/e2e.db` with the real migration, seeds two accounts (`e2e/env.mjs`), and starts `next dev` on port 3017 with its own build folder (`NEXT_DIST_DIR=.next-e2e`), so it runs beside `npm run dev` and is never reused. Its throwaway passcode can sign in as a chosen user (`{ password, user_id }` to `/api/auth`) only with `ALLOW_SIGN_IN_AS=1`, which nothing but that server sets, and never in a production build. `e2e/accounts.spec.ts` uses it for the two-account tests: separate data, a second account on the same browser, sign-out leaving nothing.
 - Secrets (`.env.local`) and `*.db` files are git-ignored — never commit them.

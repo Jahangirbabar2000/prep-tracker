@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_PORT } from './e2e/env.mjs';
 
-const PORT = 3007;
+// Its own port, so a running `npm run dev` (whose .env.local database is
+// production) is never mistaken for the e2e server and reused.
+const PORT = E2E_PORT;
 const BASE_URL = `http://localhost:${PORT}`;
 const STORAGE_STATE = 'e2e/.auth/state.json';
 
@@ -20,11 +23,12 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], storageState: STORAGE_STATE }, dependencies: ['setup'] },
     { name: 'mobile', use: { ...devices['Pixel 7'], storageState: STORAGE_STATE }, dependencies: ['setup'] },
   ],
-  // Reuses the running dev server locally; starts one in CI.
+  // e2e/server.mjs: a fresh migrated, seeded database and its own next dev.
+  // Never reused, so every run starts from the same two accounts.
   webServer: {
-    command: 'npm run dev',
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    command: 'node e2e/server.mjs',
+    url: `${BASE_URL}/login`,
+    reuseExistingServer: false,
+    timeout: 180_000,
   },
 });
