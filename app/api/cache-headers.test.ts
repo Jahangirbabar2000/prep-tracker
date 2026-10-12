@@ -10,13 +10,14 @@ vi.mock('@/lib/domain-server', () => ({
   getDomainFieldOptions: vi.fn(async () => []),
 }));
 
+import { NextRequest } from 'next/server';
 import { GET as sync } from './sync/route';
 
 // A CDN doesn't key on the session cookie: any shared-cache directive
 // (s-maxage, public) on this response would serve one user's data to the next.
 describe('GET /api/sync', () => {
   it('is never stored by a shared cache', async () => {
-    const res = await sync();
+    const res = await sync(new NextRequest('http://localhost/api/sync'), {});
     expect(res.headers.get('Cache-Control')).toBe('private, no-store');
   });
 });

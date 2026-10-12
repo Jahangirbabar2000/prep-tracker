@@ -1,10 +1,13 @@
-// Lightweight stateless session: an HMAC-signed, expiring cookie. No user
-// table — a single shared passcode (APP_PASSWORD) mints a token signed with
-// AUTH_SECRET. Uses Web Crypto, so it runs anywhere: proxy.ts and the route
-// handlers alike.
+// Lightweight stateless session: an HMAC-signed, expiring cookie that names
+// the signed-in user (`uid`). Today the shared passcode (APP_PASSWORD) mints a
+// token for the owner; real accounts will mint one per user. Uses Web Crypto,
+// so it runs anywhere: proxy.ts and the route handlers alike.
 
 export const AUTH_COOKIE = 'pt_auth';
 export const AUTH_MAX_AGE_S = 60 * 60 * 24 * 365; // 1 year — "persistent"
+
+/** The user who owned every row before accounts existed (see the multi-user migration). */
+export const OWNER_USER_ID = 'usr_owner';
 
 const encoder = new TextEncoder();
 
@@ -39,11 +42,44 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return result === 0;
 }
 
-/** Mint a signed session token valid for AUTH_MAX_AGE_S. */
-export async function createSession(secret: string, now: number = Date.now()): Promise<string> {
-  const payload = b64urlEncode(encoder.encode(JSON.stringify({ iat: now, exp: now + AUTH_MAX_AGE_S * 1000 })));
+/** Mint a signed session token for `userId`, valid for AUTH_MAX_AGE_S. */
+export async function createSession(
+  secret: string,
+  now: number = Date.now(),
+  userId: string = OWNER_USER_ID,
+): Promise<string> {
+  const payload = b64urlEncode(encoder.encode(JSON.stringify({ uid: userId, iat: now, exp: now + AUTH_MAX_AGE_S * 1000 })));
   const sig = await hmac(payload, secret);
   return `${payload}.${sig}`;
+}
+
+/**
+ * The user a session token names, or null if it is forged, expired or
+ * malformed. A token minted before tokens carried a `uid` is the owner's —
+ * the passcode was the only way in — so existing sign-ins keep working.
+ */
+export async function readSession(
+  token: string | undefined | null,
+  secret: string | undefined,
+  now: number = Date.now(),
+): Promise<string | null> {
+  if (!token || !secret) return null;
+  const dot = token.indexOf('.');
+  if (dot <= 0) return null;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+
+  const expected = await hmac(payload, secret);
+  if (!timingSafeEqual(sig, expected)) return null;
+
+  try {
+    const { exp, uid } = JSON.parse(new TextDecoder().decode(b64urlDecode(payload)));
+    if (typeof exp !== 'number' || exp <= now) return null;
+    if (uid === undefined) return OWNER_USER_ID;
+    return typeof uid === 'string' && uid ? uid : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Verify a session token: signature intact and not expired. */
@@ -52,19 +88,5 @@ export async function verifySession(
   secret: string | undefined,
   now: number = Date.now(),
 ): Promise<boolean> {
-  if (!token || !secret) return false;
-  const dot = token.indexOf('.');
-  if (dot <= 0) return false;
-  const payload = token.slice(0, dot);
-  const sig = token.slice(dot + 1);
-
-  const expected = await hmac(payload, secret);
-  if (!timingSafeEqual(sig, expected)) return false;
-
-  try {
-    const { exp } = JSON.parse(new TextDecoder().decode(b64urlDecode(payload)));
-    return typeof exp === 'number' && exp > now;
-  } catch {
-    return false;
-  }
+  return (await readSession(token, secret, now)) !== null;
 }

@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start -p 3007",
     "db:migrate": "node scripts/migrate-domains.mjs",
+    "db:import-user": "node scripts/import-user.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "lint": "eslint",
     "test": "vitest run",

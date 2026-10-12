@@ -127,7 +127,7 @@ describe('runtime-domain migration', () => {
     // Both pre-existing rows survive with a NULL key — NULLs don't collide.
     expect(migrated.prepare('SELECT COUNT(*) AS n FROM attempts WHERE client_id IS NULL').get()).toEqual({ n: 2 });
     const insert = migrated.prepare(
-      `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, client_id) VALUES (1, '2026-07-31 09:00:00', 3, 'k1')`,
+      `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, client_id, user_id) VALUES (1, '2026-07-31 09:00:00', 3, 'k1', 'usr_owner')`,
     );
     insert.run();
     expect(() => insert.run()).toThrow(/UNIQUE/);
@@ -156,10 +156,55 @@ describe('runtime-domain migration', () => {
     expect(attemptColumns).toContain('client_id');
     expect(db.prepare('SELECT id FROM schema_migrations ORDER BY id').all()).toEqual([
       { id: '2026-06-05-core-schema' }, { id: '2026-07-29-runtime-domains-v1' }, { id: '2026-10-07-attempt-client-id' },
+      { id: '2026-10-12-multi-user' }, { id: '2026-10-12-study-plan-tables' },
     ]);
     // A card can be logged end to end.
-    db.prepare(`INSERT INTO problems (name, domain) VALUES ('Two Sum', 'dsa')`).run();
-    db.prepare(`INSERT INTO attempts (problem_id, time_taken_mins, client_id) VALUES (1, 5, 'k1')`).run();
+    db.prepare(`INSERT INTO problems (name, domain, user_id) VALUES ('Two Sum', 'dsa', 'usr_owner')`).run();
+    db.prepare(`INSERT INTO attempts (problem_id, time_taken_mins, client_id, user_id) VALUES (1, 5, 'k1', 'usr_owner')`).run();
     db.close();
+  });
+
+  it("gives every existing row to the owner, and then requires a user on every row", () => {
+    const path = fixture();
+    const db = new Database(path);
+    db.exec(`
+      CREATE TABLE attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        problem_id INTEGER NOT NULL,
+        attempted_at TEXT NOT NULL,
+        time_taken_mins INTEGER NOT NULL,
+        struggled INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO attempts (problem_id, attempted_at, time_taken_mins) VALUES (1, '2026-07-29 09:00:00', 5);
+    `);
+    db.close();
+    migrate(path);
+    migrate(path);
+
+    const migrated = new Database(path);
+    for (const table of ['study_domains', 'domain_fields', 'domain_field_options', 'config_options', 'problems', 'attempts', 'notes', 'links', 'study_plans', 'plan_tasks']) {
+      const row = migrated.prepare(`SELECT COUNT(*) AS n, COUNT(DISTINCT user_id) AS owners, SUM(user_id IS NULL) AS orphans FROM ${table}`).get() as { n: number; owners: number; orphans: number | null };
+      expect(row.orphans ?? 0, table).toBe(0);
+      if (row.n) expect(row.owners, table).toBe(1);
+    }
+    expect(migrated.prepare(`SELECT COUNT(*) AS n FROM attempts WHERE user_id = 'usr_owner'`).get()).toEqual({ n: 1 });
+
+    // A row must name its user, and can't be handed to another one.
+    expect(() => migrated.prepare(`INSERT INTO problems (name, domain) VALUES ('x', 'dsa')`).run()).toThrow(/problems.user_id is required/);
+    expect(() => migrated.prepare(`UPDATE attempts SET user_id = 'usr_other'`).run()).toThrow(/attempts.user_id cannot change/);
+
+    // Slugs and the offline queue's retry key are unique per user, not globally.
+    migrated.prepare(`INSERT INTO users (id) VALUES ('usr_rida')`).run();
+    const domain = migrated.prepare(
+      `INSERT INTO study_domains (id, slug, name, short_name, study_mode, icon, color, user_id)
+       VALUES (?, 'dsa', 'DSA', 'DSA', 'flashcard', 'book', 'blue', ?)`,
+    );
+    domain.run('dom_rida_dsa', 'usr_rida');
+    expect(() => domain.run('dom_rida_dsa2', 'usr_rida')).toThrow(/UNIQUE/);
+    const keyed = migrated.prepare(`INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, client_id, user_id) VALUES (1, '2026-07-30', 3, 'k1', ?)`);
+    keyed.run('usr_owner');
+    keyed.run('usr_rida');
+    expect(() => keyed.run('usr_rida')).toThrow(/UNIQUE/);
+    migrated.close();
   });
 });

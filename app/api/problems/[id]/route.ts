@@ -1,24 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { queryOne, queryAll, execute } from '@/lib/db';
-import { Attempt, Link, Note, Problem } from '@/lib/types';
+import { Attempt, Link, Note } from '@/lib/types';
+import { withUser } from '@/lib/currentUser';
 import { getProblem, validateProblemMetadata, legacyWrites } from '@/lib/domain-server';
 
 export const runtime = 'nodejs';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export const GET = withUser(async (_req, userId, { params }: Ctx) => {
   const { id } = await params;
 
-  const problem = await getProblem(id);
+  const problem = await getProblem(userId, id);
   if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  // The domain is the user's own (the problem is), so prev/next/position stay
+  // within their deck without another user_id filter on each query.
   const [attempts, notes, links, prevRow, nextRow, totalRow, newerRow] = await Promise.all([
-    queryAll<Attempt>('SELECT * FROM attempts WHERE problem_id = ? ORDER BY attempted_at DESC', [id]),
-    queryAll<Note>('SELECT * FROM notes WHERE problem_id = ? ORDER BY created_at ASC', [id]),
-    queryAll<Link>('SELECT * FROM links WHERE problem_id = ? ORDER BY created_at ASC', [id]),
-    queryOne<{ id: number }>('SELECT id FROM problems WHERE domain = ? AND id < ? ORDER BY id DESC LIMIT 1', [problem.domain, id]),
-    queryOne<{ id: number }>('SELECT id FROM problems WHERE domain = ? AND id > ? ORDER BY id ASC LIMIT 1', [problem.domain, id]),
-    queryOne<{ total: number }>('SELECT COUNT(*) AS total FROM problems WHERE domain = ?', [problem.domain]),
-    queryOne<{ newer_count: number }>('SELECT COUNT(*) AS newer_count FROM problems WHERE domain = ? AND id > ?', [problem.domain, id]),
+    queryAll<Attempt>('SELECT * FROM attempts WHERE problem_id = ? AND user_id = ? ORDER BY attempted_at DESC', [id, userId]),
+    queryAll<Note>('SELECT * FROM notes WHERE problem_id = ? AND user_id = ? ORDER BY created_at ASC', [id, userId]),
+    queryAll<Link>('SELECT * FROM links WHERE problem_id = ? AND user_id = ? ORDER BY created_at ASC', [id, userId]),
+    queryOne<{ id: number }>('SELECT id FROM problems WHERE user_id = ? AND domain = ? AND id < ? ORDER BY id DESC LIMIT 1', [userId, problem.domain, id]),
+    queryOne<{ id: number }>('SELECT id FROM problems WHERE user_id = ? AND domain = ? AND id > ? ORDER BY id ASC LIMIT 1', [userId, problem.domain, id]),
+    queryOne<{ total: number }>('SELECT COUNT(*) AS total FROM problems WHERE user_id = ? AND domain = ?', [userId, problem.domain]),
+    queryOne<{ newer_count: number }>('SELECT COUNT(*) AS newer_count FROM problems WHERE user_id = ? AND domain = ? AND id > ?', [userId, problem.domain, id]),
   ]);
 
   const avgTime = attempts.length
@@ -36,9 +41,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     position: (newerRow?.newer_count ?? 0) + 1,
     total: totalRow?.total ?? 0,
   });
-}
+});
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withUser(async (req, userId, { params }: Ctx) => {
   const { id } = await params;
   const body = await req.json();
 
@@ -53,14 +58,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     'resource_url', 'notes_text',
   ];
 
-  const problem = await getProblem(id);
+  const problem = await getProblem(userId, id);
   if (!problem) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const fields = Object.keys(body).filter(k => allowed.includes(k));
   let mergedMetadata = problem.metadata;
   const metadataFields = await queryAll<import('@/lib/types').DomainField>(
-    'SELECT * FROM domain_fields WHERE domain_id = ? AND archived_at IS NULL',
-    [problem.domain],
+    'SELECT * FROM domain_fields WHERE domain_id = ? AND user_id = ? AND archived_at IS NULL',
+    [problem.domain, userId],
   );
   const legacyMetadata = Object.fromEntries(
     metadataFields
@@ -69,7 +74,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   ) as Record<string, unknown>;
   let metadataPatch: Record<string, unknown> = legacyMetadata;
   if (body.metadata !== undefined) {
-    const validated = await validateProblemMetadata(problem.domain, body.metadata);
+    const validated = await validateProblemMetadata(userId, problem.domain, body.metadata);
     if ('error' in validated) return NextResponse.json({ error: validated.error }, { status: 400 });
     metadataPatch = { ...legacyMetadata, ...(body.metadata as Record<string, unknown>) };
     mergedMetadata = { ...problem.metadata, ...validated.metadata };
@@ -102,13 +107,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const setClause = deduped.map(item => `${item.column} = ?`).join(', ');
   const values = deduped.map(item => item.value);
 
-  await execute(`UPDATE problems SET ${setClause} WHERE id = ?`, [...values, id]);
-  const updated = await getProblem(id);
+  await execute(`UPDATE problems SET ${setClause} WHERE id = ? AND user_id = ?`, [...values, id, userId]);
+  const updated = await getProblem(userId, id);
   return NextResponse.json(updated);
-}
+});
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withUser(async (_req, userId, { params }: Ctx) => {
   const { id } = await params;
-  await execute('DELETE FROM problems WHERE id = ?', [id]);
+  // Idempotent, so an offline-queue retry of a delete that landed still
+  // succeeds; scoped, so it can only ever remove the caller's own row.
+  await execute('DELETE FROM problems WHERE id = ? AND user_id = ?', [id, userId]);
   return NextResponse.json({ ok: true });
-}
+});

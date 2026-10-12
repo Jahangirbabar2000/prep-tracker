@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { execute, queryOne } from '@/lib/db';
+import { withUser } from '@/lib/currentUser';
 import { DOMAIN_COLORS, DOMAIN_ICONS, STUDY_MODES } from '@/lib/domains';
 import type { StudyDomain } from '@/lib/types';
 
@@ -11,9 +12,9 @@ const EDITABLE = new Set([
   'answer_placeholder', 'default_link',
 ]);
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withUser(async (req, userId, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
-  const existing = await queryOne<StudyDomain>('SELECT * FROM study_domains WHERE id = ?', [id]);
+  const existing = await queryOne<StudyDomain>('SELECT * FROM study_domains WHERE id = ? AND user_id = ?', [id, userId]);
   if (!existing) return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
 
   const body = await req.json();
@@ -42,8 +43,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   await execute(
-    `UPDATE study_domains SET ${updates.map(update => `${update.key} = ?`).join(', ')} WHERE id = ?`,
-    [...updates.map(update => update.value), id],
+    `UPDATE study_domains SET ${updates.map(update => `${update.key} = ?`).join(', ')} WHERE id = ? AND user_id = ?`,
+    [...updates.map(update => update.value), id, userId],
   );
-  return NextResponse.json(await queryOne<StudyDomain>('SELECT * FROM study_domains WHERE id = ?', [id]));
-}
+  return NextResponse.json(await queryOne<StudyDomain>('SELECT * FROM study_domains WHERE id = ? AND user_id = ?', [id, userId]));
+});

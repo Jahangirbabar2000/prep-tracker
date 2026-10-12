@@ -1,20 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { queryAll, writeTransaction, localToday, localNow } from '@/lib/db';
+import { withUser } from '@/lib/currentUser';
 import { replaySchedule } from '@/lib/sr';
 import { Attempt } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export const GET = withUser(async (_req, userId, { params }: Ctx) => {
   const { id } = await params;
   const attempts = await queryAll<Attempt>(
-    'SELECT * FROM attempts WHERE problem_id = ? ORDER BY attempted_at DESC',
-    [id],
+    'SELECT * FROM attempts WHERE problem_id = ? AND user_id = ? ORDER BY attempted_at DESC',
+    [id, userId],
   );
   return NextResponse.json(attempts);
-}
+});
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withUser(async (req, userId, { params }: Ctx) => {
   const { id } = await params;
   const body = await req.json();
 
@@ -48,32 +51,40 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // leave an attempt the card's schedule doesn't reflect, and two requests for
   // the same card can't each replay a history missing the other's attempt.
   const result = await writeTransaction(async tx => {
-    const problem = await tx.queryOne<{ id: number }>('SELECT id FROM problems WHERE id = ?', [id]);
+    const problem = await tx.queryOne<{ id: number }>('SELECT id FROM problems WHERE id = ? AND user_id = ?', [id, userId]);
     if (!problem) return { status: 404 as const };
 
+    // The key is unique per user, so one user's key can never match — and
+    // hand back — another user's attempt.
     const inserted = await tx.queryOne<Attempt>(
-      `INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled, practice_type, client_id)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT(client_id) DO NOTHING
+      `INSERT INTO attempts (user_id, problem_id, attempted_at, time_taken_mins, struggled, practice_type, client_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, client_id) DO NOTHING
        RETURNING *`,
-      [id, attemptedAtStr, time_taken_mins, struggled ? 1 : 0, practice_type ?? null, client_id ?? null],
+      [userId, id, attemptedAtStr, time_taken_mins, struggled ? 1 : 0, practice_type ?? null, client_id ?? null],
     );
 
     if (!inserted) {
       // A retry of an attempt we already recorded (the first response never
       // made it back). Hand back the stored row rather than inserting it twice,
       // which would also step the card's level twice.
-      const existing = await tx.queryOne<Attempt>('SELECT * FROM attempts WHERE client_id = ?', [client_id]);
+      const existing = await tx.queryOne<Attempt>(
+        'SELECT * FROM attempts WHERE user_id = ? AND client_id = ?',
+        [userId, client_id],
+      );
       if (!existing || existing.problem_id !== problem.id) return { status: 409 as const };
       return { status: 200 as const, attempt: existing };
     }
 
     // Replay the whole history from level 0 so a backfilled/out-of-order date can't drift the level.
-    const all = await tx.queryAll<Attempt>('SELECT id, struggled, attempted_at FROM attempts WHERE problem_id = ?', [id]);
+    const all = await tx.queryAll<Attempt>(
+      'SELECT id, struggled, attempted_at FROM attempts WHERE problem_id = ? AND user_id = ?',
+      [id, userId],
+    );
     const { level, nextDueDate } = replaySchedule(all);
     await tx.execute(
-      'UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ?',
-      [level, nextDueDate, id],
+      'UPDATE problems SET interval_level = ?, next_due_date = ? WHERE id = ? AND user_id = ?',
+      [level, nextDueDate, id, userId],
     );
     return { status: 201 as const, attempt: inserted };
   });
@@ -83,4 +94,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'client_id already used for a different attempt' }, { status: 409 });
   }
   return NextResponse.json(result.attempt, { status: result.status });
-}
+});

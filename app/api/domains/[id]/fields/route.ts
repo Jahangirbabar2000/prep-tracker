@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { queryOne } from '@/lib/db';
+import { withUser } from '@/lib/currentUser';
 import { normalizeDomainSlug } from '@/lib/domains';
 import type { DomainField, DomainFieldKind, DomainFieldTagRole, StudyDomain } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withUser(async (req, userId, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
-  const domain = await queryOne<StudyDomain>('SELECT * FROM study_domains WHERE id = ?', [id]);
+  const domain = await queryOne<StudyDomain>('SELECT * FROM study_domains WHERE id = ? AND user_id = ?', [id, userId]);
   if (!domain) return NextResponse.json({ error: 'Domain not found' }, { status: 404 });
 
   const body = await req.json();
@@ -22,22 +23,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   if (tagRole !== 'none') {
     const conflict = await queryOne<{ id: number }>(
-      'SELECT id FROM domain_fields WHERE domain_id = ? AND tag_role = ? AND archived_at IS NULL',
-      [id, tagRole],
+      'SELECT id FROM domain_fields WHERE user_id = ? AND domain_id = ? AND tag_role = ? AND archived_at IS NULL',
+      [userId, id, tagRole],
     );
     if (conflict) return NextResponse.json({ error: `A ${tagRole} tag field already exists` }, { status: 409 });
   }
   const max = await queryOne<{ value: number | null }>(
-    'SELECT MAX(sort_order) AS value FROM domain_fields WHERE domain_id = ?',
-    [id],
+    'SELECT MAX(sort_order) AS value FROM domain_fields WHERE user_id = ? AND domain_id = ?',
+    [userId, id],
   );
   try {
     const field = await queryOne<DomainField>(
       `INSERT INTO domain_fields
-        (domain_id, key, label, kind, placeholder, filterable, tag_role, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+        (user_id, domain_id, key, label, kind, placeholder, filterable, tag_role, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
       [
-        id, key, label, kind, String(body.placeholder ?? '').trim(),
+        userId, id, key, label, kind, String(body.placeholder ?? '').trim(),
         body.filterable ? 1 : 0, tagRole, (max?.value ?? -1) + 1,
       ],
     );
@@ -45,4 +46,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch {
     return NextResponse.json({ error: 'A field with that key already exists' }, { status: 409 });
   }
-}
+});

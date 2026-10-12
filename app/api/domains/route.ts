@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { queryAll, queryOne } from '@/lib/db';
+import { withUser } from '@/lib/currentUser';
 import {
   DOMAIN_COLORS,
   DOMAIN_ICONS,
@@ -11,12 +12,15 @@ import type { StudyDomain } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
-  const domains = await queryAll<StudyDomain>('SELECT * FROM study_domains ORDER BY sort_order, name');
+export const GET = withUser(async (_req, userId) => {
+  const domains = await queryAll<StudyDomain>(
+    'SELECT * FROM study_domains WHERE user_id = ? ORDER BY sort_order, name',
+    [userId],
+  );
   return NextResponse.json(domains);
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withUser(async (req, userId) => {
   const body = await req.json();
   const name = String(body.name ?? '').trim();
   const slug = normalizeDomainSlug(String(body.slug ?? name));
@@ -30,12 +34,16 @@ export async function POST(req: NextRequest) {
   if (!DOMAIN_ICONS.includes(icon as never)) return NextResponse.json({ error: 'Invalid icon' }, { status: 400 });
   if (!DOMAIN_COLORS.includes(color as never)) return NextResponse.json({ error: 'Invalid color' }, { status: 400 });
 
+  // Slugs are unique per user: someone else's /dsa doesn't stop yours.
   const duplicate = await queryOne<{ id: string }>(
-    'SELECT id FROM study_domains WHERE lower(slug) = lower(?)',
-    [slug],
+    'SELECT id FROM study_domains WHERE user_id = ? AND lower(slug) = lower(?)',
+    [userId, slug],
   );
   if (duplicate) return NextResponse.json({ error: 'That URL slug is already in use' }, { status: 409 });
-  const max = await queryOne<{ value: number | null }>('SELECT MAX(sort_order) AS value FROM study_domains');
+  const max = await queryOne<{ value: number | null }>(
+    'SELECT MAX(sort_order) AS value FROM study_domains WHERE user_id = ?',
+    [userId],
+  );
   const id = `dom_${crypto.randomUUID()}`;
   const shortName = String(body.short_name ?? name).trim().slice(0, 12) || name.slice(0, 12);
   const itemLabel = String(body.item_label ?? (studyMode === 'timed_problem' ? 'Problem' : 'Question')).trim();
@@ -47,13 +55,13 @@ export async function POST(req: NextRequest) {
 
   const domain = await queryOne<StudyDomain>(
     `INSERT INTO study_domains
-      (id, slug, name, short_name, study_mode, icon, color, sort_order, item_label,
+      (user_id, id, slug, name, short_name, study_mode, icon, color, sort_order, item_label,
        log_label, log_title, empty_message, answer_placeholder, default_link)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
     [
-      id, slug, name, shortName, studyMode, icon, color, (max?.value ?? -1) + 1,
+      userId, id, slug, name, shortName, studyMode, icon, color, (max?.value ?? -1) + 1,
       itemLabel, logLabel, logTitle, emptyMessage, answerPlaceholder, defaultLink,
     ],
   );
   return NextResponse.json(domain, { status: 201 });
-}
+});

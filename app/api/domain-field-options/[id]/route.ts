@@ -1,12 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { execute, queryOne } from '@/lib/db';
+import { withUser } from '@/lib/currentUser';
 import type { DomainFieldOption } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withUser(async (req, userId, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
-  const existing = await queryOne<DomainFieldOption>('SELECT * FROM domain_field_options WHERE id = ?', [id]);
+  const existing = await queryOne<DomainFieldOption>(
+    'SELECT * FROM domain_field_options WHERE id = ? AND user_id = ?',
+    [id, userId],
+  );
   if (!existing) return NextResponse.json({ error: 'Option not found' }, { status: 404 });
   const body = await req.json();
   const updates: Array<{ key: string; value: unknown }> = [];
@@ -20,11 +24,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!updates.length) return NextResponse.json({ error: 'No valid fields' }, { status: 400 });
   try {
     await execute(
-      `UPDATE domain_field_options SET ${updates.map(update => `${update.key} = ?`).join(', ')} WHERE id = ?`,
-      [...updates.map(update => update.value), id],
+      `UPDATE domain_field_options SET ${updates.map(update => `${update.key} = ?`).join(', ')} WHERE id = ? AND user_id = ?`,
+      [...updates.map(update => update.value), id, userId],
     );
   } catch {
     return NextResponse.json({ error: 'That option already exists' }, { status: 409 });
   }
-  return NextResponse.json(await queryOne<DomainFieldOption>('SELECT * FROM domain_field_options WHERE id = ?', [id]));
-}
+  return NextResponse.json(await queryOne<DomainFieldOption>(
+    'SELECT * FROM domain_field_options WHERE id = ? AND user_id = ?',
+    [id, userId],
+  ));
+});

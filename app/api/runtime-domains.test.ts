@@ -43,6 +43,9 @@ const activeDomain: StudyDomain = {
   archived_at: null,
 };
 
+// Routes without URL params still take Next's context argument.
+const NO_CTX = {};
+
 function request(url: string, method: string, body: unknown) {
   return new NextRequest(`http://localhost${url}`, {
     method,
@@ -62,7 +65,7 @@ describe('runtime domain APIs', () => {
     const response = await createDomain(request('/api/domains', 'POST', {
       name: 'API',
       slug: 'api',
-    }));
+    }), NO_CTX);
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: 'Invalid or reserved slug' });
     expect(db.queryOne).not.toHaveBeenCalled();
@@ -73,12 +76,12 @@ describe('runtime domain APIs', () => {
     const response = await createDomain(request('/api/domains', 'POST', {
       name: 'Databases',
       slug: 'databases',
-    }));
+    }), NO_CTX);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: 'That URL slug is already in use' });
     expect(db.queryOne).toHaveBeenCalledWith(
-      'SELECT id FROM study_domains WHERE lower(slug) = lower(?)',
-      ['databases'],
+      'SELECT id FROM study_domains WHERE user_id = ? AND lower(slug) = lower(?)',
+      ['usr_owner', 'databases'],
     );
   });
 
@@ -88,7 +91,7 @@ describe('runtime domain APIs', () => {
       name: 'Normalization',
       domain: 'custom',
       metadata: {},
-    }));
+    }), NO_CTX);
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: 'Domain is archived' });
     expect(domainServer.validateProblemMetadata).not.toHaveBeenCalled();
@@ -103,7 +106,7 @@ describe('runtime domain APIs', () => {
       name: 'Normalization',
       domain: 'custom',
       metadata: { surprise: 'value' },
-    }));
+    }), NO_CTX);
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: 'Unknown metadata field: surprise' });
   });
@@ -127,8 +130,8 @@ describe('runtime domain APIs', () => {
 
     expect(response.status).toBe(200);
     expect(db.execute).toHaveBeenCalledWith(
-      'UPDATE domain_field_options SET value = ? WHERE id = ?',
-      ['Relational SQL', '19'],
+      'UPDATE domain_field_options SET value = ? WHERE id = ? AND user_id = ?',
+      ['Relational SQL', '19', 'usr_owner'],
     );
     expect(await response.json()).toMatchObject({ id: 19, value: 'Relational SQL' });
   });
@@ -170,6 +173,6 @@ describe('runtime domain APIs', () => {
     expect(response.status).toBe(200);
     const [, values] = db.execute.mock.calls[0];
     expect(JSON.parse(values[0])).toEqual({ source: 'Book' });
-    expect(values.at(-1)).toBe('7');
+    expect(values.slice(-2)).toEqual(['7', 'usr_owner']);
   });
 });

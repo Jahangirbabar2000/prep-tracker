@@ -28,7 +28,9 @@ afterAll(() => {
 });
 
 beforeEach(async () => {
-  // The live schema's attempts table, after the client_id migration.
+  // The live schema's attempts table, after the multi-user migration: every
+  // row is the owner's (the user an unconfigured-auth request runs as), and
+  // the idempotency key is unique per user.
   await db.executeMultiple(`
     DROP TRIGGER IF EXISTS fail_level_update;
     DROP TABLE IF EXISTS attempts;
@@ -38,7 +40,8 @@ beforeEach(async () => {
       name TEXT NOT NULL,
       domain TEXT NOT NULL,
       interval_level INTEGER NOT NULL DEFAULT 0,
-      next_due_date TEXT
+      next_due_date TEXT,
+      user_id TEXT
     );
     CREATE TABLE attempts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,12 +50,13 @@ beforeEach(async () => {
       time_taken_mins INTEGER NOT NULL,
       struggled INTEGER NOT NULL DEFAULT 0,
       practice_type TEXT,
-      client_id TEXT
+      client_id TEXT,
+      user_id TEXT
     );
-    CREATE UNIQUE INDEX idx_attempts_client_id ON attempts(client_id);
-    INSERT INTO problems (id, name, domain, interval_level, next_due_date) VALUES (1, 'Two Sum', 'dsa', 0, '2026-10-02');
-    INSERT INTO problems (id, name, domain) VALUES (2, 'Valid Parentheses', 'dsa');
-    INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled) VALUES (1, '2026-10-01 09:00:00', 10, 0);
+    CREATE UNIQUE INDEX idx_attempts_user_client_id ON attempts(user_id, client_id);
+    INSERT INTO problems (id, name, domain, interval_level, next_due_date, user_id) VALUES (1, 'Two Sum', 'dsa', 0, '2026-10-02', 'usr_owner');
+    INSERT INTO problems (id, name, domain, user_id) VALUES (2, 'Valid Parentheses', 'dsa', 'usr_owner');
+    INSERT INTO attempts (problem_id, attempted_at, time_taken_mins, struggled, user_id) VALUES (1, '2026-10-01 09:00:00', 10, 0, 'usr_owner');
   `);
 });
 

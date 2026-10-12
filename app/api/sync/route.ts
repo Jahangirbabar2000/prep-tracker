@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { queryAll } from '@/lib/db';
+import { withUser } from '@/lib/currentUser';
 import { Attempt, Note, Link } from '@/lib/types';
 import { getDomainFieldOptions, getDomainFields, getProblems, getStudyDomains } from '@/lib/domain-server';
 import { describeSyncFailure } from '@/lib/syncFailure';
@@ -12,22 +13,23 @@ export const runtime = 'nodejs';
 // caching — the service worker keeps its own copy in Cache Storage.
 const headers = { 'Cache-Control': 'private, no-store' };
 
-// Full dataset dump for the local-first client store. The DB is tiny
-// (~a few thousand rows total), so we pull everything in one call and the
-// client holds it in memory + IndexedDB.
-export async function GET() {
+// The signed-in user's full dataset, for the local-first client store. One
+// person's data is small (a few thousand rows), so it comes in one call and
+// the client holds it in memory + IndexedDB.
+export const GET = withUser(async (_req, userId) => {
   try {
     const [problems, attempts, notes, links, config_options, domains, domain_fields, domain_field_options] = await Promise.all([
-      getProblems(),
-      queryAll<Attempt>('SELECT * FROM attempts'),
-      queryAll<Note>('SELECT * FROM notes'),
-      queryAll<Link>('SELECT * FROM links'),
+      getProblems(userId),
+      queryAll<Attempt>('SELECT * FROM attempts WHERE user_id = ?', [userId]),
+      queryAll<Note>('SELECT * FROM notes WHERE user_id = ?', [userId]),
+      queryAll<Link>('SELECT * FROM links WHERE user_id = ?', [userId]),
       queryAll<{ id: number; domain: string; field: string; value: string; sort_order: number }>(
-        'SELECT * FROM config_options',
+        'SELECT * FROM config_options WHERE user_id = ?',
+        [userId],
       ),
-      getStudyDomains(),
-      getDomainFields(),
-      getDomainFieldOptions(),
+      getStudyDomains(userId),
+      getDomainFields(userId),
+      getDomainFieldOptions(userId),
     ]);
 
     return NextResponse.json(
@@ -40,4 +42,4 @@ export async function GET() {
     console.error('GET /api/sync failed:', error);
     return NextResponse.json({ error: describeSyncFailure(error) }, { status: 500, headers });
   }
-}
+});

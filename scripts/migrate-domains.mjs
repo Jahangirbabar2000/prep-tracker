@@ -75,7 +75,6 @@ await client.executeMultiple(`
     default_link TEXT NOT NULL DEFAULT '',
     archived_at TEXT
   );
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_study_domains_slug_nocase ON study_domains(lower(slug));
   CREATE TABLE IF NOT EXISTS domain_fields (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     domain_id TEXT NOT NULL,
@@ -284,11 +283,117 @@ async function attemptClientId() {
   await client.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_client_id ON attempts(client_id)');
 }
 
+// Every table whose rows belong to one person. lib/currentUser.ts scopes every
+// read and write of these by user_id; a new per-user table goes here too.
+const USER_TABLES = [
+  'study_domains', 'domain_fields', 'domain_field_options', 'config_options',
+  'problems', 'attempts', 'notes', 'links', 'study_plans', 'plan_tasks',
+];
+const OWNER_USER_ID = 'usr_owner';
+
+// The study plan tables, as Rida's copy of the app created them, so her plan
+// survives the move to this database before this app has a screen for it.
+// study_domains.notes_label comes from the same copy.
+async function studyPlanTables() {
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS study_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      mock_start_date TEXT NOT NULL,
+      exam_date TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS plan_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      title TEXT NOT NULL,
+      detail TEXT NOT NULL DEFAULT '',
+      url TEXT NOT NULL DEFAULT '',
+      est_mins INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      done_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_plan_tasks_date ON plan_tasks (plan_id, date);
+  `);
+  const domainColumns = await client.execute('PRAGMA table_info(study_domains)');
+  if (!domainColumns.rows.some(row => String(row.name) === 'notes_label')) {
+    await client.execute('ALTER TABLE study_domains ADD COLUMN notes_label TEXT');
+  }
+}
+
+// Accounts. Every existing row becomes the owner's — before this, the shared
+// passcode was the only way in. user_id is added as a nullable column (SQLite
+// can't add NOT NULL without rebuilding the table, and rebuilding problems
+// under ON DELETE CASCADE risks its attempts), so triggers enforce it instead:
+// an insert must name a user, and a row can't change hands.
+async function multiUser() {
+  await client.executeMultiple(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT,
+      cognito_sub TEXT,
+      display_name TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      deleted_at TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_nocase ON users(lower(email)) WHERE email IS NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_cognito_sub ON users(cognito_sub) WHERE cognito_sub IS NOT NULL;
+  `);
+  await client.execute({
+    sql: `INSERT OR IGNORE INTO users (id, display_name) VALUES (?, 'Owner')`,
+    args: [OWNER_USER_ID],
+  });
+
+  for (const table of USER_TABLES) {
+    const columns = await client.execute(`PRAGMA table_info(${table})`);
+    if (!columns.rows.some(row => String(row.name) === 'user_id')) {
+      await client.execute(`ALTER TABLE ${table} ADD COLUMN user_id TEXT REFERENCES users(id)`);
+    }
+    await client.execute({ sql: `UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, args: [OWNER_USER_ID] });
+    await client.executeMultiple(`
+      CREATE TRIGGER IF NOT EXISTS ${table}_user_id_required BEFORE INSERT ON ${table}
+        WHEN NEW.user_id IS NULL
+        BEGIN SELECT RAISE(ABORT, '${table}.user_id is required'); END;
+      CREATE TRIGGER IF NOT EXISTS ${table}_user_id_fixed BEFORE UPDATE OF user_id ON ${table}
+        WHEN NEW.user_id IS NOT OLD.user_id
+        BEGIN SELECT RAISE(ABORT, '${table}.user_id cannot change'); END;
+    `);
+  }
+
+  // Every read is now "this user's rows", so each index leads with user_id.
+  // Slugs and the offline queue's idempotency key become unique per user:
+  // two people may both have /dsa, and one user's retry key must never match
+  // (and hand back) another user's attempt.
+  await client.executeMultiple(`
+    DROP INDEX IF EXISTS idx_study_domains_slug_nocase;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_study_domains_user_slug ON study_domains(user_id, lower(slug));
+    CREATE INDEX IF NOT EXISTS idx_domain_fields_user ON domain_fields(user_id);
+    CREATE INDEX IF NOT EXISTS idx_domain_field_options_user ON domain_field_options(user_id);
+    CREATE INDEX IF NOT EXISTS idx_config_options_user ON config_options(user_id);
+    DROP INDEX IF EXISTS idx_problems_domain;
+    DROP INDEX IF EXISTS idx_problems_next_due;
+    CREATE INDEX IF NOT EXISTS idx_problems_user_domain ON problems(user_id, domain);
+    CREATE INDEX IF NOT EXISTS idx_problems_user_due ON problems(user_id, next_due_date);
+    DROP INDEX IF EXISTS idx_attempts_client_id;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_attempts_user_client_id ON attempts(user_id, client_id);
+    CREATE INDEX IF NOT EXISTS idx_attempts_user_attempted ON attempts(user_id, attempted_at);
+    CREATE INDEX IF NOT EXISTS idx_notes_user_problem ON notes(user_id, problem_id);
+    CREATE INDEX IF NOT EXISTS idx_links_user_problem ON links(user_id, problem_id);
+    CREATE INDEX IF NOT EXISTS idx_study_plans_user ON study_plans(user_id);
+    CREATE INDEX IF NOT EXISTS idx_plan_tasks_user ON plan_tasks(user_id);
+  `);
+}
+
 // In order: each one may rely on the ones before it.
 const migrations = [
   ['2026-06-05-core-schema', coreSchema],
   ['2026-07-29-runtime-domains-v1', runtimeDomainsV1],
   ['2026-10-07-attempt-client-id', attemptClientId],
+  ['2026-10-12-study-plan-tables', studyPlanTables],
+  ['2026-10-12-multi-user', multiUser],
 ];
 const ran = [];
 for (const [id, run] of migrations) {
