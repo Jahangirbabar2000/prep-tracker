@@ -64,6 +64,9 @@ export default $config({
         COGNITO_CLIENT_SECRET: auth.clientSecret,
         // The server computes "today" in this zone.
         TZ: 'America/New_York',
+        // Brotli effort for the compressed wrapper (open-next.config.ts): fast
+        // enough for a multi-MB /api/sync, still far smaller than the raw JSON.
+        BROTLI_QUALITY: '4',
         OTEL_EXPORTER_OTLP_ENDPOINT: otelEndpoint.value,
         OTEL_EXPORTER_OTLP_HEADERS: otelHeaders.value,
         OTEL_SERVICE_NAME: 'prep-tracker',
