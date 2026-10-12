@@ -6,6 +6,7 @@ import { idbGet, idbSet } from './idb';
 import { mutate, getData, replaceAll, type StoreData } from './store';
 import { clientNow } from './queries';
 import { isDemo } from '@/lib/demo/mode';
+import { track } from '@/lib/analytics';
 
 interface QueuedAttempt {
   /** Idempotency key, minted once when the attempt is logged and sent on every
@@ -99,6 +100,13 @@ export async function logAttempt(input: {
   };
   mutate(d => withAttempt(d, item));
   await updateQueue(queue => [...queue, item]);
+  const data = getData();
+  const domainId = data.problems.find(problem => problem.id === input.problemId)?.domain;
+  track('review_logged', {
+    struggled: input.struggled,
+    study_mode: data.domains.find(domain => domain.id === domainId)?.study_mode ?? 'unknown',
+    offline: typeof navigator !== 'undefined' && !navigator.onLine,
+  });
 }
 
 /**

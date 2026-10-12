@@ -48,6 +48,7 @@ export const config = {
   // Run on everything except the login page, the auth API, Next internals,
   // and the PWA/static assets needed to render login and boot the app.
   matcher: [
-    '/((?!login|api/auth|_next/static|_next/image|sw\\.js|manifest\\.json|favicon\\.ico|icon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|robots\\.txt).*)',
+    // ingest: analytics, rewritten to PostHog (next.config.ts) — the landing page sends it signed out too.
+    '/((?!login|api/auth|ingest|_next/static|_next/image|sw\\.js|manifest\\.json|favicon\\.ico|icon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|robots\\.txt).*)',
   ],
 };

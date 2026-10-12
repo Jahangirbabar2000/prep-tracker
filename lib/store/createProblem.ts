@@ -2,7 +2,8 @@
 
 import { replaySchedule } from '@/lib/sr';
 import { Problem, Attempt, Link, Note } from '@/lib/types';
-import { mutate } from './store';
+import { getData, mutate } from './store';
+import { track } from '@/lib/analytics';
 
 /**
  * After a log form finishes creating/updating a problem + its first attempt
@@ -24,6 +25,7 @@ export function syncCreatedProblem(input: {
   notes?: Note[];
 }): void {
   const { problem, attempt, links = [], notes = [] } = input;
+  track('card_created', { study_mode: getData().domains.find(domain => domain.id === problem.domain)?.study_mode ?? 'unknown' });
 
   mutate(d => {
     // The attempt POST already recomputed interval_level/next_due_date server-side,

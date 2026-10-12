@@ -78,6 +78,8 @@ export default $config({
           'NEXT_PUBLIC_AUTHOR_GITHUB',
           'NEXT_PUBLIC_AUTHOR_LINKEDIN',
           'NEXT_PUBLIC_REPO_URL',
+          // PostHog project key (public by design); analytics is off without it.
+          'NEXT_PUBLIC_POSTHOG_KEY',
         ]),
       },
     });

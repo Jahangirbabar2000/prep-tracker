@@ -3,6 +3,7 @@ import './globals.css';
 import { THEME_COLORS, THEME_STORAGE_KEY, DARK_QUERY } from '@/lib/theme';
 import { APP_NAME } from '@/lib/appName';
 import { SITE_URL } from '@/lib/site';
+import Analytics from '@/components/Analytics';
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -71,6 +72,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           app/(app)/layout.tsx; public pages (login, landing) get none of it. */}
       <body className="antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   );

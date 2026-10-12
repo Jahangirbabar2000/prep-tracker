@@ -1,6 +1,7 @@
 'use client';
 
 import { idbDestroyAllAccounts } from './idb';
+import { resetAnalytics } from '@/lib/analytics';
 import { flushQueue, queuedCount } from './writeQueue';
 
 /** Other open tabs of the app listen here, so signing out in one signs out all. */
@@ -54,6 +55,8 @@ export async function signOut({ discardUnsynced = false } = {}): Promise<SignOut
  */
 export async function wipeLocalData(): Promise<void> {
   await idbDestroyAllAccounts();
+  // Analytics' own id for this browser goes too, so the next person isn't counted as the last.
+  await resetAnalytics();
   if (typeof caches !== 'undefined') {
     const names = await caches.keys();
     await Promise.all(names.filter(name => !name.startsWith('assets-')).map(name => caches.delete(name)));

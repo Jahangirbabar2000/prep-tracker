@@ -23,6 +23,7 @@ import {
 } from '@/lib/domains';
 import { mutate, useStore } from '@/lib/store/store';
 import { SESSION_CHANNEL, signOut, wipeLocalData } from '@/lib/store/signOut';
+import { track } from '@/lib/analytics';
 import { domainIcon, domainPalette } from '@/components/domainVisuals';
 import DemoGate from '@/components/DemoGate';
 
@@ -502,6 +503,7 @@ function AccountSection() {
     }
     // The account is gone, queued reviews included: clear this browser and
     // the other tabs, then end the Cognito session.
+    track('account_deleted');
     await wipeLocalData();
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel(SESSION_CHANNEL);
@@ -516,7 +518,7 @@ function AccountSection() {
       <h2 className="text-sm font-semibold text-fg">Your account</h2>
       <p className="text-xs text-muted mt-1 mb-3">Download everything you’ve logged, or delete your account and all of its data.</p>
       <div className="flex flex-wrap gap-2">
-        <a href="/api/account" download className={`${buttonCls} text-fg`}>
+        <a href="/api/account" download onClick={() => track('data_exported')} className={`${buttonCls} text-fg`}>
           <Download size={13} /> Download my data
         </a>
         <button onClick={() => void deleteAccount()} disabled={busy} className={`${buttonCls} text-danger`}>
