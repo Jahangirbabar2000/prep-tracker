@@ -1,0 +1,53 @@
+# Checks for every push and pull request; the deploy workflow reuses them.
+name: CI
+
+on:
+  push:
+    branches-ignore: ['deployed/**']
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# Keyed by workflow too: when deploy.yml reuses these checks, github.workflow
+# is "Deploy", so a push's own CI run can't cancel the deploy's checks.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Types and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # e2e/server.mjs builds its own throwaway database; no secrets needed.
+      - run: npm run test:e2e
+        env:
+          CI: 'true'
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7

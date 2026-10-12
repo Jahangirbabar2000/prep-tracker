@@ -1,0 +1,107 @@
+# Deploy one stage: migrate its database, deploy, smoke-test, and on a failed
+# smoke test redeploy the last commit that passed (the deployed/<stage> tag).
+# Called by deploy.yml.
+name: Deploy stage
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.stage }}
+    runs-on: ubuntu-latest
+    # The deploy role trusts only jobs in these environments (sst.config.ts, ci stage).
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.stage }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write   # OIDC to AWS: no AWS keys stored in GitHub
+      contents: write   # move the deployed/<stage> tag
+    env:
+      STAGE: ${{ inputs.stage }}
+      # Build-time public config (repository variables).
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+      NEXT_PUBLIC_APP_NAME: ${{ vars.NEXT_PUBLIC_APP_NAME }}
+      NEXT_PUBLIC_AUTHOR_NAME: ${{ vars.NEXT_PUBLIC_AUTHOR_NAME }}
+      NEXT_PUBLIC_AUTHOR_GITHUB: ${{ vars.NEXT_PUBLIC_AUTHOR_GITHUB }}
+      NEXT_PUBLIC_AUTHOR_LINKEDIN: ${{ vars.NEXT_PUBLIC_AUTHOR_LINKEDIN }}
+      NEXT_PUBLIC_REPO_URL: ${{ vars.NEXT_PUBLIC_REPO_URL }}
+      NEXT_PUBLIC_ASK_AI: ${{ vars.NEXT_PUBLIC_ASK_AI }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: prep-tracker-${{ inputs.stage }}-${{ github.run_id }}
+
+      - name: Install SST's providers
+        run: npx sst install
+
+      - name: Read the stage's settings
+        id: settings
+        run: |
+          secrets="$(npx sst secret list --stage "$STAGE")"
+          value() { printf '%s\n' "$secrets" | grep -E "^$1=" | head -1 | cut -d= -f2-; }
+          for name in TursoDatabaseUrl TursoAuthToken AuthSecret SiteUrl; do
+            v="$(value "$name")"
+            [ -n "$v" ] || { echo "::error::$name is not set for $STAGE"; exit 1; }
+            echo "::add-mask::$v"
+          done
+          {
+            echo "TURSO_DATABASE_URL=$(value TursoDatabaseUrl)"
+            echo "TURSO_AUTH_TOKEN=$(value TursoAuthToken)"
+            echo "SMOKE_AUTH_SECRET=$(value AuthSecret)"
+            echo "SMOKE_BASE_URL=$(value SiteUrl)"
+          } >> "$GITHUB_ENV"
+
+      # Forward-only and recorded, so it is safe on every deploy; it runs first
+      # so the new code never meets an old schema.
+      - name: Migrate the database
+        run: npm run db:migrate
+
+      - name: Deploy
+        run: npx sst deploy --stage "$STAGE"
+
+      - name: Smoke test
+        id: smoke
+        run: npm run smoke
+        env:
+          SMOKE_DATABASE_URL: ${{ env.TURSO_DATABASE_URL }}
+          SMOKE_DATABASE_TOKEN: ${{ env.TURSO_AUTH_TOKEN }}
+
+      - name: Mark this commit as the stage's last good deploy
+        run: |
+          git tag -f "deployed/$STAGE" "$GITHUB_SHA"
+          git push -f origin "refs/tags/deployed/$STAGE"
+
+      # The smoke test failed: put back the last commit that passed. Schema
+      # migrations are additive, so the older code still runs on the new schema.
+      - name: Roll back to the last good deploy
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: |
+          if ! git rev-parse -q --verify "refs/tags/deployed/$STAGE" >/dev/null; then
+            echo "::error::No deployed/$STAGE tag yet: nothing to roll back to."
+            exit 1
+          fi
+          git checkout "refs/tags/deployed/$STAGE"
+          npm ci
+          GITHUB_SHA="$(git rev-parse HEAD)" npx sst deploy --stage "$STAGE"
+          SMOKE_DATABASE_URL="$TURSO_DATABASE_URL" SMOKE_DATABASE_TOKEN="$TURSO_AUTH_TOKEN" npm run smoke
+          echo "::error::Smoke test failed on $GITHUB_SHA; rolled $STAGE back to $(git rev-parse --short HEAD)."
+          exit 1

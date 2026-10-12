@@ -20,11 +20,16 @@ export default $config({
       home: 'aws',
       // Turso is in aws-us-east-1; keep Lambda next to it.
       providers: { aws: { region: REGION } },
-      removal: input?.stage === 'production' ? 'retain' : 'remove',
-      protect: input?.stage === 'production',
+      // The CI role is account plumbing every other stage depends on: keep it.
+      removal: input?.stage === 'production' || input?.stage === 'ci' ? 'retain' : 'remove',
+      protect: input?.stage === 'production' || input?.stage === 'ci',
     };
   },
   async run() {
+    // `sst deploy --stage ci`, once per account from a laptop: only the role
+    // GitHub Actions deploys with. Every other stage is the app.
+    if ($app.stage === 'ci') return githubDeployRole();
+
     const tursoUrl = new sst.Secret('TursoDatabaseUrl');
     const tursoToken = new sst.Secret('TursoAuthToken');
     const authSecret = new sst.Secret('AuthSecret');
@@ -90,6 +95,50 @@ export default $config({
     return { url: site.url, signIn: auth.domain };
   },
 });
+
+const GITHUB_REPO = 'Jahangirbabar2000/prep-tracker';
+// GitHub environments the deploy workflow's jobs run in. Not Vercel's own
+// "Preview"/"Production" (environment names are case-insensitive).
+const DEPLOY_ENVIRONMENTS = ['aws-staging', 'aws-production'];
+
+/**
+ * GitHub Actions signs in to AWS with OIDC — no AWS keys stored in GitHub.
+ * The role trusts only this repository's jobs running in one of the deploy
+ * environments, so a pull request (from a fork or not) can't assume it.
+ * It is administrator because `sst deploy` creates IAM roles, CloudFront,
+ * Lambda, Cognito and SSM resources across the account; the trust policy is
+ * what narrows it.
+ */
+function githubDeployRole() {
+  const provider = new aws.iam.OpenIdConnectProvider('GithubOidc', {
+    url: 'https://token.actions.githubusercontent.com',
+    clientIdLists: ['sts.amazonaws.com'],
+  });
+  const role = new aws.iam.Role('GithubDeploy', {
+    name: 'prep-tracker-github-deploy',
+    maxSessionDuration: 3600,
+    assumeRolePolicy: provider.arn.apply(arn => JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [{
+        Effect: 'Allow',
+        Principal: { Federated: arn },
+        Action: 'sts:AssumeRoleWithWebIdentity',
+        Condition: {
+          // sub is single-valued: a list under StringEquals means "any one of".
+          StringEquals: {
+            'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
+            'token.actions.githubusercontent.com:sub': DEPLOY_ENVIRONMENTS.map(env => `repo:${GITHUB_REPO}:environment:${env}`),
+          },
+        },
+      }],
+    })),
+  });
+  new aws.iam.RolePolicyAttachment('GithubDeployAdmin', {
+    role: role.name,
+    policyArn: 'arn:aws:iam::aws:policy/AdministratorAccess',
+  });
+  return { githubDeployRoleArn: role.arn };
+}
 
 /**
  * The user pool and its managed login. Email is the username; Cognito

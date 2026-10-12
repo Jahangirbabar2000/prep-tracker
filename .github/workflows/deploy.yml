@@ -1,0 +1,48 @@
+# Merge to main: checks, then staging (migrate, deploy, smoke, roll back on
+# failure). Production only by hand for now — until the switch-over from
+# Vercel (PLAN.md, phase 8), main still deploys there too, and production's
+# database isn't migrated yet.
+name: Deploy
+
+on:
+  push:
+    # aws-migration: until the switch-over, the only way to run this before it
+    # is on main (a manual run needs the file on the default branch). Staging
+    # only — production is never deployed by a push yet. Remove at phase 8.
+    branches: [main, aws-migration]
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Stage to deploy
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  staging:
+    needs: checks
+    if: github.event_name == 'push' || inputs.stage == 'staging' || inputs.stage == 'production'
+    uses: ./.github/workflows/deploy-stage.yml
+    permissions:
+      id-token: write
+      contents: write
+    with:
+      stage: staging
+      environment: aws-staging
+
+  production:
+    needs: staging
+    if: github.event_name == 'workflow_dispatch' && inputs.stage == 'production'
+    uses: ./.github/workflows/deploy-stage.yml
+    permissions:
+      id-token: write
+      contents: write
+    with:
+      stage: production
+      environment: aws-production
