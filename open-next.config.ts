@@ -4,7 +4,7 @@
 // bundle built on a Mac has only the darwin one and fails on Lambda with
 // "Cannot find module '@libsql/linux-x64-gnu'". Install the Linux build into
 // the server bundle; keep the version equal to node_modules/libsql's.
-export default {
+const config = {
   default: {
     install: {
       packages: ['@libsql/linux-x64-gnu@0.5.29'],
@@ -16,3 +16,5 @@ export default {
     },
   },
 };
+
+export default config;
