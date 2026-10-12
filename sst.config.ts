@@ -32,7 +32,7 @@ export default $config({
       // bundle: a local .env holds the production Turso token, which would
       // otherwise ship to every stage (and back-fill a secret a stage forgot).
       buildCommand:
-        'npx --yes @opennextjs/aws@3.9.14 build && find .open-next -name ".env*" -type f -delete',
+        'npx --yes @opennextjs/aws@4.1.9 build && find .open-next -name ".env*" -type f -delete',
       // One instance pinged every few minutes, to cut cold starts.
       warm: 1,
       environment: {

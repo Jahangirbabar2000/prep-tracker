@@ -3,10 +3,12 @@
 import { useEffect } from 'react';
 import { useStore } from '@/lib/store/store';
 import { activeDomains } from '@/lib/domains';
+import { mapLimit } from '@/lib/mapLimit';
 
 // Core routes to proactively cache on first load so the main flows work offline
 // without having to manually visit each one while online.
 const STATIC_CORE_ROUTES = ['/', '/review/session', '/review/history', '/stats', '/settings'];
+const WARM_CONCURRENCY = 4;
 
 export default function RegisterSW() {
   const { data } = useStore();
@@ -47,9 +49,11 @@ export default function RegisterSW() {
         await navigator.serviceWorker.ready;
 
         // Warm the page cache so core routes open offline after one online visit.
+        // A few at a time: each fetch takes a server instance, and ~25 at once
+        // trips a small Lambda concurrency cap (429s).
         if (navigator.onLine && 'caches' in window) {
           const cache = await caches.open('pages-v2');
-          await Promise.all([...STATIC_CORE_ROUTES, ...domainRoutes].map(async route => {
+          await mapLimit([...STATIC_CORE_ROUTES, ...domainRoutes], WARM_CONCURRENCY, async route => {
             try {
               const res = await fetch(route, { cache: 'no-store' });
               // Signed out, every other route redirects to the landing page, and
@@ -57,7 +61,7 @@ export default function RegisterSW() {
               // under the route would open it, offline, instead of the app.
               if (res.ok && !res.redirected && !res.headers.get('x-prep-public')) await cache.put(route, res.clone());
             } catch { /* ignore — best effort */ }
-          }));
+          });
         }
       } catch { /* ignore */ }
     })();
