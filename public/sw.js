@@ -1,12 +1,16 @@
 // Service worker for offline support. Static asset (no build plugin), so it
 // works regardless of Turbopack. The app is local-first: pages are static
 // client shells that hydrate from IndexedDB, so caching the shell + the JS/CSS
-// chunks + the /api/sync dump is enough to run fully offline.
-const VER = 'v2';
+// chunks is enough to run fully offline.
+//
+// /api/sync is deliberately not cached. Its data already lives in the
+// account's own IndexedDB database; a Cache Storage copy is keyed by URL
+// alone, so on a shared device it would hand one account's data to the next
+// one offline. v3 drops v2's api cache on activate.
+const VER = 'v3';
 const CACHES = {
   pages:  `pages-${VER}`,
   assets: `assets-${VER}`,
-  api:    `api-${VER}`,
 };
 const TIMEOUT_MS = 8000;
 
@@ -26,12 +30,6 @@ self.addEventListener('fetch', event => {
   let url;
   try { url = new URL(request.url); } catch { return; }
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-
-  // Full dataset dump — NetworkFirst (fresh when online, cached when offline).
-  if (url.pathname === '/api/sync') {
-    event.respondWith(networkFirst(request, CACHES.api));
-    return;
-  }
 
   // Page navigations — NetworkFirst, fall back to any cached shell (or home).
   if (request.mode === 'navigate') {
@@ -58,20 +56,6 @@ async function navHandler(request) {
     return (await cache.match(request))
       ?? (await cache.match('/'))
       ?? new Response('offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
-  }
-}
-
-async function networkFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  try {
-    const res = await withTimeout(fetch(request));
-    if (res.ok) cache.put(request, res.clone());
-    return res;
-  } catch {
-    return (await cache.match(request))
-      ?? new Response(JSON.stringify({ error: 'offline' }), {
-        status: 503, headers: { 'Content-Type': 'application/json' },
-      });
   }
 }
 

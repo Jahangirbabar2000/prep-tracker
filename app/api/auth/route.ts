@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AUTH_COOKIE, AUTH_MAX_AGE_S, createSession, timingSafeEqual } from '@/lib/auth';
+import { OWNER_USER_ID, createSession, timingSafeEqual } from '@/lib/auth';
+import { clearSessionCookies, setSessionCookies } from '@/lib/sessionCookies';
 
 export const runtime = 'nodejs';
 
@@ -22,21 +23,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Wrong passcode.' }, { status: 401 });
   }
 
-  const token = await createSession(secret);
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(AUTH_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: AUTH_MAX_AGE_S,
-  });
+  setSessionCookies(res, await createSession(secret, Date.now(), OWNER_USER_ID), OWNER_USER_ID);
   return res;
 }
 
 // DELETE — log out by clearing the cookie.
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(AUTH_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0 });
+  clearSessionCookies(res);
   return res;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { replaceAll, normalize, loadFromIDB, setSyncError } from './store';
-import { idbGet, idbSet } from './idb';
+import { claimLocalData, idbGet, idbSet } from './idb';
 import { clientNow, clientToday } from './queries';
 import { isDemo } from '@/lib/demo/mode';
 import { flushQueue, withQueuedAttempts } from './writeQueue';
@@ -41,6 +41,8 @@ export async function syncNow(): Promise<void> {
 /** App boot: hydrate instantly from IndexedDB, then refresh from the server. */
 export async function bootStore(): Promise<void> {
   if (isDemo()) return bootDemo();
+  // A shared device: drop any other account's local data before reading ours.
+  await claimLocalData().catch(() => {});
   await loadFromIDB();
   await syncNow();
 }

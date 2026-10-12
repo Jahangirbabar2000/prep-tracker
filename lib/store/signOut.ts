@@ -1,6 +1,6 @@
 'use client';
 
-import { idbDestroy } from './idb';
+import { idbDestroyAllAccounts } from './idb';
 import { flushQueue, queuedCount } from './writeQueue';
 
 /** Other open tabs of the app listen here, so signing out in one signs out all. */
@@ -46,13 +46,14 @@ export async function signOut({ discardUnsynced = false } = {}): Promise<SignOut
 }
 
 /**
- * Everything this browser holds for the account: the IndexedDB database and
- * the service worker's caches (its copy of /api/sync above all). The hashed
- * JS/CSS bundles stay — they're identical for everyone. So do the theme and
- * sidebar choices in localStorage: they belong to the device, not the account.
+ * Everything this browser holds for any account: every account's IndexedDB
+ * database (not only this one's — a shared device keeps nobody's) and the
+ * service worker's page caches. The hashed JS/CSS bundles stay — they're
+ * identical for everyone. So do the theme and sidebar choices in
+ * localStorage: they belong to the device, not the account.
  */
 export async function wipeLocalData(): Promise<void> {
-  await idbDestroy();
+  await idbDestroyAllAccounts();
   if (typeof caches !== 'undefined') {
     const names = await caches.keys();
     await Promise.all(names.filter(name => !name.startsWith('assets-')).map(name => caches.delete(name)));

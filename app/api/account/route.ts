@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { AdminDeleteUserCommand, CognitoIdentityProviderClient } from '@aws-sdk/client-cognito-identity-provider';
-import { AUTH_COOKIE } from '@/lib/auth';
+import { clearSessionCookies } from '@/lib/sessionCookies';
 import { deleteAccount, exportAccount } from '@/lib/accountData';
 import { withUser } from '@/lib/currentUser';
 import { cognitoConfig } from '@/lib/oidc';
@@ -35,6 +35,6 @@ export const DELETE = withUser(async (_req, userId) => {
     }
   }
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(AUTH_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0 });
+  clearSessionCookies(res);
   return res;
 });

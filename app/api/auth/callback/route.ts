@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { AUTH_COOKIE, AUTH_MAX_AGE_S, createSession, timingSafeEqual, verifyToken } from '@/lib/auth';
+import { createSession, timingSafeEqual, verifyToken } from '@/lib/auth';
+import { setSessionCookies } from '@/lib/sessionCookies';
 import { resolveUser } from '@/lib/accounts';
 import { cognitoConfig, exchangeCode, verifyIdToken } from '@/lib/oidc';
 import { safeNextPath } from '@/lib/routing';
@@ -46,12 +47,6 @@ export async function GET(req: NextRequest) {
 
   const res = NextResponse.redirect(`${config.siteUrl}${safeNextPath(typeof pending.next === 'string' ? pending.next : null)}`);
   res.cookies.set(OAUTH_COOKIE, '', { path: '/api/auth', maxAge: 0 });
-  res.cookies.set(AUTH_COOKIE, await createSession(secret, Date.now(), userId), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: AUTH_MAX_AGE_S,
-  });
+  setSessionCookies(res, await createSession(secret, Date.now(), userId), userId);
   return res;
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { queryAll } from '@/lib/db';
 import { withUser } from '@/lib/currentUser';
+import { setUserHint } from '@/lib/sessionCookies';
+import { USER_HINT_COOKIE } from '@/lib/store/localAccount';
 import { Attempt, Note, Link } from '@/lib/types';
 import { getDomainFieldOptions, getDomainFields, getProblems, getStudyDomains } from '@/lib/domain-server';
 import { describeSyncFailure } from '@/lib/syncFailure';
@@ -16,7 +18,7 @@ const headers = { 'Cache-Control': 'private, no-store' };
 // The signed-in user's full dataset, for the local-first client store. One
 // person's data is small (a few thousand rows), so it comes in one call and
 // the client holds it in memory + IndexedDB.
-export const GET = withUser(async (_req, userId) => {
+export const GET = withUser(async (req, userId) => {
   try {
     const [problems, attempts, notes, links, config_options, domains, domain_fields, domain_field_options] = await Promise.all([
       getProblems(userId),
@@ -32,10 +34,14 @@ export const GET = withUser(async (_req, userId) => {
       getDomainFieldOptions(userId),
     ]);
 
-    return NextResponse.json(
+    const res = NextResponse.json(
       { problems, attempts, notes, links, config_options, domains, domain_fields, domain_field_options },
       { headers },
     );
+    // A session from before the user hint existed gets one, so its next page
+    // load moves onto this account's own IndexedDB database.
+    if (req.cookies.get(USER_HINT_COOKIE)?.value !== userId) setUserHint(res, userId);
+    return res;
   } catch (error) {
     // Uncaught, this was a bare 500 with an empty body and the app sat on
     // "Loading…" forever. The client shows this message instead.

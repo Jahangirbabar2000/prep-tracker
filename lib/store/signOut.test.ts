@@ -4,7 +4,7 @@ const calls = vi.hoisted(() => [] as string[]);
 const queue = vi.hoisted(() => ({ pendingAfterFlush: 0 }));
 
 vi.mock('./idb', () => ({
-  idbDestroy: vi.fn(async () => { calls.push('wipe idb'); }),
+  idbDestroyAllAccounts: vi.fn(async () => { calls.push('wipe idb'); }),
 }));
 vi.mock('./writeQueue', () => ({
   flushQueue: vi.fn(async () => { calls.push('flush'); }),
@@ -13,7 +13,7 @@ vi.mock('./writeQueue', () => ({
 
 import { signOut, SESSION_CHANNEL } from './signOut';
 
-const cacheNames = ['pages-v2', 'assets-v2', 'api-v2'];
+const cacheNames = ['pages-v3', 'assets-v3', 'api-v2'];
 const fetchMock = vi.fn(async () => { calls.push('end session'); return new Response('{}', { status: 200 }); });
 
 beforeEach(() => {
@@ -39,8 +39,8 @@ describe('signOut', () => {
 
     expect(calls.slice(0, 3)).toEqual(['flush', 'end session', 'wipe idb']);
     expect(fetchMock).toHaveBeenCalledWith('/api/auth', { method: 'DELETE' });
-    // The /api/sync copy and page shells go; the shared, hashed bundles stay.
-    expect(calls.slice(3).sort()).toEqual(['delete cache api-v2', 'delete cache pages-v2']);
+    // Page shells (and any old /api/sync copy) go; the shared, hashed bundles stay.
+    expect(calls.slice(3).sort()).toEqual(['delete cache api-v2', 'delete cache pages-v3']);
   });
 
   it('refuses offline, touching nothing', async () => {

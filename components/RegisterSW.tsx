@@ -52,7 +52,7 @@ export default function RegisterSW() {
         // A few at a time: each fetch takes a server instance, and ~25 at once
         // trips a small Lambda concurrency cap (429s).
         if (navigator.onLine && 'caches' in window) {
-          const cache = await caches.open('pages-v2');
+          const cache = await caches.open('pages-v3');
           await mapLimit([...STATIC_CORE_ROUTES, ...domainRoutes], WARM_CONCURRENCY, async route => {
             try {
               const res = await fetch(route, { cache: 'no-store' });

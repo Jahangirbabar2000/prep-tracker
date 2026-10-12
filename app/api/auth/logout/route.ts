@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { AUTH_COOKIE } from '@/lib/auth';
+import { clearSessionCookies } from '@/lib/sessionCookies';
 import { cognitoConfig, logoutUrl } from '@/lib/oidc';
 
 export const runtime = 'nodejs';
@@ -10,6 +10,6 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   const config = cognitoConfig();
   const res = NextResponse.redirect(config ? logoutUrl(config) : new URL('/login', req.url));
-  res.cookies.set(AUTH_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0 });
+  clearSessionCookies(res);
   return res;
 }
