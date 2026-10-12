@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_COOKIE, OWNER_USER_ID, readSession } from './auth';
 import { isActiveUser } from './accountData';
+import { annotate, flushTelemetry, takeColdStart } from './telemetry';
 
 /**
  * The signed-in user for a route handler — always from the session cookie,
@@ -24,12 +25,22 @@ export function withUser<Ctx>(
   handler: (req: NextRequest, userId: string, ctx: Ctx) => Promise<Response>,
 ) {
   return async (req: NextRequest, ctx: Ctx): Promise<Response> => {
-    const userId = await userIdFromRequest(req);
-    // A session outlives its account on every other device; a deleted (or
-    // unknown) user is signed out here, not just on the device that deleted.
-    if (!userId || !(await isActiveUser(userId))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+      annotate({ 'faas.coldstart': takeColdStart() });
+      const userId = await userIdFromRequest(req);
+      // A session outlives its account on every other device; a deleted (or
+      // unknown) user is signed out here, not just on the device that deleted.
+      if (!userId || !(await isActiveUser(userId))) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      // The internal id only — never the email.
+      annotate({ 'enduser.id': userId });
+      return await handler(req, userId, ctx);
+    } finally {
+      // Lambda freezes once the response goes; send this request's spans (and
+      // any a page render left buffered) first. The client rarely waits on the
+      // API — the store is local-first — so the flush costs it little.
+      await flushTelemetry();
     }
-    return handler(req, userId, ctx);
   };
 }

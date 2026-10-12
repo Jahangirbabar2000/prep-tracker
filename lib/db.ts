@@ -1,4 +1,5 @@
 import { createClient, Client, Transaction } from '@libsql/client';
+import { describeSql, withSpan } from './telemetry';
 
 function makeClient(): Client {
   const url = process.env.TURSO_DATABASE_URL;
@@ -20,20 +21,35 @@ function toPlain(columns: string[], rows: ArrayLike<unknown>[]): Record<string, 
   );
 }
 
+/** One Turso round trip, traced: its statement (never its values), rows and time. */
+function run(target: Client | Transaction, sql: string, args: unknown[]) {
+  const { op, table } = describeSql(sql);
+  return withSpan(`db ${op}${table ? ` ${table}` : ''}`, {
+    'db.system.name': 'sqlite',
+    'db.operation.name': op,
+    'db.collection.name': table,
+    'db.query.text': sql.trim().replace(/\s+/g, ' ').slice(0, 1000),
+  }, async span => {
+    const result = await target.execute({ sql, args: args as never[] });
+    span.setAttribute('db.response.returned_rows', result.rows.length);
+    return result;
+  });
+}
+
 /** The query helpers, bound to either the shared client or one transaction. */
 function queriesOn(target: Client | Transaction) {
   return {
     async queryOne<T>(sql: string, args: unknown[] = []): Promise<T | null> {
-      const result = await target.execute({ sql, args: args as never[] });
+      const result = await run(target, sql, args);
       if (result.rows.length === 0) return null;
       return toPlain(result.columns, result.rows)[0] as unknown as T;
     },
     async queryAll<T>(sql: string, args: unknown[] = []): Promise<T[]> {
-      const result = await target.execute({ sql, args: args as never[] });
+      const result = await run(target, sql, args);
       return toPlain(result.columns, result.rows) as unknown as T[];
     },
     async execute(sql: string, args: unknown[] = []): Promise<{ lastInsertRowid: bigint; changes: number }> {
-      const result = await target.execute({ sql, args: args as never[] });
+      const result = await run(target, sql, args);
       return { lastInsertRowid: result.lastInsertRowid ?? BigInt(0), changes: result.rowsAffected };
     },
   };
@@ -64,17 +80,19 @@ export function execute(
  * derived from it) from acting on a value another request is about to change.
  */
 export async function writeTransaction<T>(fn: (tx: Queries) => Promise<T>): Promise<T> {
-  const tx = await getClient().transaction('write');
-  try {
-    const result = await fn(queriesOn(tx));
-    await tx.commit();
-    return result;
-  } catch (e) {
-    await tx.rollback().catch(() => {});
-    throw e;
-  } finally {
-    tx.close();
-  }
+  return withSpan('db transaction', { 'db.system.name': 'sqlite' }, async () => {
+    const tx = await getClient().transaction('write');
+    try {
+      const result = await fn(queriesOn(tx));
+      await tx.commit();
+      return result;
+    } catch (e) {
+      await tx.rollback().catch(() => {});
+      throw e;
+    } finally {
+      tx.close();
+    }
+  });
 }
 
 const TZ = 'America/New_York';

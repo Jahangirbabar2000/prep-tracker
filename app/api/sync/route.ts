@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { queryAll } from '@/lib/db';
 import { withUser } from '@/lib/currentUser';
 import { setUserHint } from '@/lib/sessionCookies';
+import { annotate } from '@/lib/telemetry';
 import { USER_HINT_COOKIE } from '@/lib/store/localAccount';
 import { Attempt, Note, Link } from '@/lib/types';
 import { getDomainFieldOptions, getDomainFields, getProblems, getStudyDomains } from '@/lib/domain-server';
@@ -34,10 +35,14 @@ export const GET = withUser(async (req, userId) => {
       getDomainFieldOptions(userId),
     ]);
 
-    const res = NextResponse.json(
-      { problems, attempts, notes, links, config_options, domains, domain_fields, domain_field_options },
-      { headers },
-    );
+    const body = JSON.stringify({ problems, attempts, notes, links, config_options, domains, domain_fields, domain_field_options });
+    // The endpoint most likely to slow down as a deck grows: how much it sends.
+    annotate({
+      'app.sync.problems': problems.length,
+      'app.sync.attempts': attempts.length,
+      'app.sync.bytes': body.length,
+    });
+    const res = new NextResponse(body, { headers: { ...headers, 'Content-Type': 'application/json' } });
     // A session from before the user hint existed gets one, so its next page
     // load moves onto this account's own IndexedDB database.
     if (req.cookies.get(USER_HINT_COOKIE)?.value !== userId) setUserHint(res, userId);

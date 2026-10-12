@@ -34,6 +34,10 @@ export default $config({
     // URL). Cognito's callback URLs are built from it, so it has to be known
     // before the site exists — taking it from site.url would be a cycle.
     const siteUrl = new sst.Secret('SiteUrl');
+    // Tracing (instrumentation.ts) to Grafana Cloud's OTLP gateway: its URL and
+    // "Authorization=Basic <base64 instance:token>" header. 'off' until set.
+    const otelEndpoint = new sst.Secret('OtelEndpoint', 'off');
+    const otelHeaders = new sst.Secret('OtelHeaders', 'off');
 
     const auth = cognito(siteUrl.value);
 
@@ -60,6 +64,12 @@ export default $config({
         COGNITO_CLIENT_SECRET: auth.clientSecret,
         // The server computes "today" in this zone.
         TZ: 'America/New_York',
+        OTEL_EXPORTER_OTLP_ENDPOINT: otelEndpoint.value,
+        OTEL_EXPORTER_OTLP_HEADERS: otelHeaders.value,
+        OTEL_SERVICE_NAME: 'prep-tracker',
+        DEPLOY_STAGE: $app.stage,
+        // The commit being deployed (CI sets it), so a trace names its release.
+        SERVICE_VERSION: process.env.GITHUB_SHA?.slice(0, 7) ?? 'local',
         // Build-time public config, read from the deploying shell (CI sets them).
         ...publicEnv([
           'NEXT_PUBLIC_APP_NAME',

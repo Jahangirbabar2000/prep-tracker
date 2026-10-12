@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { parseSSE } from '@/lib/openaiStream';
 import { createRateLimiter } from '@/lib/rateLimit';
 import { ASK_AI_ENABLED } from '@/lib/features';
+import { annotate } from '@/lib/telemetry';
 
 export const runtime = 'nodejs';
 
@@ -67,6 +68,8 @@ export async function POST(req: NextRequest) {
     ? `${contextBlock}Question: ${question}\n\nMy saved answer:\n${answer}`
     : `${contextBlock}Question: ${question}\n\n(No saved answer yet — give a concise primer with a worked example.)`;
 
+  // What a request costs depends on the model; the question and answer stay out of traces.
+  annotate({ 'gen_ai.system': 'openai', 'gen_ai.request.model': MODEL });
   let upstream: Response;
   try {
     upstream = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -85,6 +88,7 @@ export async function POST(req: NextRequest) {
     return json({ error: 'Couldn’t reach the AI service. Try again.' }, 502);
   }
 
+  annotate({ 'app.ask.upstream_status': upstream.status });
   if (!upstream.ok || !upstream.body) {
     const detail = await upstream.text().catch(() => '');
     return json({ error: 'The AI request failed.', detail: detail.slice(0, 500) }, 502);
