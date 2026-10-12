@@ -57,3 +57,10 @@ next-env.d.ts
 scripts/seed-*.mjs
 scripts/*-cards.md
 scripts/fix-*.mjs
+
+# local working plan (not published)
+PLAN.md
+
+# sst
+.sst
+.open-next

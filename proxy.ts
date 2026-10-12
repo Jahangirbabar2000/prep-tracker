@@ -15,8 +15,15 @@ export async function proxy(req: NextRequest) {
   const demo = req.cookies.get(DEMO_COOKIE)?.value === '1';
   const decision = decideRoute({ pathname, search, authEnabled: !!secret, signedIn, demo });
   switch (decision.kind) {
-    case 'allow':
-      return NextResponse.next();
+    case 'allow': {
+      const res = NextResponse.next();
+      // A CDN in front of this proxy (CloudFront on AWS) would otherwise keep a
+      // prerendered page for a year and serve it without running the proxy —
+      // a signed-out visitor would get the app shell, not the landing page.
+      // API routes set their own Cache-Control.
+      if (!pathname.startsWith('/api/')) res.headers.set('Cache-Control', 'private, no-cache');
+      return res;
+    }
     case 'unauthorized':
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     case 'landing': {

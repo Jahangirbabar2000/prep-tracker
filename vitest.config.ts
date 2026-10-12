@@ -14,6 +14,6 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     // Unit/component tests only; Playwright owns e2e/.
     include: ['**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules/**', '.next/**', 'e2e/**'],
+    exclude: ['node_modules/**', '.next/**', 'e2e/**', '.sst/**', '.open-next/**'],
   },
 });

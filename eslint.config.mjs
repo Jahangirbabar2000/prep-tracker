@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // SST and OpenNext build output.
+    ".sst/**",
+    ".open-next/**",
   ]),
 ]);
 
