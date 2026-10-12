@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
+// The session's user is taken as live; lib/accountData.test.ts covers that check.
+vi.mock('@/lib/accountData', () => ({ isActiveUser: async () => true }));
 vi.mock('@/lib/db', () => ({
   queryAll: vi.fn(async () => []),
 }));

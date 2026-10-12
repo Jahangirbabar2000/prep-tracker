@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { AUTH_COOKIE, OWNER_USER_ID, readSession } from './auth';
+import { isActiveUser } from './accountData';
 
 /**
  * The signed-in user for a route handler — always from the session cookie,
@@ -24,7 +25,11 @@ export function withUser<Ctx>(
 ) {
   return async (req: NextRequest, ctx: Ctx): Promise<Response> => {
     const userId = await userIdFromRequest(req);
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // A session outlives its account on every other device; a deleted (or
+    // unknown) user is signed out here, not just on the device that deleted.
+    if (!userId || !(await isActiveUser(userId))) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return handler(req, userId, ctx);
   };
 }

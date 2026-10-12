@@ -1,7 +1,8 @@
 // Lightweight stateless session: an HMAC-signed, expiring cookie that names
-// the signed-in user (`uid`). Today the shared passcode (APP_PASSWORD) mints a
-// token for the owner; real accounts will mint one per user. Uses Web Crypto,
-// so it runs anywhere: proxy.ts and the route handlers alike.
+// the signed-in user (`uid`). Signing in with Cognito (app/api/auth/callback)
+// mints one per user; the local-only passcode (APP_PASSWORD) mints the
+// owner's. Uses Web Crypto, so it runs anywhere: proxy.ts and the route
+// handlers alike.
 
 export const AUTH_COOKIE = 'pt_auth';
 export const AUTH_MAX_AGE_S = 60 * 60 * 24 * 365; // 1 year — "persistent"
@@ -42,15 +43,47 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return result === 0;
 }
 
+/**
+ * Sign `payload` (plus an expiry `ttlMs` from `now`) into a `<payload>.<sig>`
+ * token. The session cookie and the sign-in state cookie both use it.
+ */
+export async function signToken(
+  payload: Record<string, unknown>,
+  secret: string,
+  ttlMs: number,
+  now: number = Date.now(),
+): Promise<string> {
+  const body = b64urlEncode(encoder.encode(JSON.stringify({ ...payload, iat: now, exp: now + ttlMs })));
+  return `${body}.${await hmac(body, secret)}`;
+}
+
+/** A token's payload if its signature holds and it hasn't expired, else null. */
+export async function verifyToken(
+  token: string | undefined | null,
+  secret: string | undefined,
+  now: number = Date.now(),
+): Promise<Record<string, unknown> | null> {
+  if (!token || !secret) return null;
+  const dot = token.indexOf('.');
+  if (dot <= 0) return null;
+  const body = token.slice(0, dot);
+  if (!timingSafeEqual(token.slice(dot + 1), await hmac(body, secret))) return null;
+  try {
+    const payload = JSON.parse(new TextDecoder().decode(b64urlDecode(body)));
+    if (!payload || typeof payload !== 'object' || typeof payload.exp !== 'number' || payload.exp <= now) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 /** Mint a signed session token for `userId`, valid for AUTH_MAX_AGE_S. */
 export async function createSession(
   secret: string,
   now: number = Date.now(),
   userId: string = OWNER_USER_ID,
 ): Promise<string> {
-  const payload = b64urlEncode(encoder.encode(JSON.stringify({ uid: userId, iat: now, exp: now + AUTH_MAX_AGE_S * 1000 })));
-  const sig = await hmac(payload, secret);
-  return `${payload}.${sig}`;
+  return signToken({ uid: userId }, secret, AUTH_MAX_AGE_S * 1000, now);
 }
 
 /**
@@ -63,23 +96,10 @@ export async function readSession(
   secret: string | undefined,
   now: number = Date.now(),
 ): Promise<string | null> {
-  if (!token || !secret) return null;
-  const dot = token.indexOf('.');
-  if (dot <= 0) return null;
-  const payload = token.slice(0, dot);
-  const sig = token.slice(dot + 1);
-
-  const expected = await hmac(payload, secret);
-  if (!timingSafeEqual(sig, expected)) return null;
-
-  try {
-    const { exp, uid } = JSON.parse(new TextDecoder().decode(b64urlDecode(payload)));
-    if (typeof exp !== 'number' || exp <= now) return null;
-    if (uid === undefined) return OWNER_USER_ID;
-    return typeof uid === 'string' && uid ? uid : null;
-  } catch {
-    return null;
-  }
+  const payload = await verifyToken(token, secret, now);
+  if (!payload) return null;
+  if (payload.uid === undefined) return OWNER_USER_ID;
+  return typeof payload.uid === 'string' && payload.uid ? payload.uid : null;
 }
 
 /** Verify a session token: signature intact and not expired. */

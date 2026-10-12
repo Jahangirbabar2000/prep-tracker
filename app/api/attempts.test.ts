@@ -35,6 +35,8 @@ beforeEach(async () => {
     DROP TRIGGER IF EXISTS fail_level_update;
     DROP TABLE IF EXISTS attempts;
     DROP TABLE IF EXISTS problems;
+    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, deleted_at TEXT);
+    INSERT OR IGNORE INTO users (id) VALUES ('usr_owner');
     CREATE TABLE problems (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import {
   Archive, ArchiveRestore, ArrowDown, ArrowUp, ChevronDown, ChevronRight,
-  LogOut, Plus, X,
+  Download, LogOut, Plus, Trash2, X,
 } from 'lucide-react';
 import type {
   DomainField,
@@ -22,7 +22,7 @@ import {
   optionsForField,
 } from '@/lib/domains';
 import { mutate, useStore } from '@/lib/store/store';
-import { signOut } from '@/lib/store/signOut';
+import { SESSION_CHANNEL, signOut, wipeLocalData } from '@/lib/store/signOut';
 import { domainIcon, domainPalette } from '@/components/domainVisuals';
 import DemoGate from '@/components/DemoGate';
 
@@ -467,7 +467,8 @@ function SignOutButton() {
       );
       if (discard) result = await signOut({ discardUnsynced: true });
     }
-    if (result.ok) { window.location.assign('/login'); return; }
+    // Last, the server: clears the session and ends the Cognito one too.
+    if (result.ok) { window.location.assign('/api/auth/logout'); return; }
     if (result.reason === 'offline') window.alert("You're offline. Connect to sign out, so your reviews can upload first.");
     if (result.reason === 'failed') window.alert("Couldn't sign out. Check your connection and try again.");
     setBusy(false);
@@ -481,6 +482,48 @@ function SignOutButton() {
     >
       <LogOut size={15} /> {busy ? 'Signing out…' : 'Log out'}
     </button>
+  );
+}
+
+function AccountSection() {
+  const [busy, setBusy] = useState(false);
+
+  async function deleteAccount() {
+    const typed = window.prompt(
+      'This permanently deletes your account: every card, review, note and deck. It can’t be undone.\n\nType DELETE to confirm.',
+    );
+    if (typed?.trim() !== 'DELETE') return;
+    setBusy(true);
+    const res = await fetch('/api/account', { method: 'DELETE' }).catch(() => null);
+    if (!res?.ok) {
+      window.alert('Couldn’t delete your account. Check your connection and try again.');
+      setBusy(false);
+      return;
+    }
+    // The account is gone, queued reviews included: clear this browser and
+    // the other tabs, then end the Cognito session.
+    await wipeLocalData();
+    if (typeof BroadcastChannel !== 'undefined') {
+      const channel = new BroadcastChannel(SESSION_CHANNEL);
+      channel.postMessage('signed-out');
+      channel.close();
+    }
+    window.location.assign('/api/auth/logout');
+  }
+
+  return (
+    <section className="mt-10 border border-border rounded-xl bg-surface p-4">
+      <h2 className="text-sm font-semibold text-fg">Your account</h2>
+      <p className="text-xs text-muted mt-1 mb-3">Download everything you’ve logged, or delete your account and all of its data.</p>
+      <div className="flex flex-wrap gap-2">
+        <a href="/api/account" download className={`${buttonCls} text-fg`}>
+          <Download size={13} /> Download my data
+        </a>
+        <button onClick={() => void deleteAccount()} disabled={busy} className={`${buttonCls} text-danger`}>
+          <Trash2 size={13} /> {busy ? 'Deleting…' : 'Delete account'}
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -530,6 +573,7 @@ function SettingsPage() {
           ))}
         </div>
       )}
+      <AccountSection />
     </div>
   );
 }

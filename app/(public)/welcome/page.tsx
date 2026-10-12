@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { ArrowRight, ExternalLink, Zap, WifiOff, ShieldCheck, Layers, FlaskConical, TestTube2 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { APP_NAME } from '@/lib/appName';
 import { LOOP_STEPS } from '@/lib/loopSteps';
+import { cognitoConfig } from '@/lib/oidc';
 import { safeNextPath } from '@/lib/routing';
 import { AUTHOR, REPO_URL } from '@/lib/site';
 
@@ -40,15 +40,20 @@ const UNDER_THE_HOOD = [
   { icon: WifiOff, title: 'Local-first, works offline', detail: 'Every screen reads from an in-browser store kept in IndexedDB, so it opens instantly and keeps working without a connection. Installable as a PWA.' },
   { icon: ShieldCheck, title: 'An offline queue that can’t double-count', detail: 'Reviews made offline queue up and replay later. Each carries an idempotency key, so a retried send is recognised instead of counted twice.' },
   { icon: Layers, title: 'A schedule derived from history', detail: 'A card’s level is replayed from its full attempt history, and each review and its new level commit in one database transaction.' },
-  { icon: Zap, title: 'Next.js 16 and Turso', detail: 'React 19 on the App Router, libSQL/Turso on the server, deployed on Vercel.' },
+  { icon: Zap, title: 'Next.js 16 and Turso', detail: 'React 19 on the App Router, libSQL/Turso on the server, deployed on AWS Lambda and CloudFront.' },
   { icon: TestTube2, title: 'Tested', detail: 'Hundreds of Vitest unit tests, including the scheduler, the sync queue and the routing rules, plus Playwright end-to-end tests.' },
   { icon: FlaskConical, title: 'A demo that touches nothing', detail: 'The demo runs the real app on generated sample data in its own browser database. Nothing it does can reach a server.' },
 ];
 
 export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const next = safeNextPath((await searchParams).next);
-  const signIn = `/login${next === '/' ? '' : `?next=${encodeURIComponent(next)}`}`;
-  const authOn = !!process.env.AUTH_SECRET && !!process.env.APP_PASSWORD;
+  const query = next === '/' ? '' : `?next=${encodeURIComponent(next)}`;
+  // With Cognito, Sign in goes straight to its sign-in page; the passcode
+  // form at /login is for local development.
+  const cognito = !!cognitoConfig() && !!process.env.AUTH_SECRET;
+  const signIn = cognito ? `/api/auth/login${query}` : `/login${query}`;
+  const signUp = `/api/auth/login?signup=1${next === '/' ? '' : `&next=${encodeURIComponent(next)}`}`;
+  const authOn = cognito || (!!process.env.AUTH_SECRET && !!process.env.APP_PASSWORD);
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6">
@@ -57,9 +62,9 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
           <Logo className="h-8 w-8" /> {APP_NAME}
         </span>
         {authOn && (
-          <Link href={signIn} className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-muted transition-colors hover:text-fg">
+          <a href={signIn} className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-muted transition-colors hover:text-fg">
             Sign in
-          </Link>
+          </a>
         )}
       </header>
 
@@ -77,13 +82,17 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
           <a href="/demo" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-accent px-6 text-base font-semibold text-accent-fg transition-colors hover:bg-accent-hover">
             Try the demo <ArrowRight size={18} />
           </a>
-          {authOn && (
-            <Link href={signIn} className="inline-flex min-h-12 items-center rounded-xl border border-border bg-surface px-6 text-base font-medium text-fg transition-colors hover:border-border-strong">
+          {cognito ? (
+            <a href={signUp} className="inline-flex min-h-12 items-center rounded-xl border border-border bg-surface px-6 text-base font-medium text-fg transition-colors hover:border-border-strong">
+              Create an account
+            </a>
+          ) : authOn && (
+            <a href={signIn} className="inline-flex min-h-12 items-center rounded-xl border border-border bg-surface px-6 text-base font-medium text-fg transition-colors hover:border-border-strong">
               Sign in
-            </Link>
+            </a>
           )}
         </div>
-        <p className="mt-3 text-xs text-muted">No sign-up. The demo runs on sample cards, entirely in your browser.</p>
+        <p className="mt-3 text-xs text-muted">The demo needs no account. It runs on sample cards, entirely in your browser.</p>
       </section>
 
       <section aria-label="The Review Queue">

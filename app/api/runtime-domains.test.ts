@@ -17,6 +17,8 @@ const domainServer = vi.hoisted(() => ({
   validateProblemMetadata: vi.fn(),
 }));
 
+// The session's user is taken as live; lib/accountData.test.ts covers that check.
+vi.mock('@/lib/accountData', () => ({ isActiveUser: async () => true }));
 vi.mock('@/lib/db', () => db);
 vi.mock('@/lib/domain-server', () => domainServer);
 

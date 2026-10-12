@@ -169,6 +169,11 @@ const NO_USER_DATA: Record<string, string> = {
   'auth POST': 'signs in; reads no user rows',
   'auth DELETE': 'signs out; clears the cookie only',
   'ask POST': 'proxies a question to OpenAI; reads no user rows',
+  'auth/login GET': 'starts a Cognito sign-in; reads no user rows',
+  'auth/callback GET': 'finds or creates the signing-in user (lib/accounts.test.ts); returns no rows',
+  'auth/logout GET': 'clears the cookie and ends the Cognito session',
+  'account GET': "exports the caller's own rows (lib/accountData.test.ts)",
+  'account DELETE': "deletes the caller's own rows (lib/accountData.test.ts)",
 };
 
 function request(c: Case, cookie: string | null) {
