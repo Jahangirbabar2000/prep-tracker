@@ -77,6 +77,8 @@ await check('sign-in goes to Cognito with PKCE', async () => {
   expect([302, 307].includes(res.status), `status ${res.status}`);
   expect(/amazoncognito\.com\/oauth2\/authorize/.test(location), `location ${location.slice(0, 80)}`);
   expect(location.includes('code_challenge_method=S256'), 'no PKCE challenge');
+  // Never auto-sign-in a leftover Cognito session (the wrong account on a shared device).
+  expect(new URL(location).searchParams.get('prompt') === 'login', 'no prompt=login');
   // Back to the origin this check runs against — the domain, or the
   // CloudFront fallback — so a sign-in never lands on the other one.
   const redirect = new URL(location).searchParams.get('redirect_uri');

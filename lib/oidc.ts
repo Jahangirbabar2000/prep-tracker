@@ -90,6 +90,12 @@ export function authorizeUrl(
     nonce,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
+    // Always show the sign-in form, never reuse a Cognito session that's
+    // still around: otherwise "sign in" right after signing out (or from a
+    // tab that only followed another tab's sign-out) can hand back the
+    // previous account without asking — the wrong person on a shared device.
+    // Costs little: the app's own session lasts a year, so the form is rare.
+    prompt: 'login',
   });
   // /signup opens managed login on its sign-up form; it carries on to the same callback.
   return `${config.domain}/${signUp ? 'signup' : 'oauth2/authorize'}?${params}`;

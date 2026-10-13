@@ -44,6 +44,7 @@ describe('authorizeUrl', () => {
       nonce: 'n1',
       code_challenge: 'c1',
       code_challenge_method: 'S256',
+      prompt: 'login',
     });
   });
 
