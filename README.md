@@ -79,12 +79,19 @@ npm run dev
 
 Open http://localhost:3007.
 
-Create `.env.local` with at least a database URL:
+Create `.env.local` with at least a database URL. Point it at a **development**
+database (a local `file:` one, or a Turso copy) — never at production:
+`npm run dev` and the database scripts both read it.
 
 ```bash
 # Database (libSQL / Turso) — required
 TURSO_DATABASE_URL=libsql://...        # or a file: URL for a local libSQL db
 TURSO_AUTH_TOKEN=...                    # for a remote Turso db
+
+# Local sign-in (optional) — set BOTH for a passcode gate that signs you in as the owner.
+# Deployed stages sign in with Cognito instead and never set APP_PASSWORD.
+AUTH_SECRET=...                        # long random string, e.g. `openssl rand -hex 32`
+APP_PASSWORD=your-passcode
 
 # Ask AI (optional, off by default) — the "Ask AI to elaborate" button
 NEXT_PUBLIC_ASK_AI=on                   # without this the button is hidden and /api/ask returns 404
@@ -95,55 +102,50 @@ OPENAI_MODEL=gpt-5-nano                 # optional, defaults to gpt-5-nano
 NEXT_PUBLIC_AUTHOR_NAME="Your Name"     # "Built by …"; hidden when unset
 NEXT_PUBLIC_AUTHOR_GITHUB=https://github.com/you
 NEXT_PUBLIC_AUTHOR_LINKEDIN=https://www.linkedin.com/in/you
-NEXT_PUBLIC_SITE_URL=https://your.domain # for link-preview images; Vercel's production URL by default
 
 # Name (optional) — shown in the sidebar, on the login screen and in the tab
 NEXT_PUBLIC_APP_NAME="Jahangir's Prep"  # defaults to "Prep Tracker"
-
-# Passcode auth (optional) — set BOTH to turn the gate on
-AUTH_SECRET=...                        # long random string, e.g. `openssl rand -hex 32`
-APP_PASSWORD=your-passcode
 ```
 
 `.env.local` and all local `*.db` files are git-ignored.
 
 `npm run db:migrate` builds the whole schema, so it is the one setup step for a new
-database: it creates the core tables, the runtime domain registry and the seven
-starter domains, backfills problem metadata from whatever legacy columns are present
-(retaining them for rollback compatibility), and adds the offline queue's
-idempotency key. Each migration runs once and is recorded in `schema_migrations`, so
-re-running it is safe. Run it against each local or Turso database before deploying
-this version.
+database: the core tables, the runtime domain registry, the offline queue's
+idempotency key, and accounts (`users`, and a `user_id` on every per-user table).
+Each migration runs once and is recorded in `schema_migrations`, so re-running it
+is safe.
 
 ## Testing
 
 ```bash
-npm test          # Vitest unit tests (run once)
+npm test          # Vitest unit and integration tests
 npm run test:watch
-npm run test:e2e  # Playwright (desktop + mobile projects)
+npm run test:e2e  # Playwright (desktop + mobile), on its own throwaway database
+npm run smoke     # post-deploy smoke test against a deployed stage (see scripts/smoke.mjs)
 ```
 
-Unit tests cover the spaced-repetition scheduler, runtime domain resolution and
-metadata, both observed migration schemas and repeat execution, store queries,
-streak calculation, swipe helpers, session auth, and rate limiting. The e2e smoke
-suite checks the queue, domain navigation, and accessible filters.
+The unit suite covers the scheduler, the sync queue, migrations, the sign-in flow,
+and an access table that calls every API route as one user against another's
+data. The e2e suite starts its own server (`e2e/server.mjs`) on a fresh, migrated,
+seeded database — it never touches the one in `.env.local`.
 
 ## Deployment
 
-Deployed on Vercel. For your own deployment:
+AWS, all as code in `sst.config.ts` ([SST](https://sst.dev) on
+[OpenNext](https://opennext.js.org)): CloudFront in front, Lambda for pages and
+the API, S3 for static files, and a Cognito user pool for sign-in. Turso stays the
+database.
 
-1. Create a Turso database, then build its schema from your machine — the app does
-   not create tables on its own:
-
-   ```bash
-   TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... npm run db:migrate
-   ```
-
-2. Set the same environment variables (`TURSO_*`, and `AUTH_SECRET` + `APP_PASSWORD`;
-   `NEXT_PUBLIC_ASK_AI` + `OPENAI_API_KEY` only if you want Ask AI) in the project's
-   environment-variable settings, then redeploy — env changes only take effect on a
-   fresh build. Without `AUTH_SECRET` and `APP_PASSWORD` the passcode gate is off and
-   anyone with the URL can read and edit the data.
+- **Stages:** `staging` and `production` (plus any personal `dev` stage), each with
+  its own Turso database, Cognito pool and secrets. Secrets live in SSM:
+  `npx sst secret set <Name> <value> --stage <stage>` — `TursoDatabaseUrl`,
+  `TursoAuthToken`, `AuthSecret`, `SiteUrl` (the stage's public URL; set it before
+  the first real deploy, since Cognito's callback URLs are built from it), and
+  optionally `OtelEndpoint` / `OtelHeaders` for tracing.
+- **CI/CD:** GitHub Actions. Every push runs types, unit and e2e tests; a merge to
+  `main` then deploys staging and production in turn — migrate, deploy, smoke test,
+  and roll back to the last good commit if the smoke test fails. AWS access is OIDC
+  to a deploy role (the `ci` stage of `sst.config.ts`), so no AWS keys live in GitHub.
 
 If the app can't reach or read its database it says why on screen (and in the
 sidebar's sync status) rather than loading forever — a missing `TURSO_DATABASE_URL`

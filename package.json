@@ -8,7 +8,6 @@
     "build": "next build",
     "start": "next start -p 3007",
     "db:migrate": "node scripts/migrate-domains.mjs",
-    "db:import-user": "node scripts/import-user.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "smoke": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/smoke.mjs",
     "lint": "eslint",
