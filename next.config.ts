@@ -13,11 +13,6 @@ const nextConfig: NextConfig = {
       { source: '/ingest/:path*', destination: 'https://us.i.posthog.com/:path*' },
     ];
   },
-  // ROLLBACK TEST — deliberately bad build, reverted right after: marks every
-  // response so we can see whether this build or the previous one is live.
-  async headers() {
-    return [{ source: '/:path*', headers: [{ key: 'x-rollback-test', value: '1' }] }];
-  },
   // PostHog's API paths end in a slash; don't redirect them away from it.
   skipTrailingSlashRedirect: true,
 };
