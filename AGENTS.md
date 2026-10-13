@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Project context
 
-Recall (repo: prep-tracker) — a local-first, spaced-repetition study partner. The product name is user-facing only (`APP_NAME` in `lib/appName.ts`, `public/manifest.json`, the landing page); internal names — the repo, `prep-store-*` databases, `pt_*` cookies, AWS stages, Cognito domains — stay `prep`. See `README.md` for the product overview.
+Prep Tracker — a local-first, spaced-repetition study partner (for interview prep, exam vocabulary, or anything else). It's pitched as a study partner, not an interview-prep tool: keep user-facing copy subject-neutral. See `README.md` for the product overview.
 
 ## Architecture (read before changing data flow)
 

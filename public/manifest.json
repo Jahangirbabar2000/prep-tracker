@@ -1,6 +1,6 @@
 {
-  "name": "Recall",
-  "short_name": "Recall",
+  "name": "Prep Tracker",
+  "short_name": "Prep",
   "description": "A spaced-repetition study partner: everything you study comes back right before you'd forget it",
   "start_url": "/",
   "display": "standalone",

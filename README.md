@@ -1,4 +1,4 @@
-# Recall
+# Prep Tracker
 
 A local-first, spaced-repetition study partner — for interview prep, exam vocabulary, or anything else you want to remember — built around three evidence-based learning pillars:
 
@@ -98,7 +98,7 @@ NEXT_PUBLIC_AUTHOR_LINKEDIN=https://www.linkedin.com/in/you
 NEXT_PUBLIC_SITE_URL=https://your.domain # for link-preview images; Vercel's production URL by default
 
 # Name (optional) — shown in the sidebar, on the login screen and in the tab
-NEXT_PUBLIC_APP_NAME="Jahangir's Recall"  # defaults to "Recall"
+NEXT_PUBLIC_APP_NAME="Jahangir's Prep"  # defaults to "Prep Tracker"
 
 # Passcode auth (optional) — set BOTH to turn the gate on
 AUTH_SECRET=...                        # long random string, e.g. `openssl rand -hex 32`

@@ -7,7 +7,7 @@ async function openNav(page: import('@playwright/test').Page, isMobile: boolean)
 
 test('review queue home renders', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveTitle(/Recall/i);
+  await expect(page).toHaveTitle(/Prep Tracker/i);
   await expect(page.getByRole('heading', { name: 'Review Queue' })).toBeVisible();
   await expect(page.getByText('Everything due across all domains')).toBeVisible();
 });

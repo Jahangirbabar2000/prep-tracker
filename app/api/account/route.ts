@@ -13,7 +13,7 @@ export const GET = withUser(async (_req, userId) => {
   return new NextResponse(JSON.stringify(data, null, 2), {
     headers: {
       'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="recall-export-${data.exported_at.slice(0, 10)}.json"`,
+      'Content-Disposition': `attachment; filename="prep-tracker-export-${data.exported_at.slice(0, 10)}.json"`,
       'Cache-Control': 'private, no-store',
     },
   });
