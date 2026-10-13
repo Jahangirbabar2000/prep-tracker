@@ -31,6 +31,10 @@ export function initAnalytics(): Promise<PostHog | null> {
       // don't drop it; ui_host keeps PostHog's own links pointing at PostHog.
       api_host: '/ingest',
       ui_host: 'https://us.posthog.com',
+      // Plain JSON: the SDK's gzip body is binary sent as text/plain, and the
+      // Lambda behind /ingest passes it on as text, so PostHog got bytes it
+      // couldn't parse (400). These payloads are a few hundred bytes anyway.
+      disable_compression: true,
       // Off in code, whatever the PostHog dashboard says: each records the
       // screen or what was clicked, which on a review is the card itself.
       autocapture: false,
