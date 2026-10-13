@@ -6,7 +6,7 @@ import { createClient } from '@libsql/client';
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { E2E_AUTH_SECRET, E2E_PASSCODE, E2E_PORT, OWNER, OWNER_CARD, SECOND_USER, SECOND_USER_CARD } from './env.mjs';
+import { E2E_AUTH_SECRET, E2E_PASSCODE, E2E_PORT, NEW_USER, OWNER, OWNER_CARD, SECOND_USER, SECOND_USER_CARD } from './env.mjs';
 
 const dir = resolve('e2e/.tmp');
 rmSync(dir, { recursive: true, force: true });
@@ -25,6 +25,7 @@ const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
 await db.batch([
   { sql: `INSERT INTO problems (user_id, name, domain, next_due_date, created_at) VALUES (?, ?, 'dsa', ?, datetime('now'))`, args: [OWNER, OWNER_CARD, today] },
   { sql: `INSERT INTO users (id, display_name) VALUES (?, 'Bravo')`, args: [SECOND_USER] },
+  { sql: `INSERT INTO users (id, display_name) VALUES (?, 'New')`, args: [NEW_USER] },
   {
     sql: `INSERT INTO study_domains (id, user_id, slug, name, short_name, study_mode, icon, color, sort_order)
           VALUES ('dom_e2e_bravo_dsa', ?, 'dsa', 'DSA', 'DSA', 'timed_problem', 'binary', 'blue', 0)`,

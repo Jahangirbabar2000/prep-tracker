@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Check, Dumbbell, Sparkles } from 'lucide-react';
+import { Check, Dumbbell, Plus, Sparkles } from 'lucide-react';
 import type { StudyDomain } from '@/lib/types';
 import { domainIcon, domainPalette } from './domainVisuals';
 import { LOOP_STEPS } from '@/lib/loopSteps';
@@ -8,7 +8,8 @@ import { LOOP_STEPS } from '@/lib/loopSteps';
 //
 // - No cards at all (a first visit, a fresh deployment). "You're all caught
 //   up" would be false and leave nothing to do, so explain the loop and offer
-//   a way into every domain.
+//   a way into every domain — or, for a new account with no decks yet, into
+//   making the first one.
 // - Cards, but none due. That's the honest "caught up" — plus Practice, since
 //   the day after adding a first card is exactly when a new person wonders
 //   how to review anything.
@@ -61,10 +62,20 @@ export default function QueueEmptyState({ domains, domainsWithCards }: {
           ))}
         </ol>
 
-        {domains.length > 0 && (
+        {domains.length > 0 ? (
           <div className="mt-6">
             <p className="mb-3 text-sm font-medium text-fg">Add a card to:</p>
             <DomainLinks domains={domains} href={domain => `/${domain.slug}/log`} />
+          </div>
+        ) : (
+          <div className="mt-6">
+            <p className="mb-3 text-sm text-muted">A deck holds one subject: GRE vocabulary, organic chemistry, system design — whatever you’re learning.</p>
+            <Link
+              href="/settings?new=1"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-fg transition-colors hover:bg-accent-hover"
+            >
+              <Plus size={15} /> Create your first deck
+            </Link>
           </div>
         )}
 

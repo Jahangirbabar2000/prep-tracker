@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Archive, ArchiveRestore, ArrowDown, ArrowUp, ChevronDown, ChevronRight,
   Download, LogOut, Plus, Trash2, X,
@@ -531,7 +532,8 @@ function AccountSection() {
 
 function SettingsPage() {
   const { data, ready } = useStore();
-  const [creating, setCreating] = useState(false);
+  // ?new=1 (the first-run screen's "Create your first deck") opens the form.
+  const [creating, setCreating] = useState(useSearchParams().get('new') === '1');
   const domains = useMemo(() => allDomains(data.domains), [data.domains]);
 
   async function moveDomain(index: number, direction: -1 | 1) {
@@ -582,5 +584,6 @@ function SettingsPage() {
 
 // Content editing writes straight to the server, so the demo shows an explanation instead.
 export default function Page() {
-  return <DemoGate what="Settings"><SettingsPage /></DemoGate>;
+  // useSearchParams needs a Suspense boundary on a prerendered page.
+  return <DemoGate what="Settings"><Suspense fallback={null}><SettingsPage /></Suspense></DemoGate>;
 }

@@ -10,13 +10,13 @@ import { AUTHOR, REPO_URL } from '@/lib/site';
 // The page a signed-out visitor sees at "/" (proxy.ts rewrites to it) or at
 // /welcome. Static content only: no store, no session, nothing to load.
 
-const DESCRIPTION = 'A spaced-repetition tracker for technical interview prep: log what you study, and each problem or concept comes back the day you’re about to forget it.';
+const DESCRIPTION = 'A spaced-repetition study partner: add what you’re learning — vocabulary, formulas, concepts, problems — and each card comes back the day you’re about to forget it.';
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} — interview prep that remembers for you`,
+  title: `${APP_NAME} — a study partner that remembers for you`,
   description: DESCRIPTION,
   openGraph: {
-    title: `${APP_NAME} — interview prep that remembers for you`,
+    title: `${APP_NAME} — a study partner that remembers for you`,
     description: DESCRIPTION,
     images: [{ url: '/screenshots/og.png', width: 1200, height: 630, alt: 'The Review Queue: cards due today across DSA, System Design and AWS' }],
   },
@@ -69,13 +69,13 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
       </header>
 
       <section className="pt-10 pb-12 text-center sm:pt-16">
-        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Spaced repetition for interview prep</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent">Spaced repetition for anything you study</p>
         <h1 className="font-display mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-fg sm:text-5xl">
-          Interview prep that remembers for you.
+          A study partner that remembers for you.
         </h1>
         <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-          Log the problems and concepts you study. Each one comes back on the day you’re about to forget it, then again
-          3, 7, 14, 30 and 60 days later, until it sticks.
+          Add what you’re learning — words, formulas, concepts, problems. Each card comes back on the day you’re about
+          to forget it, then again 3, 7, 14, 30 and 60 days later, until it sticks.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- /demo is a route that sets a cookie and redirects; it needs a full page load */}

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { E2E_PASSCODE, OWNER, OWNER_CARD, SECOND_USER, SECOND_USER_CARD } from './env.mjs';
+import { E2E_PASSCODE, NEW_USER, OWNER, OWNER_CARD, SECOND_USER, SECOND_USER_CARD } from './env.mjs';
 
 // Two real accounts on e2e/server.mjs's seeded database, signed in through the
 // test-only "sign in as" passcode. Each test starts as a stranger: no cookies,
@@ -73,8 +73,22 @@ test('signing out leaves no account data in the browser', async ({ page }) => {
 
 test('a signed-out visitor gets the landing page, and the API refuses them', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Interview prep that remembers/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /A study partner that remembers/ })).toBeVisible();
   await page.goto('/stats');
   await expect(page).toHaveURL(/\/\?next=%2Fstats$/);
   expect((await page.request.get('/api/sync')).status()).toBe(401);
+});
+
+test('a brand-new account has no decks and is asked to create its first', async ({ page }) => {
+  await signInAs(page, NEW_USER);
+  await page.goto('/');
+  const create = page.getByRole('link', { name: 'Create your first deck' });
+  await expect(create).toBeVisible();
+  // None of the built-in interview decks stand in for the decks it doesn't have.
+  for (const name of ['DSA', 'System Design', 'Behavioral']) {
+    await expect(page.getByRole('link', { name, exact: true })).toHaveCount(0);
+  }
+  await create.click();
+  await expect(page).toHaveURL(/\/settings\?new=1$/);
+  await expect(page.getByPlaceholder('Databases').first()).toBeVisible();
 });

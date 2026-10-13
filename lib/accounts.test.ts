@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveUser, starterDecks } from './accounts';
+import { resolveUser } from './accounts';
 
 const directory = mkdtempSync(join(tmpdir(), 'prep-accounts-'));
 const url = `file:${join(directory, 'test.db')}`;
@@ -71,38 +71,17 @@ describe('resolveUser', () => {
       .toEqual({ error: expect.stringMatching(/deleted/) });
   });
 
-  it('creates a new user with the starter decks, empty', async () => {
+  it('creates a new user with no decks', async () => {
     const result = await resolveUser({ sub: 'sub-new', email: 'new@example.com', emailVerified: true });
     if (!('userId' in result)) throw new Error(result.error);
     expect(result.created).toBe(true);
     expect(result.userId).toMatch(/^usr_[0-9a-f-]{36}$/);
 
     const id = result.userId;
-    const slugs = (await db.execute({ sql: 'SELECT slug FROM study_domains WHERE user_id = ? ORDER BY sort_order', args: [id] })).rows.map(r => r.slug);
-    expect(slugs).toEqual(['dsa', 'system-design', 'lld', 'backend', 'frontend', 'ai', 'behavioral']);
-    expect(await count('SELECT COUNT(*) AS n FROM domain_fields WHERE user_id = ?', [id])).toBe(17);
-    expect(await count(
-      `SELECT COUNT(*) AS n FROM domain_field_options o JOIN domain_fields f ON f.id = o.field_id
-       WHERE o.user_id = ? AND f.key = 'difficulty'`, [id],
-    )).toBe(3);
-    expect(await count('SELECT COUNT(*) AS n FROM problems WHERE user_id = ?', [id])).toBe(0);
-    // Their decks are theirs: every field hangs off one of their own domains.
-    expect(await count(
-      `SELECT COUNT(*) AS n FROM domain_fields f LEFT JOIN study_domains d ON d.id = f.domain_id AND d.user_id = f.user_id
-       WHERE f.user_id = ? AND d.id IS NULL`, [id],
-    )).toBe(0);
+    for (const table of ['study_domains', 'domain_fields', 'domain_field_options', 'problems']) {
+      expect(await count(`SELECT COUNT(*) AS n FROM ${table} WHERE user_id = ?`, [id]), table).toBe(0);
+    }
     // And signing in again is the same account, not a second one.
     expect(await resolveUser({ sub: 'sub-new', email: 'new@example.com', emailVerified: true })).toEqual({ userId: id, created: false });
-  });
-});
-
-describe('starterDecks', () => {
-  it('gives every deck a fresh id and keeps each field on its own deck', () => {
-    let n = 0;
-    const { domains, fields } = starterDecks('usr_x', () => `id${n++}`);
-    expect(new Set(domains.map(d => d.id)).size).toBe(7);
-    for (const d of domains) expect(d.id).toMatch(/^dom_id\d$/);
-    const ids = new Set(domains.map(d => d.id));
-    for (const f of fields) expect(ids.has(f.domain_id)).toBe(true);
   });
 });

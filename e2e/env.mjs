@@ -7,3 +7,5 @@ export const OWNER = 'usr_owner';
 export const SECOND_USER = 'usr_e2e_bravo';
 export const OWNER_CARD = 'Alpha owner-only card';
 export const SECOND_USER_CARD = 'Bravo second-user card';
+/** A brand-new account: no decks, no cards — what a first Cognito sign-in creates. */
+export const NEW_USER = 'usr_e2e_new';

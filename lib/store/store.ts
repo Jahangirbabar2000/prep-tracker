@@ -37,15 +37,17 @@ export interface StoreState {
   syncError: string | null;
 }
 
+// Before the store hydrates there are no decks. (It used to show the seven
+// built-in ones, which flashed decks a new, deck-less account doesn't have.)
 const EMPTY_DATA: StoreData = {
   problems: [],
   attempts: [],
   notes: [],
   links: [],
   config_options: [],
-  domains: LEGACY_DOMAIN_FALLBACKS,
-  domain_fields: LEGACY_FIELD_FALLBACKS,
-  domain_field_options: legacyOptionsFromConfig([]),
+  domains: [],
+  domain_fields: [],
+  domain_field_options: [],
 };
 const SERVER_STATE: StoreState = { data: EMPTY_DATA, ready: false, syncError: null };
 const IDB_KEY = 'store';
@@ -58,20 +60,23 @@ function subscribe(cb: () => void) { listeners.add(cb); return () => { listeners
 function getSnapshot() { return state; }
 function getServerSnapshot() { return SERVER_STATE; }
 
+/**
+ * The built-in decks stand in only for an IndexedDB snapshot from before decks
+ * were stored at all — one with no `domains` key. An account with zero decks
+ * (every new account) has `domains: []`, and that means zero decks.
+ */
 export function normalize(raw: Partial<StoreData> | null | undefined): StoreData {
   const configOptions = raw?.config_options ?? [];
-  const hasRuntimeFields = !!raw?.domain_fields?.length;
+  const legacySnapshot = !!raw && raw.domains === undefined;
   return {
     problems: (raw?.problems ?? []).map(normalizeProblem),
     attempts: raw?.attempts ?? [],
     notes: raw?.notes ?? [],
     links: raw?.links ?? [],
     config_options: configOptions,
-    domains: (raw?.domains?.length ? raw.domains : LEGACY_DOMAIN_FALLBACKS).map(normalizeDomain),
-    domain_fields: hasRuntimeFields ? raw!.domain_fields! : LEGACY_FIELD_FALLBACKS,
-    domain_field_options: hasRuntimeFields
-      ? raw?.domain_field_options ?? []
-      : legacyOptionsFromConfig(configOptions),
+    domains: (legacySnapshot ? LEGACY_DOMAIN_FALLBACKS : raw?.domains ?? []).map(normalizeDomain),
+    domain_fields: legacySnapshot ? LEGACY_FIELD_FALLBACKS : raw?.domain_fields ?? [],
+    domain_field_options: legacySnapshot ? legacyOptionsFromConfig(configOptions) : raw?.domain_field_options ?? [],
   };
 }
 

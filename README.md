@@ -1,6 +1,6 @@
-# Prep Tracker
+# Recall
 
-A personal, local-first interview-prep tracker built around three evidence-based learning pillars:
+A local-first, spaced-repetition study partner — for interview prep, exam vocabulary, or anything else you want to remember — built around three evidence-based learning pillars:
 
 - **Pattern recognition** — every problem/concept is tagged by pattern or category.
 - **Spaced repetition** — items are scheduled on fixed intervals by level: **1 → 3 → 7 → 14 → 30 → 60 days** (levels 0–5). A card's first review always lands the next day, while the material is still fresh; from there a successful review promotes it to the next level (longer interval) and struggling drops it back a level (shorter interval), so a card you keep missing walks back down to the 1-day step and repeats daily until it sticks. The Review Queue surfaces everything due, most overdue first.
@@ -98,7 +98,7 @@ NEXT_PUBLIC_AUTHOR_LINKEDIN=https://www.linkedin.com/in/you
 NEXT_PUBLIC_SITE_URL=https://your.domain # for link-preview images; Vercel's production URL by default
 
 # Name (optional) — shown in the sidebar, on the login screen and in the tab
-NEXT_PUBLIC_APP_NAME="Jahangir's Prep"  # defaults to "Prep Tracker"
+NEXT_PUBLIC_APP_NAME="Jahangir's Recall"  # defaults to "Recall"
 
 # Passcode auth (optional) — set BOTH to turn the gate on
 AUTH_SECRET=...                        # long random string, e.g. `openssl rand -hex 32`
