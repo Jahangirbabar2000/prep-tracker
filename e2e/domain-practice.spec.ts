@@ -177,7 +177,12 @@ test('a shuffled set keeps its order across a reload', async ({ page }) => {
   await page.goto(`/${DOMAIN.slug}/review`);
   await page.getByTestId('practice-preset-shuffle').click();
 
+  // Read the first card only once the shuffled session is on screen: on a
+  // slow runner the click's navigation can still be in flight, and reading
+  // straight away caught the launcher page's text instead.
+  await expect(page).toHaveURL(/[?&]seed=\d+/);
   const heading = page.locator('p.text-lg').first();
+  await expect(heading).toHaveText(/^Shuffle card \d+$/);
   const first = await heading.textContent();
   await page.reload();
   // The seed rides in the URL, so the same deck replays rather than reshuffling.

@@ -12,9 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // SST and OpenNext build output.
+    // SST and OpenNext build output, and the e2e server's build and database.
     ".sst/**",
     ".open-next/**",
+    ".next-e2e/**",
+    "e2e/.tmp/**",
   ]),
 ]);
 
