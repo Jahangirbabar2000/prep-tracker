@@ -36,7 +36,14 @@ describe('analytics', () => {
     await initAnalytics();
     const [key, options] = posthog.init.mock.calls[0];
     expect(key).toBe('phc_test');
-    expect(options).toMatchObject({ api_host: '/ingest', autocapture: false, disable_session_recording: true });
+    expect(options).toMatchObject({
+      api_host: '/ingest',
+      autocapture: false,
+      disable_session_recording: true,
+      enable_heatmaps: false,
+      capture_dead_clicks: false,
+      capture_exceptions: false,
+    });
   });
 
   it('knows a person by internal user id only, and tags the demo', async () => {

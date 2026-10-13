@@ -31,8 +31,13 @@ export function initAnalytics(): Promise<PostHog | null> {
       // don't drop it; ui_host keeps PostHog's own links pointing at PostHog.
       api_host: '/ingest',
       ui_host: 'https://us.posthog.com',
+      // Off in code, whatever the PostHog dashboard says: each records the
+      // screen or what was clicked, which on a review is the card itself.
       autocapture: false,
       disable_session_recording: true,
+      enable_heatmaps: false,
+      capture_dead_clicks: false,
+      capture_exceptions: false,
       capture_pageview: 'history_change',
       capture_pageleave: true,
       person_profiles: 'identified_only',
