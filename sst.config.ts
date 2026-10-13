@@ -19,7 +19,16 @@ export default $config({
       name: 'prep-tracker',
       home: 'aws',
       // Turso is in aws-us-east-1; keep Lambda next to it.
-      providers: { aws: { region: REGION } },
+      // Cloudflare: preptracker.org's DNS (registered there). The provider
+      // checks its token when it starts, so it's loaded only when
+      // CLOUDFLARE_API_TOKEN is set — a deploy of a stage with a domain takes
+      // it from the stage's CloudflareApiToken secret; reading secrets or
+      // deploying a domain-less stage needs no token. siteDomain() refuses
+      // to deploy a domain stage without it rather than drop the domain.
+      providers: {
+        aws: { region: REGION },
+        ...(process.env.CLOUDFLARE_API_TOKEN ? { cloudflare: { package: '@pulumi/cloudflare', version: '6.22.0' } } : {}),
+      },
       // The CI role is account plumbing every other stage depends on: keep it.
       removal: input?.stage === 'production' || input?.stage === 'ci' ? 'retain' : 'remove',
       protect: input?.stage === 'production' || input?.stage === 'ci',
@@ -34,6 +43,8 @@ export default $config({
       return githubDeployRole();
     }
 
+    keepCloudFrontAddress();
+
     const tursoUrl = new sst.Secret('TursoDatabaseUrl');
     const tursoToken = new sst.Secret('TursoAuthToken');
     const authSecret = new sst.Secret('AuthSecret');
@@ -43,14 +54,19 @@ export default $config({
     // URL). Cognito's callback URLs are built from it, so it has to be known
     // before the site exists — taking it from site.url would be a cycle.
     const siteUrl = new sst.Secret('SiteUrl');
+    // The stage's CloudFront address, kept working beside its domain for
+    // networks that block newly registered domains. 'none' when there's no
+    // domain (the CloudFront address is then SiteUrl itself).
+    const siteUrlFallback = new sst.Secret('SiteUrlFallback', 'none');
     // Tracing (instrumentation.ts) to Grafana Cloud's OTLP gateway: its URL and
     // "Authorization=Basic <base64 instance:token>" header. 'off' until set.
     const otelEndpoint = new sst.Secret('OtelEndpoint', 'off');
     const otelHeaders = new sst.Secret('OtelHeaders', 'off');
 
-    const auth = cognito(siteUrl.value);
+    const auth = cognito(siteUrl.value, siteUrlFallback.value);
 
     const site = new sst.aws.Nextjs('Web', {
+      domain: siteDomain($app.stage),
       // Pinned OpenNext, and strip the .env files Next copies into the server
       // bundle: a local .env holds the production Turso token, which would
       // otherwise ship to every stage (and back-fill a secret a stage forgot).
@@ -74,6 +90,7 @@ export default $config({
         AUTH_SECRET: authSecret.value,
         OPENAI_API_KEY: openaiKey.value,
         SITE_URL: siteUrl.value,
+        SITE_URL_ALTERNATES: siteUrlFallback.value,
         NEXT_PUBLIC_SITE_URL: siteUrl.value,
         COGNITO_DOMAIN: auth.domain,
         COGNITO_USER_POOL_ID: auth.userPoolId,
@@ -197,7 +214,43 @@ function githubDeployRole() {
  * a waiting account by email. The app client is confidential (it has a
  * secret): the code exchange happens on the server, never in the browser.
  */
-function cognito(siteUrl: $util.Output<string>) {
+/**
+ * Once a site has a custom domain, SST's CloudFront function answers its
+ * *.cloudfront.net address with a 403 (so one site isn't served at two
+ * addresses). We want that address kept: strict networks — campus wifi,
+ * company filters — block newly registered domains for weeks, and the
+ * CloudFront address is the fallback that still gets through. This strips
+ * exactly that block from SST's function code. If an SST upgrade changes
+ * the snippet the pattern stops matching, the fallback 403s again, and the
+ * deploy's smoke test of SiteUrlFallback fails — so it can't break silently.
+ */
+function keepCloudFrontAddress() {
+  const block = /if \(event\.request\.headers\.host\.value\.includes\('cloudfront\.net'\)\) \{[\s\S]*?\n\}/;
+  $transform(aws.cloudfront.Function, (args) => {
+    args.code = $output(args.code).apply(code => code.replace(block, '// cloudfront.net address kept (sst.config.ts keepCloudFrontAddress)'));
+  });
+}
+
+const DOMAIN = 'preptracker.org';
+const CLOUDFLARE_ZONE = '55b512410dc47a4a4513fe82be92c32e';
+
+/**
+ * The stage's custom domain: production at the apex (www redirects to it),
+ * staging on a subdomain, any other stage on its CloudFront address alone.
+ * DNS is Cloudflare's, DNS-only (not proxied — CloudFront is already the
+ * CDN); SST issues the ACM certificate and validates it through those records.
+ */
+function siteDomain(stage: string) {
+  const name = stage === 'production' ? DOMAIN : stage === 'staging' ? `staging.${DOMAIN}` : null;
+  if (!name) return undefined;
+  if (!process.env.CLOUDFLARE_API_TOKEN) {
+    throw new Error(`Deploying ${stage} needs CLOUDFLARE_API_TOKEN (its CloudflareApiToken secret) to manage ${name}'s DNS.`);
+  }
+  const dns = sst.cloudflare.dns({ zone: CLOUDFLARE_ZONE });
+  return stage === 'production' ? { name, redirects: [`www.${DOMAIN}`], dns } : { name, dns };
+}
+
+function cognito(siteUrl: $util.Output<string>, fallbackUrl: $util.Output<string>) {
   const stage = $app.stage;
   const production = stage === 'production';
   // Prefix domains are global per region, so the account id keeps ours unique.
@@ -241,8 +294,11 @@ function cognito(siteUrl: $util.Output<string>) {
     allowedOauthFlows: ['code'],
     allowedOauthScopes: ['openid', 'email'],
     supportedIdentityProviders: ['COGNITO'],
-    callbackUrls: [$interpolate`${siteUrl}/api/auth/callback`, ...local.map(origin => `${origin}/api/auth/callback`)],
-    logoutUrls: [$interpolate`${siteUrl}/`, ...local.map(origin => `${origin}/`)],
+    // Sign-in works on the domain and on the CloudFront fallback alike.
+    callbackUrls: $util.all([siteUrl, fallbackUrl]).apply(([main, fallback]) =>
+      [main, ...(fallback.startsWith('http') ? [fallback] : []), ...local].map(origin => `${origin}/api/auth/callback`)),
+    logoutUrls: $util.all([siteUrl, fallbackUrl]).apply(([main, fallback]) =>
+      [main, ...(fallback.startsWith('http') ? [fallback] : []), ...local].map(origin => `${origin}/`)),
     explicitAuthFlows: ['ALLOW_REFRESH_TOKEN_AUTH', 'ALLOW_USER_SRP_AUTH'],
     preventUserExistenceErrors: 'ENABLED',
     enableTokenRevocation: true,

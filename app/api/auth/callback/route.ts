@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createSession, timingSafeEqual, verifyToken } from '@/lib/auth';
 import { setSessionCookies } from '@/lib/sessionCookies';
 import { resolveUser } from '@/lib/accounts';
-import { cognitoConfig, exchangeCode, verifyIdToken } from '@/lib/oidc';
+import { cognitoConfig, configForHost, requestHost, exchangeCode, verifyIdToken } from '@/lib/oidc';
 import { safeNextPath } from '@/lib/routing';
 import { OAUTH_COOKIE } from '../oauthCookie';
 
@@ -12,7 +12,8 @@ export const runtime = 'nodejs';
 // here. Check it answers this browser's own sign-in, trade the code for a
 // verified identity, find or create the user, and start the app's session.
 export async function GET(req: NextRequest) {
-  const config = cognitoConfig();
+  const base = cognitoConfig();
+  const config = base && configForHost(base, requestHost(req.headers));
   const secret = process.env.AUTH_SECRET;
   if (!config || !secret) return NextResponse.redirect(new URL('/login', req.url));
 

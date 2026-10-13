@@ -14,6 +14,12 @@ export interface CognitoConfig {
   clientSecret: string;
   /** This site's own origin: the redirect URIs are built from it, never from the request. */
   siteUrl: string;
+  /**
+   * Every origin this stage answers on, the primary first — its domain, then
+   * its CloudFront address, kept as a fallback for networks that block new
+   * domains. A request on one of these signs in and out on that same origin.
+   */
+  siteUrls: string[];
 }
 
 /** Cognito's settings from the environment, or null when sign-in isn't configured (local dev). */
@@ -24,7 +30,33 @@ export function cognitoConfig(env: Record<string, string | undefined> = process.
   const clientSecret = env.COGNITO_CLIENT_SECRET;
   const siteUrl = env.SITE_URL;
   if (!domain || !userPoolId || !clientId || !clientSecret || !siteUrl) return null;
-  return { domain: domain.replace(/\/+$/, ''), userPoolId, clientId, clientSecret, siteUrl: siteUrl.replace(/\/+$/, '') };
+  const trim = (url: string) => url.trim().replace(/\/+$/, '');
+  const alternates = (env.SITE_URL_ALTERNATES ?? '').split(',').map(trim).filter(url => /^https?:\/\//.test(url));
+  const primary = trim(siteUrl);
+  return {
+    domain: domain.replace(/\/+$/, ''),
+    userPoolId,
+    clientId,
+    clientSecret,
+    siteUrl: primary,
+    siteUrls: [primary, ...alternates.filter(url => url !== primary)],
+  };
+}
+
+/**
+ * The config for the origin a request arrived on, if it's one of this stage's
+ * own (CloudFront passes the visitor's host as x-forwarded-host; the Lambda's
+ * own Host is its function URL). Anything else gets the primary origin — the
+ * request never chooses a redirect target outside the list.
+ */
+export function configForHost(config: CognitoConfig, host: string | null | undefined): CognitoConfig {
+  const match = host ? config.siteUrls.find(url => new URL(url).host === host.trim().toLowerCase()) : undefined;
+  return match ? { ...config, siteUrl: match } : config;
+}
+
+/** The visitor-facing host of a request behind CloudFront. */
+export function requestHost(headers: Headers): string | null {
+  return headers.get('x-forwarded-host')?.split(',')[0] ?? headers.get('host');
 }
 
 export const callbackUrl = (config: CognitoConfig) => `${config.siteUrl}/api/auth/callback`;

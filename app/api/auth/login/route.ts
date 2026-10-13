@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { signToken } from '@/lib/auth';
-import { authorizeUrl, cognitoConfig, pkceChallenge, randomToken } from '@/lib/oidc';
+import { authorizeUrl, cognitoConfig, configForHost, requestHost, pkceChallenge, randomToken } from '@/lib/oidc';
 import { safeNextPath } from '@/lib/routing';
 import { OAUTH_COOKIE, OAUTH_TTL_MS } from '../oauthCookie';
 
@@ -10,7 +10,8 @@ export const runtime = 'nodejs';
 // state, nonce and PKCE verifier ride in a short-lived signed cookie, so the
 // callback can check that the answer is to this browser's own request.
 export async function GET(req: NextRequest) {
-  const config = cognitoConfig();
+  const base = cognitoConfig();
+  const config = base && configForHost(base, requestHost(req.headers));
   const secret = process.env.AUTH_SECRET;
   if (!config || !secret) return NextResponse.redirect(new URL('/login', req.url));
 

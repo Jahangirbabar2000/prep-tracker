@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
-import { authorizeUrl, callbackUrl, cognitoConfig, exchangeCode, logoutUrl, pkceChallenge, verifyIdToken } from './oidc';
+import { authorizeUrl, callbackUrl, cognitoConfig, configForHost, exchangeCode, logoutUrl, pkceChallenge, requestHost, verifyIdToken } from './oidc';
 
 const env = {
   COGNITO_DOMAIN: 'https://prep-dev.auth.us-east-1.amazoncognito.com/',
@@ -99,5 +99,29 @@ describe('verifyIdToken', () => {
   it('passes a bad signature or expiry straight through as a failure', async () => {
     const failing = { verify: vi.fn(async () => { throw new Error('Token expired'); }) };
     await expect(verifyIdToken(config, 't', 'n', failing)).rejects.toThrow(/expired/);
+  });
+});
+
+describe('configForHost', () => {
+  const both = cognitoConfig({ ...env, SITE_URL: 'https://preptracker.org', SITE_URL_ALTERNATES: 'https://d7dq82ix7168b.cloudfront.net/, none' })!;
+
+  it('lists the domain first, then the fallback; ignores a non-URL like "none"', () => {
+    expect(both.siteUrls).toEqual(['https://preptracker.org', 'https://d7dq82ix7168b.cloudfront.net']);
+    expect(cognitoConfig({ ...env, SITE_URL_ALTERNATES: 'none' })!.siteUrls).toEqual(['https://prep.test']);
+  });
+
+  it('signs in on the origin the request came in on, when it is one of ours', () => {
+    expect(configForHost(both, 'd7dq82ix7168b.cloudfront.net').siteUrl).toBe('https://d7dq82ix7168b.cloudfront.net');
+    expect(callbackUrl(configForHost(both, 'preptracker.org'))).toBe('https://preptracker.org/api/auth/callback');
+  });
+
+  it('never lets a request pick some other redirect target', () => {
+    expect(configForHost(both, 'evil.test').siteUrl).toBe('https://preptracker.org');
+    expect(configForHost(both, null).siteUrl).toBe('https://preptracker.org');
+  });
+
+  it("reads CloudFront's forwarded host before the Lambda's own", () => {
+    expect(requestHost(new Headers({ host: 'abc.lambda-url.us-east-1.on.aws', 'x-forwarded-host': 'preptracker.org' }))).toBe('preptracker.org');
+    expect(requestHost(new Headers({ host: 'localhost:3007' }))).toBe('localhost:3007');
   });
 });

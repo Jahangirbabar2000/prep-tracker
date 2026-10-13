@@ -77,6 +77,10 @@ await check('sign-in goes to Cognito with PKCE', async () => {
   expect([302, 307].includes(res.status), `status ${res.status}`);
   expect(/amazoncognito\.com\/oauth2\/authorize/.test(location), `location ${location.slice(0, 80)}`);
   expect(location.includes('code_challenge_method=S256'), 'no PKCE challenge');
+  // Back to the origin this check runs against — the domain, or the
+  // CloudFront fallback — so a sign-in never lands on the other one.
+  const redirect = new URL(location).searchParams.get('redirect_uri');
+  expect(redirect === `${BASE}/api/auth/callback`, `redirect_uri ${redirect}`);
 });
 await check('the passcode is off on a deployed stage', async () => {
   const res = await fetch(`${BASE}/api/auth`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"password":"x"}' });

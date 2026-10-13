@@ -142,6 +142,7 @@ database.
   `TursoAuthToken`, `AuthSecret`, `SiteUrl` (the stage's public URL; set it before
   the first real deploy, since Cognito's callback URLs are built from it), and
   optionally `OtelEndpoint` / `OtelHeaders` for tracing.
+- **Domains:** production is https://preptracker.org and staging https://staging.preptracker.org (DNS at Cloudflare, managed in `sst.config.ts`). Each stage's CloudFront address keeps working as a fallback for networks that block newly registered domains.
 - **CI/CD:** GitHub Actions. Every push runs types, unit and e2e tests; a merge to
   `main` then deploys staging and production in turn — migrate, deploy, smoke test,
   and roll back to the last good commit if the smoke test fails. AWS access is OIDC

@@ -27,6 +27,8 @@ jobs:
       contents: write   # move the deployed/<stage> tag
     env:
       STAGE: ${{ inputs.stage }}
+      # Not a secret: which Cloudflare account holds preptracker.org's DNS.
+      CLOUDFLARE_DEFAULT_ACCOUNT_ID: 7d0a482efa3a84561a15866d78c53950
       # Build-time public config (repository variables).
       NEXT_PUBLIC_POSTHOG_KEY: ${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
       NEXT_PUBLIC_APP_NAME: ${{ vars.NEXT_PUBLIC_APP_NAME }}
@@ -63,11 +65,17 @@ jobs:
             [ -n "$v" ] || { echo "::error::$name is not set for $STAGE"; exit 1; }
             echo "::add-mask::$v"
           done
+          # Optional: a stage with a custom domain writes its DNS through
+          # Cloudflare, and keeps its CloudFront address as a fallback.
+          cf="$(value CloudflareApiToken)"; [ -n "$cf" ] && echo "::add-mask::$cf"
+          fallback="$(value SiteUrlFallback)"
           {
             echo "TURSO_DATABASE_URL=$(value TursoDatabaseUrl)"
             echo "TURSO_AUTH_TOKEN=$(value TursoAuthToken)"
             echo "SMOKE_AUTH_SECRET=$(value AuthSecret)"
             echo "SMOKE_BASE_URL=$(value SiteUrl)"
+            [ -n "$cf" ] && echo "CLOUDFLARE_API_TOKEN=$cf"
+            case "$fallback" in http*) echo "SMOKE_FALLBACK_URL=$fallback" ;; esac
           } >> "$GITHUB_ENV"
 
       # Forward-only and recorded, so it is safe on every deploy; it runs first
@@ -75,12 +83,17 @@ jobs:
       - name: Migrate the database
         run: npm run db:migrate
 
+      # Installed again now CLOUDFLARE_API_TOKEN is set: the Cloudflare
+      # provider is only part of the config with it (sst.config.ts).
       - name: Deploy
-        run: npx sst deploy --stage "$STAGE"
+        run: npx sst install && npx sst deploy --stage "$STAGE"
 
       - name: Smoke test
         id: smoke
-        run: npm run smoke
+        # The domain, then the CloudFront fallback (when the stage has one).
+        run: |
+          npm run smoke
+          if [ -n "${SMOKE_FALLBACK_URL:-}" ]; then SMOKE_BASE_URL="$SMOKE_FALLBACK_URL" npm run smoke; fi
         env:
           SMOKE_DATABASE_URL: ${{ env.TURSO_DATABASE_URL }}
           SMOKE_DATABASE_TOKEN: ${{ env.TURSO_AUTH_TOKEN }}
