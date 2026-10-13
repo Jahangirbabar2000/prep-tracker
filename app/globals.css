@@ -13,6 +13,9 @@
      draw themselves from color-scheme, not from our tokens — without this the
      picker icon renders dark-on-dark once .dark is on. */
   color-scheme: light;
+  /* Hover elevation for .lift: a warm, bistre-tinted shadow (pure black looks
+     dirty on parchment). */
+  --lift-shadow: 0 2px 4px rgba(42, 34, 19, 0.06), 0 22px 44px -14px rgba(42, 34, 19, 0.32);
   --bg:            #f4efe2;
   --surface:       #fdfbf4;
   --surface-2:     #efe7d5;
@@ -37,6 +40,10 @@
    panels — a clear step up from the ground, so nothing reads flat. */
 .dark {
   color-scheme: dark;
+  /* A shadow barely shows on a dark ground, so the lift also gets a faint
+     gold edge to read as raised. */
+  --lift-shadow: 0 2px 6px rgba(0, 0, 0, 0.45), 0 24px 48px -16px rgba(0, 0, 0, 0.8),
+                 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
   --bg:            #141009;
   --surface:       #1f1810;
   --surface-2:     #2a2114;
@@ -142,6 +149,21 @@ body {
    Excludes the nav sidebar (not rounded) and the translucent mobile top bar. */
 :root:not(.dark) [class*="rounded"].bg-surface {
   box-shadow: 0 1px 2px rgba(42, 34, 19, 0.06), 0 10px 26px -10px rgba(42, 34, 19, 0.18);
+}
+
+/* .lift: rises with a deeper shadow on hover — the landing page's cards and
+   screenshots. Reduced motion keeps the shadow and drops the movement. */
+.lift {
+  transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  will-change: transform;
+}
+:root .lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--lift-shadow);
+  border-color: var(--border-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .lift:hover { transform: none; }
 }
 
 /* Display face carries the Gilded personality on headings + big numbers. */

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 /** A screenshot in both themes; the one matching the page's theme shows. */
 function Shot({ name, alt, priority = false }: { name: string; alt: string; priority?: boolean }) {
-  const common = { width: 1440, height: 900, loading: priority ? 'eager' as const : 'lazy' as const, className: 'w-full h-auto rounded-xl border border-border shadow-sm' };
+  const common = { width: 1440, height: 900, loading: priority ? 'eager' as const : 'lazy' as const, className: 'lift w-full h-auto rounded-xl border border-border shadow-sm' };
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-img-element -- static, pre-sized files; no optimizer needed */}
@@ -103,7 +103,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         <h2 className="font-display text-center text-2xl font-semibold tracking-tight text-fg sm:text-3xl">How it works</h2>
         <ol className="mt-8 grid gap-4 sm:grid-cols-3">
           {LOOP_STEPS.map(([title, detail], i) => (
-            <li key={title} className="rounded-2xl border border-border bg-surface p-5">
+            <li key={title} className="lift rounded-2xl border border-border bg-surface p-5">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-sm font-semibold text-accent">{i + 1}</span>
               <h3 className="mt-3 font-semibold text-fg">{title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-muted">{detail}</p>
@@ -142,7 +142,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         <p className="mt-2 text-muted">For the engineers reading: what makes it work.</p>
         <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {UNDER_THE_HOOD.map(({ icon: Icon, title, detail }) => (
-            <li key={title}>
+            <li key={title} className="lift -m-3 rounded-xl border border-transparent p-3 hover:bg-surface-2">
               <Icon size={20} className="text-accent" aria-hidden />
               <h3 className="mt-2 font-semibold text-fg">{title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-muted">{detail}</p>
