@@ -60,7 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Recall" />
+        <meta name="apple-mobile-web-app-title" content="Prep" />
         {/* iOS gets its own icon, not the maskable /icon-192.png: iOS ignores
             `purpose: maskable` and applies its own squircle clip, so the
             maskable art's 20% Android safe-zone inset just made the mark look
