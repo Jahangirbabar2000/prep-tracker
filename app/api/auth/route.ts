@@ -19,8 +19,10 @@ const signInAsAllowed = () => process.env.ALLOW_SIGN_IN_AS === '1' && process.en
 export async function POST(req: NextRequest) {
   const secret = process.env.AUTH_SECRET;
   const expected = process.env.APP_PASSWORD;
+  // 404, not 503: on a deployed stage this route is off by design, and a 5xx
+  // would count as an outage on the Grafana dashboard (the smoke test checks it).
   if (!secret || !expected) {
-    return NextResponse.json({ error: 'Auth isn’t configured.' }, { status: 503 });
+    return NextResponse.json({ error: 'Passcode sign-in is off here.' }, { status: 404 });
   }
 
   let body: { password?: string; user_id?: unknown };

@@ -86,7 +86,7 @@ await check('sign-in goes to Cognito with PKCE', async () => {
 });
 await check('the passcode is off on a deployed stage', async () => {
   const res = await fetch(`${BASE}/api/auth`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"password":"x"}' });
-  expect(res.status === 503, `status ${res.status}`);
+  expect(res.status === 404, `status ${res.status}`);
 });
 await check('the demo opens, and its cookie never reaches the API', async () => {
   const res = await get('/demo');
