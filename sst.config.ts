@@ -56,6 +56,14 @@ export default $config({
       warm: 1,
       // DELETE /api/account removes the person's Cognito user too.
       permissions: [{ actions: ['cognito-idp:AdminDeleteUser'], resources: [auth.userPoolArn] }],
+      // A ceiling on the server function, so a flood of traffic (a bot, an
+      // attack) can't scale to the account's 1,000 and run up the bill.
+      // Reserved concurrency also comes out of the account pool, so the other
+      // stages get less: production far more than two people need, the rest
+      // just enough to test with.
+      transform: {
+        server: { concurrency: { reserved: $app.stage === 'production' ? 50 : 10 } },
+      },
       environment: {
         TURSO_DATABASE_URL: tursoUrl.value,
         TURSO_AUTH_TOKEN: tursoToken.value,
