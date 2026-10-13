@@ -26,9 +26,13 @@ export default $config({
     };
   },
   async run() {
-    // `sst deploy --stage ci`, once per account from a laptop: only the role
-    // GitHub Actions deploys with. Every other stage is the app.
-    if ($app.stage === 'ci') return githubDeployRole();
+    // `sst deploy --stage ci`, once per account from a laptop: account-wide
+    // plumbing — the role GitHub Actions deploys with, and the cost alerts.
+    // Every other stage is the app.
+    if ($app.stage === 'ci') {
+      costAlerts();
+      return githubDeployRole();
+    }
 
     const tursoUrl = new sst.Secret('TursoDatabaseUrl');
     const tursoToken = new sst.Secret('TursoAuthToken');
@@ -105,6 +109,45 @@ export default $config({
 });
 
 const GITHUB_REPO = 'Jahangirbabar2000/prep-tracker';
+const ALERT_EMAIL = 'jahangirbabar2000@gmail.com';
+
+/**
+ * Email alerts on the whole account's spend. The account is on the Paid plan
+ * with no credits, so anything past a free allowance is billed: expected
+ * spend is about $0.55/month (the Route 53 zone, S3 pennies), so $1 actual
+ * is the first sign of something new, and a $5 forecast catches a trend
+ * before the month is out. AWS Budgets is free for the first two.
+ */
+function costAlerts() {
+  new aws.budgets.Budget('MonthlySpend', {
+    name: 'prep-tracker-monthly-actual',
+    budgetType: 'COST',
+    limitAmount: '1',
+    limitUnit: 'USD',
+    timeUnit: 'MONTHLY',
+    notifications: [{
+      comparisonOperator: 'GREATER_THAN',
+      threshold: 100,
+      thresholdType: 'PERCENTAGE',
+      notificationType: 'ACTUAL',
+      subscriberEmailAddresses: [ALERT_EMAIL],
+    }],
+  });
+  new aws.budgets.Budget('MonthlyForecast', {
+    name: 'prep-tracker-monthly-forecast',
+    budgetType: 'COST',
+    limitAmount: '5',
+    limitUnit: 'USD',
+    timeUnit: 'MONTHLY',
+    notifications: [{
+      comparisonOperator: 'GREATER_THAN',
+      threshold: 100,
+      thresholdType: 'PERCENTAGE',
+      notificationType: 'FORECASTED',
+      subscriberEmailAddresses: [ALERT_EMAIL],
+    }],
+  });
+}
 // GitHub environments the deploy workflow's jobs run in. Not Vercel's own
 // "Preview"/"Production" (environment names are case-insensitive).
 const DEPLOY_ENVIRONMENTS = ['aws-staging', 'aws-production'];
