@@ -56,6 +56,11 @@ const json = (path, method, body) => signedIn(path, {
   body: JSON.stringify(body),
 });
 
+// ROLLBACK TEST — fails on purpose against the marked build (reverted right after).
+await check('not the deliberately bad rollback-test build', async () => {
+  expect(!(await get('/login')).headers.get('x-rollback-test'), 'x-rollback-test header present');
+});
+
 // Signed out.
 await check('landing page at / for a signed-out visitor, never cached', async () => {
   const res = await get('/');
