@@ -8,7 +8,7 @@
 
 export const UPCOMING_WEEK_DAYS = 7;
 /** Hard ceiling on how far the pager can reach (~2 months). */
-export const UPCOMING_MAX_WEEKS = 8;
+export const UPCOMING_MAX_WEEKS = 9;
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = [
